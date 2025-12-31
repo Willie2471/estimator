@@ -402,6 +402,44 @@
       background: #2ecc71;
       transform: scale(1.1);
     }
+
+    /* Print Styles */
+    @media print {
+      /* Hide left panel (all input fields) */
+      .left-panel {
+        display: none !important;
+      }
+      
+      /* Make right panel (summary) full width */
+      .main-grid {
+        grid-template-columns: 1fr !important;
+      }
+      
+      /* Hide buttons */
+      button {
+        display: none !important;
+      }
+      
+      /* Hide footer */
+      .footer {
+        display: none !important;
+      }
+      
+      /* Ensure good page breaks */
+      .section {
+        page-break-inside: avoid;
+      }
+      
+      /* Optimize for print */
+      body {
+        background: white !important;
+      }
+      
+      .container {
+        max-width: 100% !important;
+        padding: 20px !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -920,8 +958,16 @@
         `;
       } else if (category === 'sod') {
         dimensionsContainer.innerHTML = `
-          <label>Square Feet</label>
-          <input type="number" id="sqFt" placeholder="Enter square feet">
+          <div class="grid-2">
+            <div>
+              <label>Length (ft)</label>
+              <input type="number" id="length" placeholder="0">
+            </div>
+            <div>
+              <label>Width (ft)</label>
+              <input type="number" id="width" placeholder="0">
+            </div>
+          </div>
         `;
       } else {
         dimensionsContainer.innerHTML = `
@@ -1472,10 +1518,13 @@
       let details = '';
 
       if (prevCategory === 'sod') {
-        const sqFt = parseFloat(document.getElementById('sqFt')?.value || 0);
+        const length = parseFloat(document.getElementById('length')?.value || 0);
+        const width = parseFloat(document.getElementById('width')?.value || 0);
+        const sqFt = length * width;
         if (sqFt > 0) {
           materialCost = sqFt * material.pricePerSqFt;
-          details = `${sqFt} sq ft`;
+          const pallets = Math.ceil(sqFt / 400);
+          details = `${sqFt} sq ft • ${pallets} ${pallets === 1 ? 'pallet' : 'pallets'} (400 sq ft/pallet)`;
         }
       } else {
         const length = parseFloat(document.getElementById('length')?.value || 0);
@@ -1618,9 +1667,10 @@
       let totalLinearFt = 0;
 
       if (category === 'sod') {
-        const sqFt = parseFloat(document.getElementById('sqFt')?.value || 0);
-        totalSqFt = sqFt;
-        materialCost = sqFt * material.pricePerSqFt;
+        const length = parseFloat(document.getElementById('length')?.value || 0);
+        const width = parseFloat(document.getElementById('width')?.value || 0);
+        totalSqFt = length * width;
+        materialCost = totalSqFt * material.pricePerSqFt;
       } else {
         const length = parseFloat(document.getElementById('length')?.value || 0);
         const width = parseFloat(document.getElementById('width')?.value || 0);
@@ -1838,7 +1888,7 @@
                   </div>
                   <div style="font-size: 11px; color: #7f8c8d;">
                     ${estimate.category === 'sod' 
-                      ? `${estimate.totalSqFt.toFixed(0)} sq ft` 
+                      ? `${estimate.totalSqFt.toFixed(0)} sq ft • ${Math.ceil(estimate.totalSqFt / 400)} ${Math.ceil(estimate.totalSqFt / 400) === 1 ? 'pallet' : 'pallets'} (400 sq ft/pallet)` 
                       : `${estimate.totalSqFt.toFixed(0)} sq ft × depth = ${estimate.cubicYards.toFixed(2)} yards`}
                   </div>
                 </div>
@@ -1862,7 +1912,7 @@
               </div>
             ` : ''}
             <div class="info-row" style="margin-left: 16px; font-size: 12px; opacity: 0.8;">
-              <span>Additional Materials Subtotal:</span>
+              <span>Materials Subtotal:</span>
               <span>${formatCurrency(estimate.additionalMaterialsBase)}</span>
             </div>
             <div class="info-row" style="margin-left: 16px; font-size: 12px; opacity: 0.8;">
@@ -1952,9 +2002,9 @@
           </div>
         </div>
 
-        <!-- Download Button -->
-        <button onclick="downloadPDF()" style="background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%); border: none;">
-          📄 Download PDF Report
+        <!-- Print Button -->
+        <button onclick="window.print()" style="background: linear-gradient(90deg, #3498db 0%, #2980b9 100%); border: none;">
+          🖨️ Print / Save as PDF
         </button>
 
         <!-- Budget vs Actual Tracker -->
@@ -2227,7 +2277,8 @@ See estimate details in the interface above.
           wentWell: document.getElementById('notesWentWell')?.value || '',
           challenges: document.getElementById('notesChallenges')?.value || '',
           actionSteps: document.getElementById('notesActionSteps')?.value || ''
-        }
+        },
+        completedMaterials: completedMaterials || []
       };
       
       // Capture dimension fields dynamically
@@ -2359,6 +2410,11 @@ See estimate details in the interface above.
         if (document.getElementById('notesWentWell')) document.getElementById('notesWentWell').value = data.projectNotes.wentWell || '';
         if (document.getElementById('notesChallenges')) document.getElementById('notesChallenges').value = data.projectNotes.challenges || '';
         if (document.getElementById('notesActionSteps')) document.getElementById('notesActionSteps').value = data.projectNotes.actionSteps || '';
+      }
+      
+      // Completed materials
+      if (data.completedMaterials) {
+        completedMaterials = data.completedMaterials;
       }
       
       // Re-attach auto-save listeners to newly created dimension inputs
@@ -2526,6 +2582,9 @@ See estimate details in the interface above.
       additionalMaterialRows = [];
       const materialsList = document.getElementById('additionalMaterialsList');
       if (materialsList) materialsList.innerHTML = '';
+      
+      // Clear completed materials
+      completedMaterials = [];
       
       // Clear actual costs
       if (document.getElementById('actualMaterials')) document.getElementById('actualMaterials').value = '';
