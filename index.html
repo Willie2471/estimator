@@ -855,15 +855,30 @@
         });
       }
 
+      // Track previous category to save material before switching
+      let previousCategory = materialCategory.value;
+      let previousMaterialType = materialType.value;
+
       // Material category change listener - save current material before switching
       materialCategory.addEventListener('change', () => {
-        saveCurrentMaterial(); // Save before switching
+        // Save using previous values (before the change)
+        saveCurrentMaterialBeforeSwitch(previousCategory, previousMaterialType);
+        
+        // Update to new category
         updateMaterialOptions();
         updateDimensionsInputs();
+        
+        // Store new values for next change
+        previousCategory = materialCategory.value;
+        previousMaterialType = materialType.value;
+        
         calculate();
       });
 
-      materialType.addEventListener('change', calculate);
+      materialType.addEventListener('change', () => {
+        previousMaterialType = materialType.value;
+        calculate();
+      });
 
       // Add input listeners for all inputs
       document.querySelectorAll('input, select').forEach(el => {
@@ -1448,7 +1463,62 @@
       });
     }
 
-    // Save current material to completedMaterials before switching
+    // Save current material using previous category/type values (before switching)
+    function saveCurrentMaterialBeforeSwitch(prevCategory, prevMaterialType) {
+      // Don't save if it was "none" or no category
+      if (!prevCategory || prevCategory === 'none') return;
+      
+      const material = MATERIALS[prevCategory]?.find(m => m.name === prevMaterialType);
+      
+      if (!material) return;
+
+      let materialCost = 0;
+      let details = '';
+
+      if (prevCategory === 'sod') {
+        const sqFt = parseFloat(document.getElementById('sqFt')?.value || 0);
+        if (sqFt > 0) {
+          materialCost = sqFt * material.pricePerSqFt;
+          details = `${sqFt} sq ft`;
+        }
+      } else {
+        const length = parseFloat(document.getElementById('length')?.value || 0);
+        const width = parseFloat(document.getElementById('width')?.value || 0);
+        const depth = parseFloat(document.getElementById('depth')?.value || 1);
+        
+        if (length > 0 && width > 0) {
+          const cubicFeet = (length * width * depth) / 12;
+          const cubicYards = cubicFeet / 27;
+          materialCost = cubicYards * material.pricePerYard;
+          details = `${(length * width).toFixed(0)} sq ft × depth = ${cubicYards.toFixed(2)} yards`;
+        }
+      }
+
+      // Only save if there's a cost
+      if (materialCost > 0) {
+        // Check if this material already exists in completed materials
+        const existingIndex = completedMaterials.findIndex(m => 
+          m.category === prevCategory && m.materialName === prevMaterialType
+        );
+        
+        const materialData = {
+          category: prevCategory,
+          materialName: prevMaterialType,
+          cost: materialCost,
+          details
+        };
+        
+        if (existingIndex >= 0) {
+          // Update existing
+          completedMaterials[existingIndex] = materialData;
+        } else {
+          // Add new
+          completedMaterials.push(materialData);
+        }
+      }
+    }
+
+    // Save current material to completedMaterials before switching (DEPRECATED - use saveCurrentMaterialBeforeSwitch)
     function saveCurrentMaterial() {
       const category = materialCategory.value;
       
