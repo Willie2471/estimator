@@ -431,11 +431,11 @@
         <div class="section">
           <h2>📦 Material Selection</h2>
           <select id="materialCategory">
-            <option value="none">None (Skip Material)</option>
             <option value="mulch">Mulch</option>
             <option value="rock">Decorative Rock</option>
             <option value="dirt">Dirt/Soil</option>
             <option value="sod">Sod</option>
+            <option value="none">None (Skip Material)</option>
           </select>
           <select id="materialType"></select>
           
@@ -1571,6 +1571,8 @@
     function calculate() {
       const category = materialCategory.value;
       
+      console.log('Calculate called - Category:', category);
+      
       // Handle "None" selection
       if (category === 'none') {
         // Hide inline display
@@ -1595,6 +1597,11 @@
       
       const selectedMaterialName = materialType.value;
       const material = MATERIALS[category]?.find(m => m.name === selectedMaterialName);
+      
+      console.log('[Main Calculate] Category:', category, 'Material name:', selectedMaterialName, 'Found:', !!material);
+      if (!material) {
+        console.warn('[Main Calculate] No material found!');
+      }
       
       if (!material) return;
 
