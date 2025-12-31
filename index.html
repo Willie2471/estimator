@@ -823,15 +823,7 @@
       initializeAdditionalMaterials();
       initializeGoogleMaps();
       
-      // Event listeners
-      materialCategory.addEventListener('change', () => {
-        updateMaterialOptions();
-        updateDimensionsInputs();
-        calculate();
-      });
-
-      materialType.addEventListener('change', calculate);
-
+      // GeoTextile and Edging listeners
       includeGeoTextile.addEventListener('change', (e) => {
         geoTextileLinearFt.style.display = e.target.checked ? 'block' : 'none';
         document.getElementById('geoTextileLabel').classList.toggle('active', e.target.checked);
