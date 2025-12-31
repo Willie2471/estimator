@@ -903,7 +903,9 @@
         const price = category === 'sod' 
           ? `$${m.pricePerSqFt.toFixed(2)}/sq ft`
           : `$${m.pricePerYard}/yard`;
-        return `<option value="${m.name}">${m.name} - ${price}</option>`;
+        // Escape quotes in material name for HTML attribute
+        const escapedName = m.name.replace(/"/g, '&quot;');
+        return `<option value="${escapedName}">${m.name} - ${price}</option>`;
       }).join('');
     }
 
@@ -1460,7 +1462,9 @@
       // Don't save if it was "none" or no category
       if (!prevCategory || prevCategory === 'none') return;
       
-      const material = MATERIALS[prevCategory]?.find(m => m.name === prevMaterialType);
+      // Decode HTML entities (quotes) from option value
+      const decodedMaterialType = prevMaterialType.replace(/&quot;/g, '"');
+      const material = MATERIALS[prevCategory]?.find(m => m.name === decodedMaterialType);
       
       if (!material) return;
 
@@ -1490,12 +1494,12 @@
       if (materialCost > 0) {
         // Check if this material already exists in completed materials
         const existingIndex = completedMaterials.findIndex(m => 
-          m.category === prevCategory && m.materialName === prevMaterialType
+          m.category === prevCategory && m.materialName === decodedMaterialType
         );
         
         const materialData = {
           category: prevCategory,
-          materialName: prevMaterialType,
+          materialName: decodedMaterialType,
           cost: materialCost,
           details
         };
@@ -1596,9 +1600,11 @@
       }
       
       const selectedMaterialName = materialType.value;
-      const material = MATERIALS[category]?.find(m => m.name === selectedMaterialName);
+      // Decode HTML entities (quotes) from option value
+      const decodedMaterialName = selectedMaterialName.replace(/&quot;/g, '"');
+      const material = MATERIALS[category]?.find(m => m.name === decodedMaterialName);
       
-      console.log('[Main Calculate] Category:', category, 'Material name:', selectedMaterialName, 'Found:', !!material);
+      console.log('[Main Calculate] Category:', category, 'Material name:', decodedMaterialName, 'Found:', !!material);
       if (!material) {
         console.warn('[Main Calculate] No material found!');
       }
@@ -1651,7 +1657,7 @@
       
       calculateTotalsAndDisplay(materialCost, {
         category,
-        materialName: selectedMaterialName,
+        materialName: decodedMaterialName,
         cubicYards,
         cubicFeet,
         totalSqFt,
