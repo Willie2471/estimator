@@ -437,6 +437,19 @@
             <option value="sod">Sod</option>
           </select>
           <select id="materialType"></select>
+          
+          <!-- Inline Material Cost Display -->
+          <div id="materialCostDisplay" style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); padding: 16px; border-radius: 8px; margin-top: 12px; display: none;">
+            <div style="color: rgba(255,255,255,0.9); font-size: 11px; font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Material Cost</div>
+            <div id="materialCostAmount" style="color: white; font-size: 28px; font-weight: 700; margin-bottom: 4px;">$0.00</div>
+            <div id="materialCostDetails" style="color: rgba(255,255,255,0.85); font-size: 12px;"></div>
+          </div>
+        </div>
+        
+        <!-- Dimensions -->
+        <div class="section">
+          <h2>📐 Dimensions</h2>
+          <div id="dimensionsContainer"></div>
         </div>
 
         <!-- Additional Materials -->
@@ -754,7 +767,7 @@
     let mapMeasurements = [];
     let locationMarker = null; // Persistent red marker for searched location
     
-    // Equipment and material rows
+    // Equipment, material rows, and material sections
     let equipmentRows = [];
     let additionalMaterialRows = [];
     
@@ -995,8 +1008,9 @@
     function removeMaterialRow(id) {
       const element = document.getElementById(`material-${id}`);
       if (element) element.remove();
-      additionalMaterialRows = additionalMaterialRows.filter(r => r.id != id);
+      additionalMaterialRows = additionalMaterialRows.filter(r => r.id !== id);
       calculate();
+      autoSave();
     }
 
     // Initialize Google Maps
@@ -1440,6 +1454,24 @@
         materialCost = cubicYards * material.pricePerYard;
       }
 
+      // Update inline material cost display
+      const materialCostDisplay = document.getElementById('materialCostDisplay');
+      const materialCostAmount = document.getElementById('materialCostAmount');
+      const materialCostDetails = document.getElementById('materialCostDetails');
+      
+      if (materialCost > 0 && materialCostDisplay && materialCostAmount && materialCostDetails) {
+        materialCostDisplay.style.display = 'block';
+        materialCostAmount.textContent = formatCurrency(materialCost);
+        
+        if (category === 'sod') {
+          materialCostDetails.textContent = `${totalSqFt} sq ft @ ${formatCurrency(material.pricePerSqFt)}/sq ft`;
+        } else {
+          materialCostDetails.textContent = `${totalSqFt.toFixed(0)} sq ft × ${document.getElementById('depth')?.value || 1}" depth = ${cubicYards.toFixed(2)} yards`;
+        }
+      } else if (materialCostDisplay) {
+        materialCostDisplay.style.display = 'none';
+      }
+
       const geoTextileCost = includeGeoTextile.checked 
         ? (parseFloat(geoTextileLinearFt.value) || 0) * ADDONS.geoTextile.pricePerLinearFt 
         : 0;
@@ -1448,8 +1480,9 @@
         : 0;
       const addOnsCost = geoTextileCost + edgingCost;
 
-      const laborCost = (parseFloat(document.getElementById('laborHours').value) || 0) 
-        * (parseFloat(document.getElementById('laborRate').value) || 0);
+      const laborHours = parseFloat(document.getElementById('laborHours').value) || 0;
+      const laborRate = parseFloat(document.getElementById('laborRate').value) || 0;
+      const laborCost = laborHours * laborRate;
       
       // Calculate equipment costs from rows
       const equipmentCost = equipmentRows.reduce((sum, row) => sum + (row.cost || 0), 0);
@@ -1468,8 +1501,8 @@
 
       // Auto-populate budget hours from labor hours input
       const budgetHoursInput = document.getElementById('budgetHours');
-      if (budgetHoursInput) {
-        budgetHoursInput.value = laborHours || '';
+      if (budgetHoursInput && laborHours > 0) {
+        budgetHoursInput.value = laborHours;
       }
 
       // Get target profit margin from slider
