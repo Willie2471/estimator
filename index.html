@@ -1988,10 +1988,10 @@
         edgingCost,
         laborCost,
         equipmentCost: equipmentCost,
-        equipmentRows: equipmentRows.map(r => ({
-          description: document.getElementById(`equipment-desc-${r.id}`)?.value || '',
-          cost: parseFloat(document.getElementById(`equipment-cost-${r.id}`)?.value) || 0
-        })).filter(r => r.description && r.description.trim().length > 0),
+        equipmentRows: equipmentRows.filter(r => r.description && r.description.trim().length > 0).map(r => ({
+          description: r.description,
+          cost: r.cost
+        })),
         equipmentRentalCost: equipmentRentalCost,
         equipmentRentalSelections: equipmentRentalSelections.filter(r => r.name && r.cost > 0),
         totalEquipmentCost: totalEquipmentCost,
@@ -2636,6 +2636,9 @@ See estimate details in the interface above.
           setTimeout(() => {
             document.getElementById(`equipment-desc-${lastRow.id}`).value = eq.description;
             document.getElementById(`equipment-cost-${lastRow.id}`).value = eq.cost;
+            // Update the tracked values too
+            lastRow.description = eq.description;
+            lastRow.cost = parseFloat(eq.cost) || 0;
           }, 50);
         });
       }
@@ -2718,7 +2721,7 @@ See estimate details in the interface above.
       }, 150);
       
       // Recalculate with proper delay to ensure all fields are populated
-      setTimeout(() => calculate(), 200);
+      setTimeout(() => calculate(), 300);
     }
 
     // Save project (manual save with prompt)
