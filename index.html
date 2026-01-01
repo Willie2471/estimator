@@ -418,6 +418,7 @@
       /* Make right panel (summary) full width */
       .main-grid {
         grid-template-columns: 1fr !important;
+        display: block !important;
       }
       
       /* Hide buttons */
@@ -433,11 +434,13 @@
       /* Allow sections to break across pages if needed */
       .section {
         page-break-inside: auto;
+        break-inside: auto;
       }
       
       /* Keep headings with their content */
       h2, h3 {
         page-break-after: avoid;
+        break-after: avoid;
         margin-top: 0;
       }
       
@@ -458,13 +461,15 @@
         max-width: 100% !important;
         padding: 0 !important;
         margin: 0 !important;
+        width: 100% !important;
       }
       
-      /* Ensure all content is visible */
+      /* CRITICAL: Ensure all content is visible */
       .right-panel {
         max-height: none !important;
         overflow: visible !important;
         height: auto !important;
+        display: block !important;
       }
       
       /* Remove any fixed heights and scrolling */
@@ -477,11 +482,27 @@
       .section {
         background: white !important;
         border-color: #ddd !important;
+        overflow: visible !important;
       }
       
       /* Ensure good breaks for cost breakdown items */
       .section > div {
         page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      
+      /* Force visibility of all divs */
+      div {
+        overflow: visible !important;
+        height: auto !important;
+        max-height: none !important;
+      }
+      
+      /* Show full content */
+      #summaryContent {
+        display: block !important;
+        overflow: visible !important;
+        height: auto !important;
       }
     }
   </style>
@@ -897,17 +918,17 @@
     // This data syncs with: https://docs.google.com/spreadsheets/d/1fFbsuDFXu_W4MK234vNwM-WsEHkcDp6N1Tn_ZRe_J1I/edit#gid=268979256
     // To update: Modify your Google Sheet and update this array manually, or contact developer for auto-sync feature
     const EQUIPMENT_RENTAL = [
-      { name: 'Stump Grinder 13 HP', dailyRate: 188, halfDayRate: 132 },
-      { name: '1-Ton Mini Excavator', dailyRate: 349, halfDayRate: 262 },
-      { name: '1.5-2 Ton Mini Excavator', dailyRate: 369, halfDayRate: 277 },
-      { name: '700-1,200 lb Tracked Skid Steer', dailyRate: 389, halfDayRate: 292 },
-      { name: 'Skid Steer Tracked (ROC 1400-1900 lbs)', dailyRate: 439, halfDayRate: 329 },
-      { name: 'Mini Skid Steer (1182lb/500lb capacity)', dailyRate: 329, halfDayRate: 247 },
-      { name: 'Mini Skid Steer (4420lb/860lb capacity)', dailyRate: 349, halfDayRate: 262 },
-      { name: 'Compact Stump Grinder', dailyRate: 153, halfDayRate: 107 },
-      { name: 'Lawn Roller', dailyRate: 27, halfDayRate: 19 },
-      { name: 'Sod Cutter (18" width, 20 cpm)', dailyRate: 129, halfDayRate: 90 },
-      { name: 'PRO Sod Cutter', dailyRate: 149, halfDayRate: 104 }
+      { name: 'Stump Grinder 13 HP', fourHourRate: 132, dailyRate: 188, weekRate: 752, fourWeekRate: 2256 },
+      { name: '1-Ton Mini Excavator', fourHourRate: 262, dailyRate: 349, weekRate: 1047, fourWeekRate: 2618 },
+      { name: '1.5-2 Ton Mini Excavator', fourHourRate: 277, dailyRate: 369, weekRate: 1107, fourWeekRate: 2768 },
+      { name: '700-1,200 lb Tracked Skid Steer', fourHourRate: 292, dailyRate: 389, weekRate: 1167, fourWeekRate: 2918 },
+      { name: 'Skid Steer Tracked (ROC 1400-1900 lbs)', fourHourRate: 329, dailyRate: 439, weekRate: 1229, fourWeekRate: 3073 },
+      { name: 'Mini Skid Steer (1182lb/500lb capacity)', fourHourRate: 247, dailyRate: 329, weekRate: 987, fourWeekRate: 2468 },
+      { name: 'Mini Skid Steer (4420lb/860lb capacity)', fourHourRate: 262, dailyRate: 349, weekRate: 1047, fourWeekRate: 2618 },
+      { name: 'Compact Stump Grinder', fourHourRate: 107, dailyRate: 153, weekRate: 612, fourWeekRate: 1836 },
+      { name: 'Lawn Roller', fourHourRate: 19, dailyRate: 27, weekRate: 108, fourWeekRate: 324 },
+      { name: 'Sod Cutter (18" width, 20 cpm)', fourHourRate: 90, dailyRate: 129, weekRate: 516, fourWeekRate: 1548 },
+      { name: 'PRO Sod Cutter', fourHourRate: 104, dailyRate: 149, weekRate: 596, fourWeekRate: 1788 }
     ];
 
     // Track equipment rental selections
@@ -1088,8 +1109,8 @@
       rowDiv.id = `equipment-${id}`;
       rowDiv.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; margin-bottom: 8px;';
       rowDiv.innerHTML = `
-        <input type="text" placeholder="Equipment description" class="equipment-desc" data-id="${id}" style="padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: inherit;">
-        <input type="number" placeholder="Cost" class="equipment-cost" data-id="${id}" style="padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: inherit;">
+        <input type="text" id="equipment-desc-${id}" placeholder="Equipment description" style="padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: inherit;">
+        <input type="number" id="equipment-cost-${id}" placeholder="Cost" style="padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: inherit;">
         <button onclick="removeEquipmentRow('${id}')" style="padding: 10px; background: #e74c3c; color: white; border: none; border-radius: 6px; cursor: pointer;">✕</button>
       `;
       
@@ -1097,16 +1118,18 @@
       equipmentRows.push({ id, description: '', cost: 0 });
       
       // Add event listeners
-      rowDiv.querySelector('.equipment-desc').addEventListener('input', (e) => {
+      document.getElementById(`equipment-desc-${id}`).addEventListener('input', (e) => {
         const row = equipmentRows.find(r => r.id == id);
         if (row) row.description = e.target.value;
         calculate();
+        autoSave();
       });
       
-      rowDiv.querySelector('.equipment-cost').addEventListener('input', (e) => {
+      document.getElementById(`equipment-cost-${id}`).addEventListener('input', (e) => {
         const row = equipmentRows.find(r => r.id == id);
         if (row) row.cost = parseFloat(e.target.value) || 0;
         calculate();
+        autoSave();
       });
     }
 
@@ -1148,16 +1171,15 @@
         <div style="margin-bottom: 12px;">
           <label style="display: block; margin-bottom: 4px; font-weight: 600; font-size: 13px;">Duration</label>
           <select id="equipment-rental-duration-${id}" onchange="updateEquipmentRentalCost(${id})" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: inherit;">
-            <option value="half">Half Day</option>
+            <option value="4hour">4 Hours</option>
             <option value="full" selected>Full Day</option>
-            <option value="2">2 Days</option>
-            <option value="3">3 Days</option>
-            <option value="week">Week (7 days)</option>
+            <option value="week">Week</option>
+            <option value="4week">4 Weeks</option>
           </select>
         </div>
         
         <div style="background: white; padding: 12px; border-radius: 6px; border: 2px solid #3498db;">
-          <div style="font-size: 12px; color: #7f8c8d; margin-bottom: 4px;">Rental Cost</div>
+          <div style="font-size: 12px; color: #7f8c8d; margin-bottom: 4px;">Rental Cost (with tax & insurance)</div>
           <div id="equipment-rental-cost-${id}" style="font-size: 20px; font-weight: 700; color: #3498db;">$0.00</div>
           <div id="equipment-rental-details-${id}" style="font-size: 11px; color: #7f8c8d; margin-top: 4px;"></div>
         </div>
@@ -1191,33 +1213,47 @@
       const equipment = EQUIPMENT_RENTAL.find(e => e.name === equipmentName);
       if (!equipment) return;
       
-      let cost = 0;
+      let baseCost = 0;
       let details = '';
       
-      if (duration === 'half') {
-        cost = equipment.halfDayRate;
-        details = `Half day rental`;
+      if (duration === '4hour') {
+        baseCost = equipment.fourHourRate;
+        details = `4 hour rental`;
       } else if (duration === 'full') {
-        cost = equipment.dailyRate;
+        baseCost = equipment.dailyRate;
         details = `Full day rental`;
       } else if (duration === 'week') {
-        cost = equipment.dailyRate * 7 * 0.85; // 15% discount for week
-        details = `Week rental (7 days, 15% discount)`;
-      } else {
-        const days = parseInt(duration);
-        cost = equipment.dailyRate * days;
-        details = `${days} day rental`;
+        baseCost = equipment.weekRate;
+        details = `Week rental`;
+      } else if (duration === '4week') {
+        baseCost = equipment.fourWeekRate;
+        details = `4 weeks rental`;
       }
       
-      document.getElementById(`equipment-rental-cost-${id}`).textContent = formatCurrency(cost);
-      document.getElementById(`equipment-rental-details-${id}`).textContent = details;
+      // Add 15% rental insurance
+      const insurance = baseCost * 0.15;
+      
+      // Add 7% sales tax on (base + insurance)
+      const subtotalWithInsurance = baseCost + insurance;
+      const salesTax = subtotalWithInsurance * 0.07;
+      
+      // Total cost passed to customer
+      const totalCost = baseCost + insurance + salesTax;
+      
+      const detailsWithBreakdown = `${details} | Base: ${formatCurrency(baseCost)} + Insurance (15%): ${formatCurrency(insurance)} + Tax (7%): ${formatCurrency(salesTax)}`;
+      
+      document.getElementById(`equipment-rental-cost-${id}`).textContent = formatCurrency(totalCost);
+      document.getElementById(`equipment-rental-details-${id}`).textContent = detailsWithBreakdown;
       
       // Update selection
       const selection = equipmentRentalSelections.find(e => e.id === id);
       if (selection) {
         selection.name = equipmentName;
         selection.duration = duration;
-        selection.cost = cost;
+        selection.baseCost = baseCost;
+        selection.insurance = insurance;
+        selection.salesTax = salesTax;
+        selection.cost = totalCost;
         selection.details = details;
       }
       
@@ -2463,12 +2499,16 @@ See estimate details in the interface above.
         },
         equipment: equipmentRows.map(r => ({
           description: document.getElementById(`equipment-desc-${r.id}`)?.value || '',
-          cost: document.getElementById(`equipment-cost-${r.id}`)?.value || ''
-        })).filter(e => e.description || e.cost),
+          cost: parseFloat(document.getElementById(`equipment-cost-${r.id}`)?.value) || 0
+        })).filter(e => e.description && e.description.trim().length > 0),
         equipmentRental: equipmentRentalSelections.map(r => ({
           name: r.name,
           duration: r.duration,
-          cost: r.cost
+          baseCost: r.baseCost,
+          insurance: r.insurance,
+          salesTax: r.salesTax,
+          cost: r.cost,
+          details: r.details
         })).filter(e => e.name && e.cost > 0),
         additionalMaterials: additionalMaterialRows.map(r => ({
           description: document.getElementById(`material-desc-${r.id}`)?.value || '',
