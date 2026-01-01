@@ -405,6 +405,11 @@
 
     /* Print Styles */
     @media print {
+      @page {
+        size: letter;
+        margin: 0.5in;
+      }
+      
       /* Hide left panel (all input fields) */
       .left-panel {
         display: none !important;
@@ -433,27 +438,50 @@
       /* Keep headings with their content */
       h2, h3 {
         page-break-after: avoid;
+        margin-top: 0;
+      }
+      
+      /* Prevent orphaned lines */
+      p {
+        orphans: 3;
+        widows: 3;
       }
       
       /* Optimize for print */
       body {
         background: white !important;
+        font-size: 11pt;
+        line-height: 1.4;
       }
       
       .container {
         max-width: 100% !important;
-        padding: 20px !important;
+        padding: 0 !important;
+        margin: 0 !important;
       }
       
       /* Ensure all content is visible */
       .right-panel {
         max-height: none !important;
         overflow: visible !important;
+        height: auto !important;
       }
       
-      /* Remove any fixed heights */
+      /* Remove any fixed heights and scrolling */
       * {
         max-height: none !important;
+        overflow: visible !important;
+      }
+      
+      /* Make text printer-friendly */
+      .section {
+        background: white !important;
+        border-color: #ddd !important;
+      }
+      
+      /* Ensure good breaks for cost breakdown items */
+      .section > div {
+        page-break-inside: avoid;
       }
     }
   </style>
@@ -479,41 +507,6 @@
           <input type="text" id="projectName" placeholder="Project Name">
           <input type="text" id="propertyAddress" placeholder="Property Address">
           <input type="text" id="projectType" placeholder="Project Type">
-        </div>
-
-        <!-- Material Selection -->
-        <div class="section">
-          <h2>📦 Material Selection</h2>
-          <select id="materialCategory">
-            <option value="mulch">Mulch</option>
-            <option value="rock">Decorative Rock</option>
-            <option value="dirt">Dirt/Soil</option>
-            <option value="sod">Sod</option>
-            <option value="none">None (Skip Material)</option>
-          </select>
-          <select id="materialType"></select>
-          
-          <!-- Inline Material Cost Display -->
-          <div id="materialCostDisplay" style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); padding: 16px; border-radius: 8px; margin-top: 12px; display: none;">
-            <div style="color: rgba(255,255,255,0.9); font-size: 11px; font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Material Cost</div>
-            <div id="materialCostAmount" style="color: white; font-size: 28px; font-weight: 700; margin-bottom: 4px;">$0.00</div>
-            <div id="materialCostDetails" style="color: rgba(255,255,255,0.85); font-size: 12px;"></div>
-          </div>
-        </div>
-        
-        <!-- Dimensions -->
-        <div class="section">
-          <h2>📐 Dimensions</h2>
-          <div id="dimensionsContainer"></div>
-        </div>
-
-        <!-- Additional Materials -->
-        <div class="section">
-          <h2>📦 Additional Materials</h2>
-          <div id="additionalMaterialsContainer"></div>
-          <button onclick="addMaterialRow()" style="width: 100%; padding: 10px; background: #27ae60; color: white; border: none; border-radius: 6px; cursor: pointer; margin-top: 8px;">
-            ➕ Add Material Row
-          </button>
         </div>
 
         <!-- Google Maps Measurement -->
@@ -558,18 +551,65 @@
                 ➜ Apply to Dimensions Below
               </button>
             </div>
-            <div style="background: #e3f2fd; border: 2px solid #2196f3; border-radius: 8px; padding: 12px; font-size: 12px; color: #1976d2;">
-              <strong>📌 How to use:</strong>
-              <ul style="margin: 8px 0 0 20px; line-height: 1.6;">
-                <li>Start typing address - suggestions will appear automatically</li>
-                <li>Select from dropdown or press Enter to search</li>
-                <li><strong>Line tool:</strong> Measure distances (fences, paths, etc.)</li>
-                <li><strong>Rectangle/Polygon:</strong> Measure areas (mulch beds, sod, etc.)</li>
+            <div style="margin-top: 12px; padding: 12px; background: white; border-radius: 8px; border: 2px solid #3498db;">
+              <strong style="color: #2c3e50;">How to use:</strong>
+              <ul style="margin-top: 8px; padding-left: 20px; font-size: 13px; color: #555; line-height: 1.6;">
+                <li>Search for your property address above</li>
+                <li>Click "Draw Area" or "Draw Distance" to start measuring</li>
+                <li>Click points on the map to draw your measurement</li>
+                <li>Double-click or click "Finish Drawing" to complete</li>
                 <li>Draw multiple measurements - they'll be totaled automatically</li>
                 <li>Click "Apply to Dimensions Below" to transfer measurements</li>
               </ul>
             </div>
           </div>
+        </div>
+
+        <!-- Material Selection -->
+        <div class="section">
+          <h2>📦 Material Selection</h2>
+          <select id="materialCategory">
+            <option value="mulch">Mulch</option>
+            <option value="rock">Decorative Rock</option>
+            <option value="dirt">Dirt/Soil</option>
+            <option value="sod">Sod</option>
+            <option value="none">None (Skip Material)</option>
+          </select>
+          <select id="materialType"></select>
+          
+          <!-- Inline Material Cost Display -->
+          <div id="materialCostDisplay" style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); padding: 16px; border-radius: 8px; margin-top: 12px; display: none;">
+            <div style="color: rgba(255,255,255,0.9); font-size: 11px; font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Material Cost</div>
+            <div id="materialCostAmount" style="color: white; font-size: 28px; font-weight: 700; margin-bottom: 4px;">$0.00</div>
+            <div id="materialCostDetails" style="color: rgba(255,255,255,0.85); font-size: 12px;"></div>
+          </div>
+        </div>
+
+        <!-- Equipment Rental -->
+        <div class="section">
+          <h2>🚜 Equipment Rental</h2>
+          <p style="font-size: 13px; color: #7f8c8d; margin-bottom: 12px;">Select equipment for this project</p>
+          
+          <div id="equipmentRentalList"></div>
+          
+          <button onclick="addEquipmentRental()" style="width: 100%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; margin-top: 8px;">
+            ➕ Add Equipment
+          </button>
+        </div>
+        
+        <!-- Dimensions -->
+        <div class="section">
+          <h2>📐 Dimensions</h2>
+          <div id="dimensionsContainer"></div>
+        </div>
+
+        <!-- Additional Materials -->
+        <div class="section">
+          <h2>📦 Additional Materials</h2>
+          <div id="additionalMaterialsContainer"></div>
+          <button onclick="addMaterialRow()" style="width: 100%; padding: 10px; background: #27ae60; color: white; border: none; border-radius: 6px; cursor: pointer; margin-top: 8px;">
+            ➕ Add Material Row
+          </button>
         </div>
 
         <!-- Add-ons -->
@@ -853,6 +893,27 @@
       edging: { name: 'Composite Edging', pricePerLinearFt: 5.00 }
     };
 
+    // Equipment Rental pricing from Google Sheets (Equipment Rental tab)
+    // This data syncs with: https://docs.google.com/spreadsheets/d/1fFbsuDFXu_W4MK234vNwM-WsEHkcDp6N1Tn_ZRe_J1I/edit#gid=268979256
+    // To update: Modify your Google Sheet and update this array manually, or contact developer for auto-sync feature
+    const EQUIPMENT_RENTAL = [
+      { name: 'Stump Grinder 13 HP', dailyRate: 188, halfDayRate: 132 },
+      { name: '1-Ton Mini Excavator', dailyRate: 349, halfDayRate: 262 },
+      { name: '1.5-2 Ton Mini Excavator', dailyRate: 369, halfDayRate: 277 },
+      { name: '700-1,200 lb Tracked Skid Steer', dailyRate: 389, halfDayRate: 292 },
+      { name: 'Skid Steer Tracked (ROC 1400-1900 lbs)', dailyRate: 439, halfDayRate: 329 },
+      { name: 'Mini Skid Steer (1182lb/500lb capacity)', dailyRate: 329, halfDayRate: 247 },
+      { name: 'Mini Skid Steer (4420lb/860lb capacity)', dailyRate: 349, halfDayRate: 262 },
+      { name: 'Compact Stump Grinder', dailyRate: 153, halfDayRate: 107 },
+      { name: 'Lawn Roller', dailyRate: 27, halfDayRate: 19 },
+      { name: 'Sod Cutter (18" width, 20 cpm)', dailyRate: 129, halfDayRate: 90 },
+      { name: 'PRO Sod Cutter', dailyRate: 149, halfDayRate: 104 }
+    ];
+
+    // Track equipment rental selections
+    let equipmentRentalSelections = [];
+    let equipmentRentalIdCounter = 0;
+
     // DOM elements
     const materialCategory = document.getElementById('materialCategory');
     const materialType = document.getElementById('materialType');
@@ -1060,6 +1121,108 @@
     // Initialize additional materials
     function initializeAdditionalMaterials() {
       // Start with no rows - user can add as needed
+    }
+
+    // Equipment Rental Functions
+    function addEquipmentRental() {
+      const id = equipmentRentalIdCounter++;
+      const container = document.getElementById('equipmentRentalList');
+      
+      const rentalDiv = document.createElement('div');
+      rentalDiv.id = `equipment-rental-${id}`;
+      rentalDiv.style.cssText = 'background: #f8f9fa; border: 2px solid #3498db; border-radius: 8px; padding: 16px; margin-bottom: 12px; position: relative;';
+      
+      rentalDiv.innerHTML = `
+        <button onclick="removeEquipmentRental(${id})" style="position: absolute; top: 8px; right: 8px; background: #e74c3c; color: white; border: none; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; font-size: 16px; line-height: 1;">×</button>
+        
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; margin-bottom: 4px; font-weight: 600; font-size: 13px;">Equipment</label>
+          <select id="equipment-rental-type-${id}" onchange="updateEquipmentRentalCost(${id})" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: inherit;">
+            <option value="">Select Equipment</option>
+            ${EQUIPMENT_RENTAL.map(eq => `
+              <option value="${eq.name}">${eq.name} - $${eq.dailyRate}/day</option>
+            `).join('')}
+          </select>
+        </div>
+        
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; margin-bottom: 4px; font-weight: 600; font-size: 13px;">Duration</label>
+          <select id="equipment-rental-duration-${id}" onchange="updateEquipmentRentalCost(${id})" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: inherit;">
+            <option value="half">Half Day</option>
+            <option value="full" selected>Full Day</option>
+            <option value="2">2 Days</option>
+            <option value="3">3 Days</option>
+            <option value="week">Week (7 days)</option>
+          </select>
+        </div>
+        
+        <div style="background: white; padding: 12px; border-radius: 6px; border: 2px solid #3498db;">
+          <div style="font-size: 12px; color: #7f8c8d; margin-bottom: 4px;">Rental Cost</div>
+          <div id="equipment-rental-cost-${id}" style="font-size: 20px; font-weight: 700; color: #3498db;">$0.00</div>
+          <div id="equipment-rental-details-${id}" style="font-size: 11px; color: #7f8c8d; margin-top: 4px;"></div>
+        </div>
+      `;
+      
+      container.appendChild(rentalDiv);
+      
+      equipmentRentalSelections.push({ id, name: '', duration: 'full', cost: 0 });
+      updateEquipmentRentalCost(id);
+    }
+
+    function removeEquipmentRental(id) {
+      const element = document.getElementById(`equipment-rental-${id}`);
+      if (element) element.remove();
+      
+      equipmentRentalSelections = equipmentRentalSelections.filter(e => e.id !== id);
+      calculate();
+      autoSave();
+    }
+
+    function updateEquipmentRentalCost(id) {
+      const equipmentName = document.getElementById(`equipment-rental-type-${id}`).value;
+      const duration = document.getElementById(`equipment-rental-duration-${id}`).value;
+      
+      if (!equipmentName) {
+        document.getElementById(`equipment-rental-cost-${id}`).textContent = '$0.00';
+        document.getElementById(`equipment-rental-details-${id}`).textContent = '';
+        return;
+      }
+      
+      const equipment = EQUIPMENT_RENTAL.find(e => e.name === equipmentName);
+      if (!equipment) return;
+      
+      let cost = 0;
+      let details = '';
+      
+      if (duration === 'half') {
+        cost = equipment.halfDayRate;
+        details = `Half day rental`;
+      } else if (duration === 'full') {
+        cost = equipment.dailyRate;
+        details = `Full day rental`;
+      } else if (duration === 'week') {
+        cost = equipment.dailyRate * 7 * 0.85; // 15% discount for week
+        details = `Week rental (7 days, 15% discount)`;
+      } else {
+        const days = parseInt(duration);
+        cost = equipment.dailyRate * days;
+        details = `${days} day rental`;
+      }
+      
+      document.getElementById(`equipment-rental-cost-${id}`).textContent = formatCurrency(cost);
+      document.getElementById(`equipment-rental-details-${id}`).textContent = details;
+      
+      // Update selection
+      const selection = equipmentRentalSelections.find(e => e.id === id);
+      if (selection) {
+        selection.name = equipmentName;
+        selection.duration = duration;
+        selection.cost = cost;
+        selection.details = details;
+      }
+      
+      calculate();
+      autoSave();
     }
 
     // Add material row
@@ -1742,6 +1905,12 @@
       // Calculate equipment costs from rows
       const equipmentCost = equipmentRows.reduce((sum, row) => sum + (row.cost || 0), 0);
       
+      // Calculate equipment rental costs
+      const equipmentRentalCost = equipmentRentalSelections.reduce((sum, rental) => sum + (rental.cost || 0), 0);
+      
+      // Total equipment cost
+      const totalEquipmentCost = equipmentCost + equipmentRentalCost;
+      
       // Calculate additional materials costs with 10% markup
       const additionalMaterialsBase = additionalMaterialRows.reduce((sum, row) => sum + (row.cost || 0), 0);
       const additionalMaterialsMarkup = additionalMaterialsBase * 0.10;
@@ -1753,7 +1922,7 @@
       // Total material cost = current material + completed materials
       const totalMaterialCost = currentMaterialCost + completedMaterialsCost;
 
-      const subtotal = totalMaterialCost + additionalMaterialsCost + addOnsCost + laborCost + equipmentCost + delivery + haul;
+      const subtotal = totalMaterialCost + additionalMaterialsCost + addOnsCost + laborCost + totalEquipmentCost + delivery + haul;
       const markupAmount = subtotal * (parseFloat(document.getElementById('markupPercent').value) / 100);
       const totalWithMarkup = subtotal + markupAmount;
 
@@ -1792,6 +1961,9 @@
         laborCost,
         equipmentCost: equipmentCost,
         equipmentRows: equipmentRows.filter(r => r.description && r.cost > 0),
+        equipmentRentalCost: equipmentRentalCost,
+        equipmentRentalSelections: equipmentRentalSelections.filter(r => r.name && r.cost > 0),
+        totalEquipmentCost: totalEquipmentCost,
         deliveryFee: delivery,
         haulAway: haul,
         subtotal,
@@ -1946,19 +2118,43 @@
               <span>${formatCurrency(estimate.laborCost)}</span>
             </div>
           ` : ''}
-          ${estimate.equipmentCost > 0 ? `
-            <div class="info-row">
-              <span>Equipment Total:</span>
-              <span>${formatCurrency(estimate.equipmentCost)}</span>
-            </div>
-            ${estimate.equipmentRows && estimate.equipmentRows.length > 0 ? `
-              <div style="margin-left: 16px; margin-bottom: 8px;">
-                ${estimate.equipmentRows.map(e => `
-                  <div style="display: flex; justify-content: space-between; font-size: 12px; color: #7f8c8d; margin-bottom: 4px;">
-                    <span>• ${e.description}</span>
-                    <span>${formatCurrency(e.cost)}</span>
-                  </div>
-                `).join('')}
+          ${estimate.equipmentCost > 0 || estimate.equipmentRentalCost > 0 ? `
+            ${estimate.equipmentCost > 0 ? `
+              <div class="info-row">
+                <span>Equipment:</span>
+                <span>${formatCurrency(estimate.equipmentCost)}</span>
+              </div>
+              ${estimate.equipmentRows && estimate.equipmentRows.length > 0 ? `
+                <div style="margin-left: 16px; margin-bottom: 8px;">
+                  ${estimate.equipmentRows.map(e => `
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #7f8c8d; margin-bottom: 4px;">
+                      <span>• ${e.description}</span>
+                      <span>${formatCurrency(e.cost)}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+            ` : ''}
+            ${estimate.equipmentRentalCost > 0 ? `
+              <div class="info-row">
+                <span>Equipment Rental:</span>
+                <span>${formatCurrency(estimate.equipmentRentalCost)}</span>
+              </div>
+              ${estimate.equipmentRentalSelections && estimate.equipmentRentalSelections.length > 0 ? `
+                <div style="margin-left: 16px; margin-bottom: 8px;">
+                  ${estimate.equipmentRentalSelections.map(e => `
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #7f8c8d; margin-bottom: 4px;">
+                      <span>• ${e.name} (${e.details || e.duration})</span>
+                      <span>${formatCurrency(e.cost)}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+            ` : ''}
+            ${estimate.totalEquipmentCost > 0 && (estimate.equipmentCost > 0 && estimate.equipmentRentalCost > 0) ? `
+              <div class="info-row" style="margin-left: 16px; font-weight: 600; border-top: 1px solid #e0e0e0; padding-top: 4px;">
+                <span>Total Equipment:</span>
+                <span>${formatCurrency(estimate.totalEquipmentCost)}</span>
               </div>
             ` : ''}
           ` : ''}
@@ -2269,6 +2465,11 @@ See estimate details in the interface above.
           description: document.getElementById(`equipment-desc-${r.id}`)?.value || '',
           cost: document.getElementById(`equipment-cost-${r.id}`)?.value || ''
         })).filter(e => e.description || e.cost),
+        equipmentRental: equipmentRentalSelections.map(r => ({
+          name: r.name,
+          duration: r.duration,
+          cost: r.cost
+        })).filter(e => e.name && e.cost > 0),
         additionalMaterials: additionalMaterialRows.map(r => ({
           description: document.getElementById(`material-desc-${r.id}`)?.value || '',
           cost: document.getElementById(`material-cost-${r.id}`)?.value || ''
@@ -2373,6 +2574,22 @@ See estimate details in the interface above.
           setTimeout(() => {
             document.getElementById(`equipment-desc-${lastRow.id}`).value = eq.description;
             document.getElementById(`equipment-cost-${lastRow.id}`).value = eq.cost;
+          }, 50);
+        });
+      }
+      
+      // Equipment Rental
+      if (data.equipmentRental && data.equipmentRental.length > 0) {
+        equipmentRentalSelections = [];
+        equipmentRentalIdCounter = 0;
+        document.getElementById('equipmentRentalList').innerHTML = '';
+        data.equipmentRental.forEach(rental => {
+          addEquipmentRental();
+          const id = equipmentRentalIdCounter - 1;
+          setTimeout(() => {
+            document.getElementById(`equipment-rental-type-${id}`).value = rental.name;
+            document.getElementById(`equipment-rental-duration-${id}`).value = rental.duration;
+            updateEquipmentRentalCost(id);
           }, 50);
         });
       }
@@ -2587,6 +2804,12 @@ See estimate details in the interface above.
       equipmentRows = [];
       const equipmentContainer = document.getElementById('equipmentContainer');
       if (equipmentContainer) equipmentContainer.innerHTML = '';
+      
+      // Clear equipment rental
+      equipmentRentalSelections = [];
+      equipmentRentalIdCounter = 0;
+      const equipmentRentalList = document.getElementById('equipmentRentalList');
+      if (equipmentRentalList) equipmentRentalList.innerHTML = '';
       
       // Clear additional materials rows
       additionalMaterialRows = [];
