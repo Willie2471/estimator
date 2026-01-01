@@ -734,20 +734,9 @@
             </button>
           </div>
           
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <button onclick="exportProject()" style="padding: 10px; background: rgba(255,255,255,0.2); color: white; border: 2px solid white; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">
-              📤 Export
-            </button>
-            <button onclick="document.getElementById('importFile').click()" style="padding: 10px; background: rgba(255,255,255,0.2); color: white; border: 2px solid white; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">
-              📥 Import
-            </button>
-          </div>
-          
-          <button onclick="newEstimate()" style="width: 100%; padding: 10px; margin-top: 8px; background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">
+          <button onclick="newEstimate()" style="width: 100%; padding: 10px; background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">
             🆕 New Estimate (Clear All)
           </button>
-          
-          <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importProject(event)">
           
           <div style="font-size: 11px; margin-top: 12px; opacity: 0.9; line-height: 1.4;">
             💡 Auto-save keeps your work for 90 days. Manually saved projects never expire. Use Export for backups.
@@ -1984,6 +1973,9 @@
       const subtotalWithProfit = recommendedPrice - ccFee;
 
       displaySummary({
+        projectName: document.getElementById('projectName')?.value || '',
+        propertyAddress: document.getElementById('propertyAddress')?.value || '',
+        projectType: document.getElementById('projectType')?.value || '',
         materialCost: currentMaterialCost,
         completedMaterials: completedMaterials,
         completedMaterialsCost: completedMaterialsCost,
@@ -1996,7 +1988,10 @@
         edgingCost,
         laborCost,
         equipmentCost: equipmentCost,
-        equipmentRows: equipmentRows.filter(r => r.description && r.cost > 0),
+        equipmentRows: equipmentRows.map(r => ({
+          description: document.getElementById(`equipment-desc-${r.id}`)?.value || '',
+          cost: parseFloat(document.getElementById(`equipment-cost-${r.id}`)?.value) || 0
+        })).filter(r => r.description && r.description.trim().length > 0),
         equipmentRentalCost: equipmentRentalCost,
         equipmentRentalSelections: equipmentRentalSelections.filter(r => r.name && r.cost > 0),
         totalEquipmentCost: totalEquipmentCost,
@@ -2059,6 +2054,33 @@
         <!-- Cost Breakdown -->
         <div class="info-box" style="background: rgba(0, 0, 0, 0.3);">
           <h3>💰 Cost Breakdown</h3>
+          
+          <!-- Project/Customer Details -->
+          ${estimate.projectName || estimate.propertyAddress || estimate.projectType ? `
+            <div style="background: #fff; border: 2px solid #3498db; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+              <div style="font-weight: 700; font-size: 14px; color: #2c3e50; margin-bottom: 12px; border-bottom: 2px solid #3498db; padding-bottom: 8px;">
+                📋 Project Information
+              </div>
+              ${estimate.projectName ? `
+                <div style="margin-bottom: 8px;">
+                  <span style="color: #7f8c8d; font-size: 12px; font-weight: 600;">Project:</span>
+                  <span style="color: #2c3e50; font-size: 13px; font-weight: 600; margin-left: 8px;">${estimate.projectName}</span>
+                </div>
+              ` : ''}
+              ${estimate.propertyAddress ? `
+                <div style="margin-bottom: 8px;">
+                  <span style="color: #7f8c8d; font-size: 12px; font-weight: 600;">Address:</span>
+                  <span style="color: #2c3e50; font-size: 13px; margin-left: 8px;">${estimate.propertyAddress}</span>
+                </div>
+              ` : ''}
+              ${estimate.projectType ? `
+                <div>
+                  <span style="color: #7f8c8d; font-size: 12px; font-weight: 600;">Type:</span>
+                  <span style="color: #2c3e50; font-size: 13px; margin-left: 8px;">${estimate.projectType}</span>
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
           
           <!-- Completed Materials (from previous selections) -->
           ${estimate.completedMaterials && estimate.completedMaterials.length > 0 ? `
@@ -2748,38 +2770,6 @@ See estimate details in the interface above.
     }
 
     // Export project as JSON file
-    function exportProject() {
-      const projectName = document.getElementById('projectName')?.value || 'estimate';
-      const data = captureProjectData();
-      
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `WS-${projectName.replace(/[^a-z0-9]/gi, '-')}-${Date.now()}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    // Import project from JSON file
-    function importProject(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = JSON.parse(e.target.result);
-          restoreProjectData(data);
-          alert('✓ Project imported successfully!');
-        } catch (error) {
-          alert('Error importing project. Please check the file format.');
-          console.error(error);
-        }
-      };
-      reader.readAsText(file);
-    }
-
     // Load auto-save on page load
     function loadAutoSave() {
       const autosave = localStorage.getItem('wslawncare_autosave');
