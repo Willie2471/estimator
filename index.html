@@ -763,7 +763,13 @@
                 <label style="display: block; margin-bottom: 4px; font-size: 13px; font-weight: 600;">Materials (Actual)</label>
                 <input type="number" id="actualMaterials" placeholder="0.00" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: inherit;" oninput="updateActualComparison()">
               </div>
-              
+              <div style="margin-top: 16px; padding-top: 16px; border-top: 2px solid #e0e0e0;">
+  <label style="display: block; margin-bottom: 4px; font-size: 13px; font-weight: 600; color: #27ae60;">💵 Total Price Charged to Customer</label>
+  <input type="number" id="totalPriceCharged" placeholder="0.00" style="width: 100%; padding: 12px; border: 2px solid #27ae60; border-radius: 6px; font-family: inherit; font-weight: 600; font-size: 16px;" oninput="updateActualComparison()">
+  <div style="font-size: 11px; color: #7f8c8d; margin-top: 4px;">
+    Enter the final amount the customer paid (including any adjustments)
+  </div>
+</div>
               <div style="margin-bottom: 12px;">
                 <label style="display: block; margin-bottom: 4px; font-size: 13px; font-weight: 600;">Labor (Actual)</label>
                 <input type="number" id="actualLabor" placeholder="0.00" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: inherit;" oninput="updateActualComparison()">
@@ -2429,7 +2435,62 @@ See estimate details in the interface above.
           <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 2px solid #e0e0e0;">
             <span style="font-weight: 700;">Variance:</span>
             <span style="font-weight: 700; color: ${statusColor};">${percentDiff >= 0 ? '+' : ''}${percentDiff.toFixed(1)}%</span>
-          </div>
+          </div><!-- Actual Profit Margin Analysis -->
+${totalPriceCharged > 0 && totalActual > 0 ? `
+  <div style="margin-top: 16px; padding: 16px; background: ${profitMarginColor === '#27ae60' ? '#e8f5e9' : profitMarginColor === '#f39c12' ? '#fff3e0' : '#ffebee'}; border: 3px solid ${profitMarginColor}; border-radius: 8px;">
+    <div style="text-align: center; margin-bottom: 16px;">
+      <div style="font-size: 12px; color: #7f8c8d; margin-bottom: 4px;">ACTUAL PROFIT MARGIN</div>
+      <div style="font-size: 36px; font-weight: 700; color: ${profitMarginColor}; margin-bottom: 4px;">
+        ${actualProfitMargin.toFixed(1)}%
+      </div>
+      <div style="font-size: 14px; font-weight: 600; color: ${profitMarginColor};">
+        ${profitMarginIcon} ${profitMarginStatus}
+      </div>
+    </div>
+    
+    <div style="background: white; padding: 14px; border-radius: 6px; margin-bottom: 12px;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+        <span style="color: #7f8c8d;">Total Price Charged:</span>
+        <span style="font-weight: 700; color: #2c3e50;">${formatCurrency(totalPriceCharged)}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+        <span style="color: #7f8c8d;">Total Actual Costs:</span>
+        <span style="font-weight: 700; color: #2c3e50;">${formatCurrency(totalActual)}</span>
+      </div>
+      <div style="border-top: 2px solid #e0e0e0; padding-top: 8px; margin-top: 8px; display: flex; justify-content: space-between;">
+        <span style="font-weight: 700; color: #2c3e50;">Actual Profit:</span>
+        <span style="font-weight: 700; font-size: 18px; color: ${profitMarginColor};">${formatCurrency(actualProfit)}</span>
+      </div>
+    </div>
+    
+    <div style="background: white; padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 12px;">
+        <span style="color: #7f8c8d;">Target Profit Margin:</span>
+        <span style="font-weight: 600;">${(parseFloat(document.getElementById('profitMarginSlider')?.value) || 40).toFixed(0)}%</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 12px;">
+        <span style="color: #7f8c8d;">Actual Profit Margin:</span>
+        <span style="font-weight: 700; color: ${profitMarginColor};">${actualProfitMargin.toFixed(1)}%</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; padding-top: 8px; margin-top: 8px; border-top: 1px solid #e0e0e0; font-size: 12px;">
+        <span style="font-weight: 600;">Variance:</span>
+        <span style="font-weight: 700; color: ${profitMarginColor};">
+          ${(actualProfitMargin - (parseFloat(document.getElementById('profitMarginSlider')?.value) || 40)) >= 0 ? '+' : ''}${(actualProfitMargin - (parseFloat(document.getElementById('profitMarginSlider')?.value) || 40)).toFixed(1)}%
+        </span>
+      </div>
+    </div>
+    
+    <div style="font-size: 11px; line-height: 1.5; color: #2c3e50; background: rgba(255,255,255,0.7); padding: 10px; border-radius: 6px;">
+      <strong>📊 Analysis:</strong>
+      ${actualProfitMargin >= (parseFloat(document.getElementById('profitMarginSlider')?.value) || 40) ?
+        `Excellent! You achieved ${actualProfitMargin.toFixed(1)}% profit margin, meeting or exceeding your ${(parseFloat(document.getElementById('profitMarginSlider')?.value) || 40)}% target. Your pricing and execution were spot-on.` :
+        actualProfitMargin >= ((parseFloat(document.getElementById('profitMarginSlider')?.value) || 40) - 5) ?
+          `You came close with ${actualProfitMargin.toFixed(1)}% profit margin, just ${Math.abs(actualProfitMargin - (parseFloat(document.getElementById('profitMarginSlider')?.value) || 40)).toFixed(1)}% below your ${(parseFloat(document.getElementById('profitMarginSlider')?.value) || 40)}% target. Minor adjustments needed.` :
+          `Profit margin of ${actualProfitMargin.toFixed(1)}% fell short of your ${(parseFloat(document.getElementById('profitMarginSlider')?.value) || 40)}% target by ${Math.abs(actualProfitMargin - (parseFloat(document.getElementById('profitMarginSlider')?.value) || 40)).toFixed(1)}%. Review costs and pricing for future jobs.`
+      }
+    </div>
+  </div>
+` : ''}
         </div>
         
         <div style="font-size: 12px; color: #2c3e50; background: white; padding: 12px; border-radius: 6px;">
@@ -2557,11 +2618,12 @@ See estimate details in the interface above.
           cost: document.getElementById(`material-cost-${r.id}`)?.value || ''
         })).filter(m => m.description || m.cost),
         actualCosts: {
-          materials: document.getElementById('actualMaterials')?.value || '',
-          labor: document.getElementById('actualLabor')?.value || '',
-          equipment: document.getElementById('actualEquipment')?.value || '',
-          other: document.getElementById('actualOther')?.value || ''
-        },
+  materials: document.getElementById('actualMaterials')?.value || '',
+  labor: document.getElementById('actualLabor')?.value || '',
+  equipment: document.getElementById('actualEquipment')?.value || '',
+  other: document.getElementById('actualOther')?.value || '',
+  totalPriceCharged: document.getElementById('totalPriceCharged')?.value || ''
+},
         timeTracking: {
           budgetHours: document.getElementById('budgetHours')?.value || '',
           actualHours: document.getElementById('actualHours')?.value || ''
@@ -2699,7 +2761,7 @@ See estimate details in the interface above.
         if (document.getElementById('actualLabor')) document.getElementById('actualLabor').value = data.actualCosts.labor || '';
         if (document.getElementById('actualEquipment')) document.getElementById('actualEquipment').value = data.actualCosts.equipment || '';
         if (document.getElementById('actualOther')) document.getElementById('actualOther').value = data.actualCosts.other || '';
-        
+        if (document.getElementById('totalPriceCharged')) document.getElementById('totalPriceCharged').value = data.actualCosts.totalPriceCharged || '';
         // Update comparison if there are actual costs
         if (data.actualCosts.materials || data.actualCosts.labor || data.actualCosts.equipment || data.actualCosts.other) {
           setTimeout(() => updateActualComparison(), 300);
@@ -2877,7 +2939,7 @@ See estimate details in the interface above.
       if (document.getElementById('actualLabor')) document.getElementById('actualLabor').value = '';
       if (document.getElementById('actualEquipment')) document.getElementById('actualEquipment').value = '';
       if (document.getElementById('actualOther')) document.getElementById('actualOther').value = '';
-      
+      if (document.getElementById('totalPriceCharged')) document.getElementById('totalPriceCharged').value = '';
       // Clear time tracking
       if (document.getElementById('budgetHours')) document.getElementById('budgetHours').value = '';
       if (document.getElementById('actualHours')) document.getElementById('actualHours').value = '';
@@ -3097,7 +3159,48 @@ See estimate details in the interface above.
       const actualOther = parseFloat(document.getElementById('actualOther').value) || 0;
       
       const totalActual = actualMaterials + actualLabor + actualEquipment + actualOther;
-      
+      // Get total price charged to customer
+const totalPriceCharged = parseFloat(document.getElementById('totalPriceCharged').value) || 0;
+
+// Calculate actual profit margin
+let actualProfit = 0;
+let actualProfitMargin = 0;
+let profitMarginStatus = '';
+let profitMarginColor = '';
+let profitMarginIcon = '';
+
+if (totalPriceCharged > 0 && totalActual > 0) {
+  actualProfit = totalPriceCharged - totalActual;
+  actualProfitMargin = (actualProfit / totalPriceCharged) * 100;
+  
+  // Get target profit margin from slider
+  const targetMargin = parseFloat(document.getElementById('profitMarginSlider')?.value) || 40;
+  
+  // Determine status
+  const marginDiff = actualProfitMargin - targetMargin;
+  
+  if (Math.abs(marginDiff) <= 2) {
+    // Within 2% of target = Success
+    profitMarginStatus = 'Met Target';
+    profitMarginColor = '#27ae60';
+    profitMarginIcon = '✓';
+  } else if (actualProfitMargin > targetMargin) {
+    // Exceeded target = Great
+    profitMarginStatus = 'Exceeded Target';
+    profitMarginColor = '#27ae60';
+    profitMarginIcon = '⭐';
+  } else if (actualProfitMargin >= (targetMargin - 5)) {
+    // Within 5% below target = Close
+    profitMarginStatus = 'Close to Target';
+    profitMarginColor = '#f39c12';
+    profitMarginIcon = '⚠';
+  } else {
+    // More than 5% below target = Missed
+    profitMarginStatus = 'Below Target';
+    profitMarginColor = '#e74c3c';
+    profitMarginIcon = '✕';
+  }
+}
       // Get budgeted amounts from current estimate
       const budgetMaterials = (parseFloat(document.getElementById('summaryContent').getAttribute('data-materials')) || 0);
       const budgetLabor = (parseFloat(document.getElementById('summaryContent').getAttribute('data-labor')) || 0);
@@ -3510,7 +3613,55 @@ See estimate details in the interface above.
           yPos += (actionLines.length * 5) + 10;
         }
       }
-      
+      // Actual Profit Margin (if entered)
+const totalPriceCharged = parseFloat(document.getElementById('totalPriceCharged')?.value) || 0;
+const totalActualCosts = 
+  (parseFloat(document.getElementById('actualMaterials')?.value) || 0) +
+  (parseFloat(document.getElementById('actualLabor')?.value) || 0) +
+  (parseFloat(document.getElementById('actualEquipment')?.value) || 0) +
+  (parseFloat(document.getElementById('actualOther')?.value) || 0);
+
+if (totalPriceCharged > 0 && totalActualCosts > 0) {
+  if (yPos > 220) {
+    doc.addPage();
+    yPos = 20;
+  }
+  
+  const actualProfit = totalPriceCharged - totalActualCosts;
+  const actualProfitMargin = (actualProfit / totalPriceCharged) * 100;
+  const targetMargin = parseFloat(document.getElementById('profitMarginSlider')?.value) || 40;
+  
+  doc.setFontSize(12);
+  doc.setFont(undefined, 'bold');
+  doc.text('ACTUAL PROFIT MARGIN', 20, yPos);
+  yPos += 8;
+  
+  doc.setFontSize(10);
+  doc.setFont(undefined, 'normal');
+  doc.text(`Total Price Charged: $${totalPriceCharged.toFixed(2)}`, 25, yPos);
+  yPos += 6;
+  doc.text(`Total Actual Costs: $${totalActualCosts.toFixed(2)}`, 25, yPos);
+  yPos += 6;
+  doc.text(`Actual Profit: $${actualProfit.toFixed(2)}`, 25, yPos);
+  yPos += 6;
+  
+  doc.setFont(undefined, 'bold');
+  doc.text(`Actual Profit Margin: ${actualProfitMargin.toFixed(1)}%`, 25, yPos);
+  yPos += 6;
+  doc.setFont(undefined, 'normal');
+  doc.text(`Target Profit Margin: ${targetMargin.toFixed(0)}%`, 25, yPos);
+  yPos += 6;
+  
+  const marginDiff = actualProfitMargin - targetMargin;
+  const status = Math.abs(marginDiff) <= 2 ? 'Met Target' :
+                 actualProfitMargin > targetMargin ? 'Exceeded Target' :
+                 actualProfitMargin >= (targetMargin - 5) ? 'Close to Target' :
+                 'Below Target';
+  
+  doc.setFont(undefined, 'bold');
+  doc.text(`Status: ${status} (${marginDiff >= 0 ? '+' : ''}${marginDiff.toFixed(1)}%)`, 25, yPos);
+  yPos += 10;
+}
       // Footer
       doc.line(20, yPos, 190, yPos);
       yPos += 7;
