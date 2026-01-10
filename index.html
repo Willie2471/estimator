@@ -2435,17 +2435,7 @@ See estimate details in the interface above.
           <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 2px solid #e0e0e0;">
             <span style="font-weight: 700;">Variance:</span>
             <span style="font-weight: 700; color: ${statusColor};">${percentDiff >= 0 ? '+' : ''}${percentDiff.toFixed(1)}%</span>
-          </div><!-- Actual Profit Margin Analysis -->
-${totalPriceCharged > 0 && totalActual > 0 ? `
-  <div style="margin-top: 16px; padding: 16px; background: ${profitMarginColor === '#27ae60' ? '#e8f5e9' : profitMarginColor === '#f39c12' ? '#fff3e0' : '#ffebee'}; border: 3px solid ${profitMarginColor}; border-radius: 8px;">
-    <div style="text-align: center; margin-bottom: 16px;">
-      <div style="font-size: 12px; color: #7f8c8d; margin-bottom: 4px;">ACTUAL PROFIT MARGIN</div>
-      <div style="font-size: 36px; font-weight: 700; color: ${profitMarginColor}; margin-bottom: 4px;">
-        ${actualProfitMargin.toFixed(1)}%
-      </div>
-      <div style="font-size: 14px; font-weight: 600; color: ${profitMarginColor};">
-        ${profitMarginIcon} ${profitMarginStatus}
-      </div>
+          </div>
     </div>
     
     <div style="background: white; padding: 14px; border-radius: 6px; margin-bottom: 12px;">
@@ -3301,7 +3291,74 @@ if (totalPriceCharged > 0 && totalActual > 0) {
                 ` Project exceeded budget by ${formatCurrency(difference)} (${percentDiff.toFixed(1)}%). Review what caused the overage to improve future estimates.`
             }
           </div>
+        </div><div style="font-size: 12px; color: #2c3e50; background: #f8f9fa; padding: 12px; border-radius: 6px;">
+            <strong>💡 Insights:</strong>
+            ${isOnBudget ? 
+              ' Great job! Your estimate was very accurate. Keep using similar calculations for future projects.' :
+              isUnderBudget ?
+                ` You came in ${formatCurrency(Math.abs(difference))} under budget (${Math.abs(percentDiff).toFixed(1)}%). Consider if you undercharged or if you found efficiencies.` :
+                ` Project exceeded budget by ${formatCurrency(difference)} (${percentDiff.toFixed(1)}%). Review what caused the overage to improve future estimates.`
+            }
+          </div>
+          
+          <!-- Actual Profit Margin Analysis -->
+          ${totalPriceCharged > 0 && totalActual > 0 ? `
+            <div style="margin-top: 16px; padding: 16px; background: ${profitMarginColor === '#27ae60' ? '#e8f5e9' : profitMarginColor === '#f39c12' ? '#fff3e0' : '#ffebee'}; border: 3px solid ${profitMarginColor}; border-radius: 8px;">
+              <div style="text-align: center; margin-bottom: 16px;">
+                <div style="font-size: 12px; color: #7f8c8d; margin-bottom: 4px;">ACTUAL PROFIT MARGIN</div>
+                <div style="font-size: 36px; font-weight: 700; color: ${profitMarginColor}; margin-bottom: 4px;">
+                  ${actualProfitMargin.toFixed(1)}%
+                </div>
+                <div style="font-size: 14px; font-weight: 600; color: ${profitMarginColor};">
+                  ${profitMarginIcon} ${profitMarginStatus}
+                </div>
+              </div>
+              
+              <div style="background: white; padding: 14px; border-radius: 6px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+                  <span style="color: #7f8c8d;">Total Price Charged:</span>
+                  <span style="font-weight: 700; color: #2c3e50;">${formatCurrency(totalPriceCharged)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+                  <span style="color: #7f8c8d;">Total Actual Costs:</span>
+                  <span style="font-weight: 700; color: #2c3e50;">${formatCurrency(totalActual)}</span>
+                </div>
+                <div style="border-top: 2px solid #e0e0e0; padding-top: 8px; margin-top: 8px; display: flex; justify-content: space-between;">
+                  <span style="font-weight: 700; color: #2c3e50;">Actual Profit:</span>
+                  <span style="font-weight: 700; font-size: 18px; color: ${profitMarginColor};">${formatCurrency(actualProfit)}</span>
+                </div>
+              </div>
+              
+              <div style="background: white; padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 12px;">
+                  <span style="color: #7f8c8d;">Target Profit Margin:</span>
+                  <span style="font-weight: 600;">${(parseFloat(document.getElementById('profitMarginSlider')?.value) || 40).toFixed(0)}%</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 12px;">
+                  <span style="color: #7f8c8d;">Actual Profit Margin:</span>
+                  <span style="font-weight: 700; color: ${profitMarginColor};">${actualProfitMargin.toFixed(1)}%</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding-top: 8px; margin-top: 8px; border-top: 1px solid #e0e0e0; font-size: 12px;">
+                  <span style="font-weight: 600;">Variance:</span>
+                  <span style="font-weight: 700; color: ${profitMarginColor};">
+                    ${(actualProfitMargin - (parseFloat(document.getElementById('profitMarginSlider')?.value) || 40)) >= 0 ? '+' : ''}${(actualProfitMargin - (parseFloat(document.getElementById('profitMarginSlider')?.value) || 40)).toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+              
+              <div style="font-size: 11px; line-height: 1.5; color: #2c3e50; background: rgba(255,255,255,0.7); padding: 10px; border-radius: 6px;">
+                <strong>📊 Analysis:</strong>
+                ${actualProfitMargin >= (parseFloat(document.getElementById('profitMarginSlider')?.value) || 40) ?
+                  `Excellent! You achieved ${actualProfitMargin.toFixed(1)}% profit margin, meeting or exceeding your ${(parseFloat(document.getElementById('profitMarginSlider')?.value) || 40)}% target. Your pricing and execution were spot-on.` :
+                  actualProfitMargin >= ((parseFloat(document.getElementById('profitMarginSlider')?.value) || 40) - 5) ?
+                    `You came close with ${actualProfitMargin.toFixed(1)}% profit margin, just ${Math.abs(actualProfitMargin - (parseFloat(document.getElementById('profitMarginSlider')?.value) || 40)).toFixed(1)}% below your ${(parseFloat(document.getElementById('profitMarginSlider')?.value) || 40)}% target. Minor adjustments needed.` :
+                    `Profit margin of ${actualProfitMargin.toFixed(1)}% fell short of your ${(parseFloat(document.getElementById('profitMarginSlider')?.value) || 40)}% target by ${Math.abs(actualProfitMargin - (parseFloat(document.getElementById('profitMarginSlider')?.value) || 40)).toFixed(1)}%. Review costs and pricing for future jobs.`
+                }
+              </div>
+            </div>
+          ` : ''}
         </div>
+      `;
       `;
     }
 
