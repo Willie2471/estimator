@@ -2046,8 +2046,8 @@
       const meetsGoal = estimate.profitMargin >= (targetGoal - 0.5); // Allow 0.5% tolerance
       // FIX #1: Store budget data as attributes for actual cost comparison
   const summaryDiv = document.getElementById('summaryContent');
-  summaryDiv.setAttribute('data-materials', estimate.materialCost + estimate.additionalMaterialsCost);
-  summaryDiv.setAttribute('data-labor', estimate.laborCost || 0);
+  summaryDiv.setAttribute('data-materials', estimate.materialCost + estimate.completedMaterialsCost + estimate.additionalMaterialsCost);
+summaryDiv.setAttribute('data-labor', estimate.laborCost || 0);
   summaryDiv.setAttribute('data-equipment', estimate.totalEquipmentCost || 0);
   summaryDiv.setAttribute('data-other', (estimate.deliveryFee || 0) + (estimate.haulAway || 0) + (estimate.addOnsCost || 0));
      
