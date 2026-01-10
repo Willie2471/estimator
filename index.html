@@ -1,0 +1,3536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Landscaping Cost Estimator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script>
+    // Callback for when Google Maps API loads
+    function onGoogleMapsLoaded() {
+      console.log('Google Maps API loaded successfully');
+    }
+  </script>
+  <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBHvZq7kiDX_thzi8F9XTg_bySLcxpd_ME&libraries=drawing,geometry,places&callback=onGoogleMapsLoaded"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    body {
+      font-family: 'Space Mono', 'Courier New', monospace;
+      background: #f5f5f5;
+      padding: 20px;
+      color: #2c3e50;
+      margin: 0;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 16px;
+      border: 1px solid #e0e0e0;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .header {
+      background: linear-gradient(90deg, #2ecc71 0%, #27ae60 100%);
+      padding: 32px;
+      border-bottom: 1px solid #27ae60;
+      color: #ffffff;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      color: #ffffff;
+    }
+
+    .header p {
+      opacity: 0.95;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      color: #ffffff;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: #e0e0e0;
+    }
+
+    .left-panel {
+      background: #ffffff;
+      padding: 32px;
+    }
+
+    .right-panel {
+      background: #fafafa;
+      padding: 32px;
+    }
+
+    .section {
+      margin-bottom: 32px;
+    }
+
+    .section h2 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: #27ae60;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px 16px;
+      margin-bottom: 12px;
+      background: #ffffff;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      color: #2c3e50;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, select:focus {
+      border-color: #27ae60;
+    }
+
+    input::placeholder {
+      color: #95a5a6;
+      opacity: 0.8;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 13px;
+      opacity: 0.9;
+      color: #2c3e50;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 2px solid #e0e0e0;
+      transition: all 0.2s;
+      background: #ffffff;
+    }
+
+    .checkbox-label.active {
+      background: #e8f5e9;
+      border-color: #27ae60;
+    }
+
+    .info-box {
+      background: #f8f9fa;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .info-box h3 {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: #27ae60;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: #2c3e50;
+    }
+
+    .info-row span:first-child {
+      opacity: 0.7;
+    }
+
+    .info-row span:last-child {
+      font-weight: 600;
+    }
+
+    .divider {
+      border-top: 2px solid #e0e0e0;
+      margin: 12px 0;
+      padding-top: 12px;
+    }
+
+    .price-box {
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 24px;
+      border: 2px solid;
+    }
+
+    .price-box.success {
+      background: #e8f5e9;
+      border-color: #27ae60;
+    }
+
+    .price-box.warning {
+      background: #fff3e0;
+      border-color: #f39c12;
+    }
+
+    .price-box h3 {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .big-price {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .price-box.success .big-price,
+    .price-box.success h3 {
+      color: #27ae60;
+    }
+
+    .price-box.warning .big-price,
+    .price-box.warning h3 {
+      color: #f39c12;
+    }
+
+    .status-badge {
+      font-size: 12px;
+      opacity: 0.9;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 6px;
+      margin-bottom: 12px;
+      color: #2c3e50;
+    }
+
+    button {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(90deg, #27ae60 0%, #2ecc71 100%);
+      border: none;
+      border-radius: 8px;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+      box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);
+    }
+
+    button:hover {
+      background: linear-gradient(90deg, #2ecc71 0%, #27ae60 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(39, 174, 96, 0.4);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      opacity: 0.5;
+      color: #7f8c8d;
+    }
+
+    .footer {
+      background: #f8f9fa;
+      padding: 16px 32px;
+      border-top: 1px solid #e0e0e0;
+      text-align: center;
+      font-size: 12px;
+      opacity: 0.7;
+      color: #7f8c8d;
+    }
+
+    @media (max-width: 968px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Google Places Autocomplete styling */
+    .pac-container {
+      font-family: 'Space Mono', 'Courier New', monospace !important;
+      border-radius: 8px;
+      margin-top: 4px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      border: 2px solid #e0e0e0;
+      z-index: 99999 !important;
+      position: absolute !important;
+      display: block !important;
+      visibility: visible !important;
+      background: white !important;
+    }
+
+    .pac-item {
+      padding: 10px;
+      font-size: 13px;
+      border-top: 1px solid #e0e0e0;
+      cursor: pointer;
+      background: white;
+      display: block !important;
+    }
+
+    .pac-item:hover {
+      background-color: #f0f0f0 !important;
+    }
+
+    .pac-item-query {
+      font-size: 14px;
+      color: #2c3e50;
+      font-weight: 600;
+    }
+
+    .pac-icon {
+      display: none;
+    }
+    
+    /* Ensure pac-container is not hidden by any parent overflow */
+    body .pac-container {
+      display: block !important;
+    }
+
+    /* Style the "powered by Google" logo to attach to bottom of dropdown */
+    .pac-container::after {
+      content: '';
+      display: block;
+      height: 0;
+    }
+
+    .pac-logo::after {
+      display: block !important;
+      text-align: right !important;
+      padding: 8px 10px !important;
+      background: #f8f8f8 !important;
+      border-top: 1px solid #e0e0e0 !important;
+      border-radius: 0 0 6px 6px !important;
+    }
+
+    /* Style any Google branding that appears */
+    .pac-container + div {
+      position: relative !important;
+      margin-top: 0 !important;
+      background: #f8f8f8 !important;
+      padding: 8px 10px !important;
+      border: 2px solid #e0e0e0 !important;
+      border-top: none !important;
+      border-radius: 0 0 8px 8px !important;
+    }
+
+    .hdpi.pac-logo::after,
+    div[style*="powered"] {
+      background: #f8f8f8 !important;
+      padding: 8px !important;
+      text-align: right !important;
+    }
+
+    /* Profit margin slider styling */
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #27ae60;
+      cursor: pointer;
+      border: 3px solid white;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      background: #2ecc71;
+      transform: scale(1.1);
+    }
+
+    input[type="range"]::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #27ae60;
+      cursor: pointer;
+      border: 3px solid white;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    input[type="range"]::-moz-range-thumb:hover {
+      background: #2ecc71;
+      transform: scale(1.1);
+    }
+
+    /* Print Styles */
+    @media print {
+      @page {
+        size: letter;
+        margin: 0.5in;
+      }
+      
+      /* Hide left panel (all input fields) */
+      .left-panel {
+        display: none !important;
+      }
+      
+      /* Make right panel (summary) full width */
+      .main-grid {
+        grid-template-columns: 1fr !important;
+        display: block !important;
+      }
+      
+      /* Hide buttons */
+      button {
+        display: none !important;
+      }
+      
+      /* Hide footer */
+      .footer {
+        display: none !important;
+      }
+      
+      /* Allow sections to break across pages if needed */
+      .section {
+        page-break-inside: auto;
+        break-inside: auto;
+      }
+      
+      /* Keep headings with their content */
+      h2, h3 {
+        page-break-after: avoid;
+        break-after: avoid;
+        margin-top: 0;
+      }
+      
+      /* Prevent orphaned lines */
+      p {
+        orphans: 3;
+        widows: 3;
+      }
+      
+      /* Optimize for print */
+      body {
+        background: white !important;
+        font-size: 11pt;
+        line-height: 1.4;
+      }
+      
+      .container {
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+      }
+      
+      /* CRITICAL: Ensure all content is visible */
+      .right-panel {
+        max-height: none !important;
+        overflow: visible !important;
+        height: auto !important;
+        display: block !important;
+      }
+      
+      /* Remove any fixed heights and scrolling */
+      * {
+        max-height: none !important;
+        overflow: visible !important;
+      }
+      
+      /* Make text printer-friendly */
+      .section {
+        background: white !important;
+        border-color: #ddd !important;
+        overflow: visible !important;
+      }
+      
+      /* Ensure good breaks for cost breakdown items */
+      .section > div {
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+      
+      /* Force visibility of all divs */
+      div {
+        overflow: visible !important;
+        height: auto !important;
+        max-height: none !important;
+      }
+      
+      /* Show full content */
+      #summaryContent {
+        display: block !important;
+        overflow: visible !important;
+        height: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div style="display: flex; align-items: center; gap: 20px; justify-content: center;">
+        <img src="https://static.wixstatic.com/media/99a075_f0b64d954a90417ba2ac87c06f85804a~mv2.png" alt="WS Lawn Care Services" style="height: 80px; width: auto; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.2));">
+        <div>
+          <h1 style="margin-bottom: 8px;">Landscaping Cost Estimator</h1>
+          <p style="margin: 0;">Professional project estimation & job costing</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <!-- LEFT PANEL -->
+      <div class="left-panel">
+        <!-- Project Details -->
+        <div class="section">
+          <h2>📋 Project Details</h2>
+          <input type="text" id="projectName" placeholder="Project Name">
+          <input type="text" id="propertyAddress" placeholder="Property Address">
+          <input type="text" id="projectType" placeholder="Project Type">
+        </div>
+
+        <!-- Google Maps Measurement -->
+        <div class="section">
+          <h2>🗺️ Google Maps Measurement</h2>
+          <button id="toggleMapBtn" style="width: 100%; padding: 12px; background: #27ae60; color: white; border: 2px solid #27ae60; border-radius: 8px; cursor: pointer; font-weight: 600; margin-bottom: 12px;">
+            📍 Open Map to Measure
+          </button>
+          <div id="mapContainer" style="display: none;">
+            <div style="margin-bottom: 12px; position: relative;">
+              <input 
+                id="addressSearch" 
+                type="text" 
+                placeholder="Start typing address... (suggestions will appear)"
+                style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-family: inherit; font-size: 14px; position: relative;"
+                onkeypress="if(event.key === 'Enter') searchAddress()"
+                autocomplete="off"
+              />
+              <div style="font-size: 11px; color: #7f8c8d; margin-top: 4px; padding-left: 4px;">
+                💡 Type address - suggestions appear automatically
+              </div>
+              <button 
+                onclick="searchAddress()" 
+                style="width: 100%; margin-top: 8px; padding: 10px; background: #3498db; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                🔍 Search Address
+              </button>
+            </div>
+            <div id="map" style="width: 100%; height: 400px; border-radius: 8px; border: 2px solid #e0e0e0; margin-bottom: 12px;"></div>
+            <div id="measurementsDisplay" style="background: #f8f9fa; border: 2px solid #e0e0e0; border-radius: 8px; padding: 16px; margin-bottom: 12px; display: none;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 2px solid #e0e0e0;">
+                <strong style="color: #2c3e50;">Measurements (<span id="measurementCount">0</span>)</strong>
+                <button onclick="clearAllMeasurements()" style="padding: 6px 12px; background: #e74c3c; border: none; border-radius: 6px; color: white; font-size: 12px; cursor: pointer;">
+                  Clear All
+                </button>
+              </div>
+              <div id="measurementsList"></div>
+              <div style="margin-top: 12px; padding-top: 12px; border-top: 2px solid #e0e0e0; font-weight: 700; color: #2c3e50;">
+                <div>Total Area: <span id="totalArea">0</span> sq ft</div>
+                <div>Total Perimeter: <span id="totalPerimeter">0</span> ft</div>
+              </div>
+              <button onclick="applyMeasurements()" style="width: 100%; margin-top: 12px; padding: 10px 16px; background: linear-gradient(90deg, #27ae60 0%, #2ecc71 100%); border: none; border-radius: 6px; color: white; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(39, 174, 96, 0.3);">
+                ➜ Apply to Dimensions Below
+              </button>
+            </div>
+            <div style="margin-top: 12px; padding: 12px; background: white; border-radius: 8px; border: 2px solid #3498db;">
+              <strong style="color: #2c3e50;">How to use:</strong>
+              <ul style="margin-top: 8px; padding-left: 20px; font-size: 13px; color: #555; line-height: 1.6;">
+                <li>Search for your property address above</li>
+                <li>Click "Draw Area" or "Draw Distance" to start measuring</li>
+                <li>Click points on the map to draw your measurement</li>
+                <li>Double-click or click "Finish Drawing" to complete</li>
+                <li>Draw multiple measurements - they'll be totaled automatically</li>
+                <li>Click "Apply to Dimensions Below" to transfer measurements</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Material Selection -->
+        <div class="section">
+          <h2>📦 Material Selection</h2>
+          <select id="materialCategory">
+            <option value="mulch">Mulch</option>
+            <option value="rock">Decorative Rock</option>
+            <option value="dirt">Dirt/Soil</option>
+            <option value="sod">Sod</option>
+            <option value="none">None (Skip Material)</option>
+          </select>
+          <select id="materialType"></select>
+          
+          <!-- Inline Material Cost Display -->
+          <div id="materialCostDisplay" style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); padding: 16px; border-radius: 8px; margin-top: 12px; display: none;">
+            <div style="color: rgba(255,255,255,0.9); font-size: 11px; font-weight: 600; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Material Cost</div>
+            <div id="materialCostAmount" style="color: white; font-size: 28px; font-weight: 700; margin-bottom: 4px;">$0.00</div>
+            <div id="materialCostDetails" style="color: rgba(255,255,255,0.85); font-size: 12px;"></div>
+          </div>
+        </div>
+
+        <!-- Equipment Rental -->
+        <div class="section">
+          <h2>🚜 Equipment Rental</h2>
+          <p style="font-size: 13px; color: #7f8c8d; margin-bottom: 12px;">Select equipment for this project</p>
+          
+          <div id="equipmentRentalList"></div>
+          
+          <button onclick="addEquipmentRental()" style="width: 100%; padding: 12px; background: #3498db; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; margin-top: 8px;">
+            ➕ Add Equipment
+          </button>
+        </div>
+        
+        <!-- Dimensions -->
+        <div class="section">
+          <h2>📐 Dimensions</h2>
+          <div id="dimensionsContainer"></div>
+        </div>
+
+        <!-- Additional Materials -->
+        <div class="section">
+          <h2>📦 Additional Materials</h2>
+          <div id="additionalMaterialsContainer"></div>
+          <button onclick="addMaterialRow()" style="width: 100%; padding: 10px; background: #27ae60; color: white; border: none; border-radius: 6px; cursor: pointer; margin-top: 8px;">
+            ➕ Add Material Row
+          </button>
+        </div>
+
+        <!-- Add-ons -->
+        <div class="section">
+          <h2>➕ Add-ons</h2>
+          <label class="checkbox-label" id="geoTextileLabel">
+            <input type="checkbox" id="includeGeoTextile">
+            <span>Geo Textile Fabric ($1.20/ft)</span>
+          </label>
+          <input type="number" id="geoTextileLinearFt" placeholder="Linear feet" style="display:none;">
+
+          <label class="checkbox-label" id="edgingLabel">
+            <input type="checkbox" id="includeEdging">
+            <span>Composite Edging ($5.00/ft)</span>
+          </label>
+          <input type="number" id="edgingLinearFt" placeholder="Linear feet" style="display:none;">
+        </div>
+
+        <!-- Equipment -->
+        <div class="section">
+          <h2>🔧 Additional Equipment</h2>
+          <div id="equipmentContainer"></div>
+          <button onclick="addEquipmentRow()" style="width: 100%; padding: 10px; background: #27ae60; color: white; border: none; border-radius: 6px; cursor: pointer; margin-top: 8px;">
+            ➕ Add Equipment Row
+          </button>
+        </div>
+
+        <!-- Labor & Costs -->
+        <div class="section">
+          <h2>💵 Labor & Additional Costs</h2>
+          <div class="grid-2">
+            <div>
+              <label>Labor Hours</label>
+              <input type="number" id="laborHours" placeholder="0">
+            </div>
+            <div>
+              <label>Rate ($/hr)</label>
+              <input type="number" id="laborRate" value="91">
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div>
+              <label>Delivery Fee</label>
+              <input type="number" id="deliveryFee" placeholder="0">
+            </div>
+            <div>
+              <label>Haul Away</label>
+              <input type="number" id="haulAway" placeholder="0">
+            </div>
+          </div>
+
+          <div>
+            <label>Markup (%)</label>
+            <input type="number" id="markupPercent" value="0">
+          </div>
+
+          <div style="margin-top: 24px; padding-top: 24px; border-top: 2px solid #e0e0e0;">
+            <label style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+              <span style="font-weight: 700; color: #27ae60;">🎯 Target Profit Margin</span>
+              <span id="profitMarginDisplay" style="font-size: 20px; font-weight: 700; color: #27ae60;">40%</span>
+            </label>
+            <input 
+              type="range" 
+              id="profitMarginSlider" 
+              min="0" 
+              max="100" 
+              value="40" 
+              step="1"
+              style="width: 100%; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #e74c3c 0%, #f39c12 25%, #27ae60 40%, #2ecc71 100%); cursor: pointer; -webkit-appearance: none; appearance: none;"
+            >
+            <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 11px; color: #7f8c8d;">
+              <span>0%</span>
+              <span>25%</span>
+              <span>50%</span>
+              <span>75%</span>
+              <span>100%</span>
+            </div>
+            <div style="margin-top: 12px; padding: 12px; background: #e8f5e9; border-radius: 6px; font-size: 12px; color: #2c3e50;">
+              💡 <strong>Tip:</strong> 40% is your target. The calculation automatically accounts for 3% CC fees.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL -->
+      <div class="right-panel">
+        <!-- Save/Load Project -->
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 16px; border-radius: 8px; margin-bottom: 24px; color: white;">
+          <h3 style="margin: 0 0 12px 0; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+            💾 Project Management
+            <span id="autoSaveIndicator" style="font-size: 11px; padding: 3px 8px; background: rgba(255,255,255,0.2); border-radius: 12px; margin-left: auto;">Auto-saved</span>
+          </h3>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px;">
+            <button onclick="saveProject()" style="padding: 10px; background: white; color: #667eea; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">
+              💾 Save Project
+            </button>
+            <button onclick="loadProject()" style="padding: 10px; background: rgba(255,255,255,0.2); color: white; border: 2px solid white; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">
+              📂 Load Project
+            </button>
+          </div>
+          
+          <button onclick="newEstimate()" style="width: 100%; padding: 10px; background: linear-gradient(90deg, #e74c3c 0%, #c0392b 100%); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">
+            🆕 New Estimate (Clear All)
+          </button>
+          
+          <div style="font-size: 11px; margin-top: 12px; opacity: 0.9; line-height: 1.4;">
+            💡 Auto-save keeps your work for 90 days. Manually saved projects never expire. Use Export for backups.
+          </div>
+        </div>
+
+        <h2>📊 Estimate Summary</h2>
+        <div id="summaryContent"></div>
+
+        <!-- Budget vs Actual Tracker -->
+        <div style="margin-top: 32px; padding-top: 32px; border-top: 3px solid #e0e0e0;">
+          <button 
+            id="toggleActualCosts" 
+            onclick="toggleActualCostsSection()"
+            style="width: 100%; padding: 16px; background: linear-gradient(90deg, #9b59b6 0%, #8e44ad 100%); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 15px; cursor: pointer; margin-bottom: 16px;">
+            📈 Track Actual Costs (Budget vs Actual)
+          </button>
+          
+          <div id="actualCostsSection" style="display: none;">
+            <div style="background: #f8f9fa; border: 2px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 16px;">
+              <h3 style="margin: 0 0 16px 0; color: #2c3e50; font-size: 16px;">💰 Enter Actual Costs</h3>
+              
+              <div style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 4px; font-size: 13px; font-weight: 600;">Materials (Actual)</label>
+                <input type="number" id="actualMaterials" placeholder="0.00" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: inherit;" oninput="updateActualComparison()">
+              </div>
+              
+              <div style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 4px; font-size: 13px; font-weight: 600;">Labor (Actual)</label>
+                <input type="number" id="actualLabor" placeholder="0.00" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: inherit;" oninput="updateActualComparison()">
+              </div>
+              
+              <div style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 4px; font-size: 13px; font-weight: 600;">Equipment (Actual)</label>
+                <input type="number" id="actualEquipment" placeholder="0.00" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: inherit;" oninput="updateActualComparison()">
+              </div>
+              
+              <div style="margin-bottom: 12px;">
+                <label style="display: block; margin-bottom: 4px; font-size: 13px; font-weight: 600;">Other Costs (Actual)</label>
+                <input type="number" id="actualOther" placeholder="0.00" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: inherit;" oninput="updateActualComparison()">
+              </div>
+            </div>
+            
+            <!-- Time Tracking Section -->
+            <div style="background: #e8f5e9; border: 2px solid #27ae60; border-radius: 8px; padding: 20px; margin-bottom: 16px;">
+              <h3 style="margin: 0 0 16px 0; color: #27ae60; font-size: 16px;">⏱️ Time Tracking & Efficiency</h3>
+              
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                <div>
+                  <label style="display: block; margin-bottom: 4px; font-size: 12px; font-weight: 600; color: #2c3e50;">Budget Hours</label>
+                  <input type="number" id="budgetHours" placeholder="0" step="0.5" style="width: 100%; padding: 8px; border: 2px solid #27ae60; border-radius: 6px; font-family: inherit; text-align: center; font-weight: 600;" oninput="updateTimeTracking()" readonly>
+                  <div style="font-size: 10px; color: #7f8c8d; margin-top: 4px; text-align: center;">From estimate</div>
+                </div>
+                <div>
+                  <label style="display: block; margin-bottom: 4px; font-size: 12px; font-weight: 600; color: #2c3e50;">Actual Hours</label>
+                  <input type="number" id="actualHours" placeholder="0" step="0.5" style="width: 100%; padding: 8px; border: 2px solid #3498db; border-radius: 6px; font-family: inherit; text-align: center; font-weight: 600;" oninput="updateTimeTracking()">
+                  <div style="font-size: 10px; color: #7f8c8d; margin-top: 4px; text-align: center;">Hours worked</div>
+                </div>
+              </div>
+              
+              <div id="timeTrackingDisplay" style="display: none;"></div>
+            </div>
+            
+            <!-- Project Summary Notes -->
+            <div style="background: #fff9e6; border: 2px solid #f39c12; border-radius: 8px; padding: 20px; margin-bottom: 16px;">
+              <h3 style="margin: 0 0 16px 0; color: #f39c12; font-size: 16px; display: flex; align-items: center; gap: 8px;">
+                📝 Project Summary Notes
+                <span style="font-size: 10px; padding: 3px 8px; background: rgba(243, 156, 18, 0.2); border-radius: 12px; font-weight: normal;">Optional</span>
+              </h3>
+              
+              <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #2c3e50;">
+                  ✅ What Went Well
+                </label>
+                <textarea 
+                  id="notesWentWell" 
+                  placeholder="Example: Crew arrived on time, equipment worked perfectly, client was very happy with results..."
+                  style="width: 100%; min-height: 70px; padding: 10px; border: 2px solid #27ae60; border-radius: 6px; font-family: inherit; font-size: 13px; resize: vertical;"
+                  oninput="autoSave()"
+                ></textarea>
+              </div>
+              
+              <div style="margin-bottom: 16px;">
+                <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #2c3e50;">
+                  ⚠️ Challenges / Issues
+                </label>
+                <textarea 
+                  id="notesChallenges" 
+                  placeholder="Example: Unexpected underground utilities, equipment breakdown, weather delay, harder soil than anticipated..."
+                  style="width: 100%; min-height: 70px; padding: 10px; border: 2px solid #e74c3c; border-radius: 6px; font-family: inherit; font-size: 13px; resize: vertical;"
+                  oninput="autoSave()"
+                ></textarea>
+              </div>
+              
+              <div>
+                <label style="display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #2c3e50;">
+                  🎯 Action Steps for Future Jobs
+                </label>
+                <textarea 
+                  id="notesActionSteps" 
+                  placeholder="Example: Add 2 hours buffer for similar properties, check for utilities before bidding, bring backup equipment, schedule during cooler hours..."
+                  style="width: 100%; min-height: 70px; padding: 10px; border: 2px solid #3498db; border-radius: 6px; font-family: inherit; font-size: 13px; resize: vertical;"
+                  oninput="autoSave()"
+                ></textarea>
+              </div>
+              
+              <div style="margin-top: 12px; padding: 10px; background: white; border-radius: 6px; font-size: 11px; color: #7f8c8d; line-height: 1.5;">
+                💡 <strong>Tip:</strong> These notes help you learn from each job and improve future estimates. They're saved with your project and included in PDF exports.
+              </div>
+            </div>
+            
+            <div id="comparisonDisplay" style="display: none;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Professional landscaping estimator • Integrated material cost database & job costing
+    </div>
+  </div>
+
+  <script>
+    // Google Maps variables
+    let map = null;
+    let drawingManager = null;
+    let mapMeasurements = [];
+    let locationMarker = null; // Persistent red marker for searched location
+    
+    // Equipment, material rows, and material sections
+    let equipmentRows = [];
+    let additionalMaterialRows = [];
+    let completedMaterials = []; // Track materials that have been calculated and saved
+    
+    // Material pricing data
+    const MATERIALS = {
+      mulch: [
+        { name: 'Pine Bark', pricePerYard: 34, pricePerHalf: 17 },
+        { name: 'Brown Mulch', pricePerYard: 34, pricePerHalf: 17 },
+        { name: 'Red Mulch', pricePerYard: 34, pricePerHalf: 17 },
+        { name: 'Chocolate Mulch', pricePerYard: 34, pricePerHalf: 17 }
+      ],
+      rock: [
+        { name: '2" Granite', pricePerYard: 170, pricePerHalf: 85 },
+        { name: '3/4" Brown Pea Stone', pricePerYard: 180, pricePerHalf: 90 },
+        { name: '1.5" Brown River Rock', pricePerYard: 220, pricePerHalf: 110 },
+        { name: '1-3" Brown River Rock', pricePerYard: 230, pricePerHalf: 115 },
+        { name: 'Red Lava Rock', pricePerYard: 230, pricePerHalf: 115 }
+      ],
+      dirt: [
+        { name: 'Fill Dirt/Top Soil', pricePerYard: 40, pricePerHalf: 20 }
+      ],
+      sod: [
+        { name: 'Argentine Bahia', pricePerPallet: 170.5, pricePerSqFt: 0.42625 },
+        { name: 'St. Augustine Floratam', pricePerPallet: 239.91, pricePerSqFt: 0.599775 },
+        { name: 'St. Augustine Pro Vista', pricePerPallet: 313.74, pricePerSqFt: 0.78435 },
+        { name: 'St. Augustine Citra Blue', pricePerPallet: 292.34, pricePerSqFt: 0.73085 },
+        { name: 'Icon Zoysia', pricePerPallet: 313.74, pricePerSqFt: 0.78435 }
+      ]
+    };
+
+    const ADDONS = {
+      geoTextile: { name: 'Geo Textile Fabric', pricePerLinearFt: 1.20 },
+      edging: { name: 'Composite Edging', pricePerLinearFt: 5.00 }
+    };
+
+    // Equipment Rental pricing from Google Sheets (Equipment Rental tab)
+    // This data syncs with: https://docs.google.com/spreadsheets/d/1fFbsuDFXu_W4MK234vNwM-WsEHkcDp6N1Tn_ZRe_J1I/edit#gid=268979256
+    // To update: Modify your Google Sheet and update this array manually, or contact developer for auto-sync feature
+    const EQUIPMENT_RENTAL = [
+      { name: 'Stump Grinder 13 HP', fourHourRate: 132, dailyRate: 188, weekRate: 752, fourWeekRate: 2256 },
+      { name: '1-Ton Mini Excavator', fourHourRate: 262, dailyRate: 349, weekRate: 1047, fourWeekRate: 2618 },
+      { name: '1.5-2 Ton Mini Excavator', fourHourRate: 277, dailyRate: 369, weekRate: 1107, fourWeekRate: 2768 },
+      { name: '700-1,200 lb Tracked Skid Steer', fourHourRate: 292, dailyRate: 389, weekRate: 1167, fourWeekRate: 2918 },
+      { name: 'Skid Steer Tracked (ROC 1400-1900 lbs)', fourHourRate: 329, dailyRate: 439, weekRate: 1229, fourWeekRate: 3073 },
+      { name: 'Mini Skid Steer (1182lb/500lb capacity)', fourHourRate: 247, dailyRate: 329, weekRate: 987, fourWeekRate: 2468 },
+      { name: 'Mini Skid Steer (4420lb/860lb capacity)', fourHourRate: 262, dailyRate: 349, weekRate: 1047, fourWeekRate: 2618 },
+      { name: 'Compact Stump Grinder', fourHourRate: 107, dailyRate: 153, weekRate: 612, fourWeekRate: 1836 },
+      { name: 'Lawn Roller', fourHourRate: 19, dailyRate: 27, weekRate: 108, fourWeekRate: 324 },
+      { name: 'Sod Cutter (18" width, 20 cpm)', fourHourRate: 90, dailyRate: 129, weekRate: 516, fourWeekRate: 1548 },
+      { name: 'PRO Sod Cutter', fourHourRate: 104, dailyRate: 149, weekRate: 596, fourWeekRate: 1788 }
+    ];
+
+    // Track equipment rental selections
+    let equipmentRentalSelections = [];
+    let equipmentRentalIdCounter = 0;
+
+    // DOM elements
+    const materialCategory = document.getElementById('materialCategory');
+    const materialType = document.getElementById('materialType');
+    const dimensionsContainer = document.getElementById('dimensionsContainer');
+    const includeGeoTextile = document.getElementById('includeGeoTextile');
+    const geoTextileLinearFt = document.getElementById('geoTextileLinearFt');
+    const includeEdging = document.getElementById('includeEdging');
+    const edgingLinearFt = document.getElementById('edgingLinearFt');
+    const summaryContent = document.getElementById('summaryContent');
+
+    // Initialize
+    function init() {
+      updateMaterialOptions();
+      updateDimensionsInputs();
+      initializeEquipmentRows();
+      initializeAdditionalMaterials();
+      initializeGoogleMaps();
+      
+      // GeoTextile and Edging listeners
+      includeGeoTextile.addEventListener('change', (e) => {
+        geoTextileLinearFt.style.display = e.target.checked ? 'block' : 'none';
+        document.getElementById('geoTextileLabel').classList.toggle('active', e.target.checked);
+        calculate();
+      });
+
+      includeEdging.addEventListener('change', (e) => {
+        edgingLinearFt.style.display = e.target.checked ? 'block' : 'none';
+        document.getElementById('edgingLabel').classList.toggle('active', e.target.checked);
+        calculate();
+      });
+
+      // Profit margin slider
+      const profitMarginSlider = document.getElementById('profitMarginSlider');
+      const profitMarginDisplay = document.getElementById('profitMarginDisplay');
+      
+      if (profitMarginSlider && profitMarginDisplay) {
+        profitMarginSlider.addEventListener('input', (e) => {
+          profitMarginDisplay.textContent = e.target.value + '%';
+          calculate();
+        });
+      }
+
+      // Track previous category to save material before switching
+      let previousCategory = materialCategory.value;
+      let previousMaterialType = materialType.value;
+
+      // Material category change listener - save current material before switching
+      materialCategory.addEventListener('change', () => {
+        // Save using previous values (before the change)
+        saveCurrentMaterialBeforeSwitch(previousCategory, previousMaterialType);
+        
+        // Update to new category
+        updateMaterialOptions();
+        updateDimensionsInputs();
+        
+        // Store new values for next change
+        previousCategory = materialCategory.value;
+        previousMaterialType = materialType.value;
+        
+        calculate();
+      });
+
+      materialType.addEventListener('change', () => {
+        previousMaterialType = materialType.value;
+        calculate();
+      });
+
+      // Add input listeners for all inputs
+      document.querySelectorAll('input, select').forEach(el => {
+        el.addEventListener('input', () => {
+          calculate();
+          autoSave(); // Auto-save on every change
+        });
+      });// FIX #2: Add event listener for actual hours to auto-calculate labor cost
+      const actualHoursInput = document.getElementById('actualHours');
+      if (actualHoursInput) {
+        actualHoursInput.addEventListener('input', calculateLaborFromHours);
+      }
+
+      // Load auto-saved data
+      loadAutoSave();
+      
+      // Update auto-save indicator to show age
+      updateAutoSaveIndicator();
+
+      calculate();
+    }// FIX #2: Auto-calculate labor cost from actual hours
+    function calculateLaborFromHours() {
+      const actualHours = parseFloat(document.getElementById('actualHours').value) || 0;
+      const laborRate = parseFloat(document.getElementById('laborRate').value) || 91;
+      const actualLaborCost = actualHours * laborRate;
+      
+      const actualLaborField = document.getElementById('actualLabor');
+      if (actualLaborField) {
+        if (actualHours > 0) {
+          actualLaborField.value = actualLaborCost.toFixed(2);
+          updateActualComparison();
+        } else {
+          actualLaborField.value = '';
+          updateActualComparison();
+        }
+      }
+    }
+
+    function updateMaterialOptions() {
+      const category = materialCategory.value;
+      
+      if (category === 'none') {
+        materialType.innerHTML = '<option value="">No material selected</option>';
+        return;
+      }
+      
+      const materials = MATERIALS[category];
+      
+      materialType.innerHTML = materials.map(m => {
+        const price = category === 'sod' 
+          ? `$${m.pricePerSqFt.toFixed(2)}/sq ft`
+          : `$${m.pricePerYard}/yard`;
+        // Escape quotes in material name for HTML attribute
+        const escapedName = m.name.replace(/"/g, '&quot;');
+        return `<option value="${escapedName}">${m.name} - ${price}</option>`;
+      }).join('');
+    }
+
+    function updateDimensionsInputs() {
+      const category = materialCategory.value;
+      
+      if (category === 'none') {
+        dimensionsContainer.innerHTML = `
+          <p style="color: #7f8c8d; font-size: 13px; text-align: center; padding: 20px;">
+            No material selected. Choose a material category or proceed with labor/equipment only.
+          </p>
+        `;
+      } else if (category === 'sod') {
+        dimensionsContainer.innerHTML = `
+          <div class="grid-2">
+            <div>
+              <label>Length (ft)</label>
+              <input type="number" id="length" placeholder="0">
+            </div>
+            <div>
+              <label>Width (ft)</label>
+              <input type="number" id="width" placeholder="0">
+            </div>
+          </div>
+        `;
+      } else {
+        dimensionsContainer.innerHTML = `
+          <div class="grid-2">
+            <div>
+              <label>Length (ft)</label>
+              <input type="number" id="length" placeholder="0">
+            </div>
+            <div>
+              <label>Width (ft)</label>
+              <input type="number" id="width" placeholder="0">
+            </div>
+          </div>
+          <label>Depth (inches)</label>
+          <input type="number" id="depth" value="1">
+        `;
+      }
+
+      // Re-attach listeners including auto-save (only if inputs exist)
+      dimensionsContainer.querySelectorAll('input').forEach(el => {
+        el.addEventListener('input', () => {
+          calculate();
+          autoSave();
+        });
+      });
+    }
+
+    function formatCurrency(value) {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2
+      }).format(value || 0);
+    }
+
+    // Initialize equipment rows (start with 0, user adds as needed)
+    function initializeEquipmentRows() {
+      // Start with no rows - user can add as needed
+    }
+
+    // Add equipment row
+    function addEquipmentRow() {
+      const container = document.getElementById('equipmentContainer');
+      const id = Date.now() + Math.random();
+      
+      const rowDiv = document.createElement('div');
+      rowDiv.id = `equipment-${id}`;
+      rowDiv.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; margin-bottom: 8px;';
+      rowDiv.innerHTML = `
+        <input type="text" id="equipment-desc-${id}" placeholder="Equipment description" style="padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: inherit;">
+        <input type="number" id="equipment-cost-${id}" placeholder="Cost" style="padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: inherit;">
+        <button onclick="removeEquipmentRow('${id}')" style="padding: 10px; background: #e74c3c; color: white; border: none; border-radius: 6px; cursor: pointer;">✕</button>
+      `;
+      
+      container.appendChild(rowDiv);
+      equipmentRows.push({ id, description: '', cost: 0 });
+      
+      // Add event listeners
+      document.getElementById(`equipment-desc-${id}`).addEventListener('input', (e) => {
+        const row = equipmentRows.find(r => r.id == id);
+        if (row) row.description = e.target.value;
+        calculate();
+        autoSave();
+      });
+      
+      document.getElementById(`equipment-cost-${id}`).addEventListener('input', (e) => {
+        const row = equipmentRows.find(r => r.id == id);
+        if (row) row.cost = parseFloat(e.target.value) || 0;
+        calculate();
+        autoSave();
+      });
+    }
+
+    // Remove equipment row
+    function removeEquipmentRow(id) {
+      const element = document.getElementById(`equipment-${id}`);
+      if (element) element.remove();
+      equipmentRows = equipmentRows.filter(r => r.id != id);
+      calculate();
+    }
+
+    // Initialize additional materials
+    function initializeAdditionalMaterials() {
+      // Start with no rows - user can add as needed
+    }
+
+    // Equipment Rental Functions
+    function addEquipmentRental() {
+      const id = equipmentRentalIdCounter++;
+      const container = document.getElementById('equipmentRentalList');
+      
+      const rentalDiv = document.createElement('div');
+      rentalDiv.id = `equipment-rental-${id}`;
+      rentalDiv.style.cssText = 'background: #f8f9fa; border: 2px solid #3498db; border-radius: 8px; padding: 16px; margin-bottom: 12px; position: relative;';
+      
+      rentalDiv.innerHTML = `
+        <button onclick="removeEquipmentRental(${id})" style="position: absolute; top: 8px; right: 8px; background: #e74c3c; color: white; border: none; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; font-size: 16px; line-height: 1;">×</button>
+        
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; margin-bottom: 4px; font-weight: 600; font-size: 13px;">Equipment</label>
+          <select id="equipment-rental-type-${id}" onchange="updateEquipmentRentalCost(${id})" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: inherit;">
+            <option value="">Select Equipment</option>
+            ${EQUIPMENT_RENTAL.map(eq => `
+              <option value="${eq.name}">${eq.name} - $${eq.dailyRate}/day</option>
+            `).join('')}
+          </select>
+        </div>
+        
+        <div style="margin-bottom: 12px;">
+          <label style="display: block; margin-bottom: 4px; font-weight: 600; font-size: 13px;">Duration</label>
+          <select id="equipment-rental-duration-${id}" onchange="updateEquipmentRentalCost(${id})" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: inherit;">
+            <option value="4hour">4 Hours</option>
+            <option value="full" selected>Full Day</option>
+            <option value="week">Week</option>
+            <option value="4week">4 Weeks</option>
+          </select>
+        </div>
+        
+        <div style="background: white; padding: 12px; border-radius: 6px; border: 2px solid #3498db;">
+          <div style="font-size: 12px; color: #7f8c8d; margin-bottom: 4px;">Rental Cost (with tax & insurance)</div>
+          <div id="equipment-rental-cost-${id}" style="font-size: 20px; font-weight: 700; color: #3498db;">$0.00</div>
+          <div id="equipment-rental-details-${id}" style="font-size: 11px; color: #7f8c8d; margin-top: 4px;"></div>
+        </div>
+      `;
+      
+      container.appendChild(rentalDiv);
+      
+      equipmentRentalSelections.push({ id, name: '', duration: 'full', cost: 0 });
+      updateEquipmentRentalCost(id);
+    }
+
+    function removeEquipmentRental(id) {
+      const element = document.getElementById(`equipment-rental-${id}`);
+      if (element) element.remove();
+      
+      equipmentRentalSelections = equipmentRentalSelections.filter(e => e.id !== id);
+      calculate();
+      autoSave();
+    }
+
+    function updateEquipmentRentalCost(id) {
+      const equipmentName = document.getElementById(`equipment-rental-type-${id}`).value;
+      const duration = document.getElementById(`equipment-rental-duration-${id}`).value;
+      
+      if (!equipmentName) {
+        document.getElementById(`equipment-rental-cost-${id}`).textContent = '$0.00';
+        document.getElementById(`equipment-rental-details-${id}`).textContent = '';
+        return;
+      }
+      
+      const equipment = EQUIPMENT_RENTAL.find(e => e.name === equipmentName);
+      if (!equipment) return;
+      
+      let baseCost = 0;
+      let details = '';
+      
+      if (duration === '4hour') {
+        baseCost = equipment.fourHourRate;
+        details = `4 hour rental`;
+      } else if (duration === 'full') {
+        baseCost = equipment.dailyRate;
+        details = `Full day rental`;
+      } else if (duration === 'week') {
+        baseCost = equipment.weekRate;
+        details = `Week rental`;
+      } else if (duration === '4week') {
+        baseCost = equipment.fourWeekRate;
+        details = `4 weeks rental`;
+      }
+      
+      // Add 15% rental insurance
+      const insurance = baseCost * 0.15;
+      
+      // Add 7% sales tax on (base + insurance)
+      const subtotalWithInsurance = baseCost + insurance;
+      const salesTax = subtotalWithInsurance * 0.07;
+      
+      // Total cost passed to customer
+      const totalCost = baseCost + insurance + salesTax;
+      
+      const detailsWithBreakdown = `${details} | Base: ${formatCurrency(baseCost)} + Insurance (15%): ${formatCurrency(insurance)} + Tax (7%): ${formatCurrency(salesTax)}`;
+      
+      document.getElementById(`equipment-rental-cost-${id}`).textContent = formatCurrency(totalCost);
+      document.getElementById(`equipment-rental-details-${id}`).textContent = detailsWithBreakdown;
+      
+      // Update selection
+      const selection = equipmentRentalSelections.find(e => e.id === id);
+      if (selection) {
+        selection.name = equipmentName;
+        selection.duration = duration;
+        selection.baseCost = baseCost;
+        selection.insurance = insurance;
+        selection.salesTax = salesTax;
+        selection.cost = totalCost;
+        selection.details = details;
+      }
+      
+      calculate();
+      autoSave();
+    }
+
+    // Add material row
+    function addMaterialRow() {
+      const container = document.getElementById('additionalMaterialsContainer');
+      const id = Date.now() + Math.random();
+      
+      const rowDiv = document.createElement('div');
+      rowDiv.id = `material-${id}`;
+      rowDiv.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr auto; gap: 8px; margin-bottom: 8px;';
+      rowDiv.innerHTML = `
+        <input type="text" placeholder="Material description" class="material-desc" data-id="${id}" style="padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: inherit;">
+        <input type="number" placeholder="Cost" class="material-cost" data-id="${id}" style="padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-family: inherit;">
+        <button onclick="removeMaterialRow('${id}')" style="padding: 10px; background: #e74c3c; color: white; border: none; border-radius: 6px; cursor: pointer;">✕</button>
+      `;
+      
+      container.appendChild(rowDiv);
+      additionalMaterialRows.push({ id, description: '', cost: 0 });
+      
+      // Add event listeners
+      rowDiv.querySelector('.material-desc').addEventListener('input', (e) => {
+        const row = additionalMaterialRows.find(r => r.id == id);
+        if (row) row.description = e.target.value;
+        calculate();
+      });
+      
+      rowDiv.querySelector('.material-cost').addEventListener('input', (e) => {
+        const row = additionalMaterialRows.find(r => r.id == id);
+        if (row) row.cost = parseFloat(e.target.value) || 0;
+        calculate();
+      });
+    }
+
+    // Remove material row
+    function removeMaterialRow(id) {
+      const element = document.getElementById(`material-${id}`);
+      if (element) element.remove();
+      additionalMaterialRows = additionalMaterialRows.filter(r => r.id !== id);
+      calculate();
+      autoSave();
+    }
+
+    // Initialize Google Maps
+    function initializeGoogleMaps() {
+      const toggleBtn = document.getElementById('toggleMapBtn');
+      const mapContainer = document.getElementById('mapContainer');
+      
+      toggleBtn.addEventListener('click', () => {
+        const isVisible = mapContainer.style.display !== 'none';
+        mapContainer.style.display = isVisible ? 'none' : 'block';
+        toggleBtn.textContent = isVisible ? '📍 Open Map to Measure' : '✓ Map Active - Click to Hide';
+        toggleBtn.style.background = isVisible ? '#27ae60' : '#2ecc71';
+        
+        if (!isVisible && !map) {
+          // Check if Google Maps API is loaded
+          if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
+            alert('Google Maps is still loading. Please wait a moment and try again.');
+            mapContainer.style.display = 'none';
+            toggleBtn.textContent = '📍 Open Map to Measure';
+            toggleBtn.style.background = '#27ae60';
+            return;
+          }
+          initMap();
+        }
+      });
+    }
+
+    // Initialize the Google Map
+    function initMap() {
+      if (typeof google === 'undefined' || typeof google.maps === 'undefined') {
+        console.error('Google Maps API not loaded');
+        alert('Google Maps failed to load. Please refresh the page.');
+        return;
+      }
+
+      map = new google.maps.Map(document.getElementById('map'), {
+        center: { lat: 28.6139, lng: -80.8075 }, // Titusville, FL
+        zoom: 18,
+        mapTypeId: 'satellite',
+        tilt: 0
+      });
+
+      drawingManager = new google.maps.drawing.DrawingManager({
+        drawingMode: google.maps.drawing.OverlayType.POLYGON,
+        drawingControl: true,
+        drawingControlOptions: {
+          position: google.maps.ControlPosition.TOP_CENTER,
+          drawingModes: [
+            google.maps.drawing.OverlayType.POLYLINE,
+            google.maps.drawing.OverlayType.POLYGON,
+            google.maps.drawing.OverlayType.RECTANGLE
+          ]
+        },
+        polylineOptions: {
+          strokeColor: '#3498db',
+          strokeWeight: 3,
+          strokeOpacity: 0.8,
+          editable: true
+        },
+        polygonOptions: {
+          fillColor: '#27ae60',
+          fillOpacity: 0.3,
+          strokeWeight: 2,
+          strokeColor: '#27ae60',
+          editable: true
+        },
+        rectangleOptions: {
+          fillColor: '#27ae60',
+          fillOpacity: 0.3,
+          strokeWeight: 2,
+          strokeColor: '#27ae60',
+          editable: true
+        }
+      });
+
+      drawingManager.setMap(map);
+
+      // Initialize Google Places Autocomplete for address search
+      const addressInput = document.getElementById('addressSearch');
+      
+      if (!addressInput) {
+        console.error('Address search input not found');
+        return;
+      }
+
+      try {
+        const autocomplete = new google.maps.places.Autocomplete(addressInput, {
+          types: ['address'],
+          componentRestrictions: { country: 'us' },
+          fields: ['geometry', 'formatted_address']
+        });
+
+        // Bias results to Brevard County, FL area
+        autocomplete.setBounds({
+          north: 28.7,
+          south: 27.9,
+          east: -80.4,
+          west: -80.9
+        });
+
+        // Listen for place selection from autocomplete
+        autocomplete.addListener('place_changed', () => {
+          const place = autocomplete.getPlace();
+          
+          if (!place.geometry) {
+            console.log('No geometry for place');
+            return;
+          }
+          
+          // Auto-fill property address in Project Details
+          const propertyAddressInput = document.getElementById('propertyAddress');
+          if (propertyAddressInput && place.formatted_address) {
+            propertyAddressInput.value = place.formatted_address;
+          }
+          
+          map.setCenter(place.geometry.location);
+          map.setZoom(19);
+          
+          // Remove old location marker if exists
+          if (locationMarker) {
+            locationMarker.setMap(null);
+          }
+          
+          // Add persistent RED marker at the searched location
+          locationMarker = new google.maps.Marker({
+            map: map,
+            position: place.geometry.location,
+            animation: google.maps.Animation.DROP,
+            icon: {
+              url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+            },
+            title: place.formatted_address || 'Property Location'
+          });
+        });
+        
+        console.log('Autocomplete initialized successfully');
+        
+        // Fix dropdown position in iframe and attach Google logo
+        const observer = new MutationObserver(() => {
+          const pacContainers = document.querySelectorAll('.pac-container');
+          
+          pacContainers.forEach(container => {
+            if (container && addressInput) {
+              const rect = addressInput.getBoundingClientRect();
+              const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+              const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+              
+              container.style.top = (rect.bottom + scrollTop + 2) + 'px';
+              container.style.left = (rect.left + scrollLeft) + 'px';
+              container.style.width = rect.width + 'px';
+              container.style.position = 'absolute';
+            }
+          });
+          
+          // Find and position the "powered by Google" logo
+          const pacLogos = document.querySelectorAll('.pac-logo::after, img[src*="powered_by_google"]');
+          pacLogos.forEach(logo => {
+            if (pacContainers.length > 0) {
+              const container = pacContainers[0];
+              logo.style.position = 'relative';
+              logo.style.display = 'block';
+              logo.style.textAlign = 'right';
+              logo.style.padding = '8px 10px';
+              logo.style.background = '#f8f8f8';
+              logo.style.borderTop = '1px solid #e0e0e0';
+            }
+          });
+        });
+        
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true,
+          attributes: true,
+          attributeFilter: ['style', 'class']
+        });
+        
+        // Also reposition on scroll
+        window.addEventListener('scroll', () => {
+          const pacContainers = document.querySelectorAll('.pac-container');
+          if (pacContainers.length > 0 && addressInput) {
+            const rect = addressInput.getBoundingClientRect();
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+            
+            pacContainers.forEach(container => {
+              container.style.top = (rect.bottom + scrollTop + 2) + 'px';
+              container.style.left = (rect.left + scrollLeft) + 'px';
+            });
+          }
+        });
+        
+      } catch (error) {
+        console.error('Error initializing autocomplete:', error);
+      }
+
+      google.maps.event.addListener(drawingManager, 'overlaycomplete', (event) => {
+        let area = 0;
+        let perimeter = 0;
+        let distance = 0;
+        let isLinear = false;
+
+        if (event.type === 'polyline') {
+          // Linear measurement (distance only)
+          isLinear = true;
+          const path = event.overlay.getPath();
+          
+          for (let i = 0; i < path.getLength() - 1; i++) {
+            const point1 = path.getAt(i);
+            const point2 = path.getAt(i + 1);
+            distance += google.maps.geometry.spherical.computeDistanceBetween(point1, point2);
+          }
+        } else if (event.type === 'polygon') {
+          const path = event.overlay.getPath();
+          area = google.maps.geometry.spherical.computeArea(path);
+          
+          for (let i = 0; i < path.getLength(); i++) {
+            const point1 = path.getAt(i);
+            const point2 = path.getAt((i + 1) % path.getLength());
+            perimeter += google.maps.geometry.spherical.computeDistanceBetween(point1, point2);
+          }
+        } else if (event.type === 'rectangle') {
+          const bounds = event.overlay.getBounds();
+          const ne = bounds.getNorthEast();
+          const sw = bounds.getSouthWest();
+          const nw = new google.maps.LatLng(ne.lat(), sw.lng());
+          const se = new google.maps.LatLng(sw.lat(), ne.lng());
+          
+          area = google.maps.geometry.spherical.computeArea([ne, se, sw, nw]);
+          
+          const width = google.maps.geometry.spherical.computeDistanceBetween(nw, ne);
+          const height = google.maps.geometry.spherical.computeDistanceBetween(nw, sw);
+          perimeter = 2 * (width + height);
+        }
+
+        const sqFeet = area * 10.7639; // m² to ft²
+        const perimeterFeet = perimeter * 3.28084; // m to ft
+        const distanceFeet = distance * 3.28084; // m to ft
+
+        mapMeasurements.push({
+          id: Date.now(),
+          overlay: event.overlay,
+          area: sqFeet,
+          perimeter: perimeterFeet,
+          distance: distanceFeet,
+          isLinear: isLinear,
+          type: event.type
+        });
+
+        updateMeasurementsDisplay();
+      });
+    }
+
+    // Update measurements display
+    function updateMeasurementsDisplay() {
+      const display = document.getElementById('measurementsDisplay');
+      const list = document.getElementById('measurementsList');
+      const count = document.getElementById('measurementCount');
+      
+      if (mapMeasurements.length === 0) {
+        display.style.display = 'none';
+        return;
+      }
+      
+      display.style.display = 'block';
+      count.textContent = mapMeasurements.length;
+      
+      list.innerHTML = mapMeasurements.map((m, index) => {
+        if (m.isLinear) {
+          // Linear measurement (distance only)
+          return `
+            <div style="display: flex; justify-content: space-between; padding: 8px; background: #e3f2fd; border: 2px solid #3498db; border-radius: 6px; margin-bottom: 8px; font-size: 13px;">
+              <div>
+                <strong style="color: #3498db;">📏 Distance ${index + 1}:</strong> ${m.distance.toFixed(2)} ft
+              </div>
+              <button onclick="removeMeasurement(${index})" style="padding: 4px 8px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">✕</button>
+            </div>
+          `;
+        } else {
+          // Area measurement
+          return `
+            <div style="display: flex; justify-content: space-between; padding: 8px; background: white; border-radius: 6px; margin-bottom: 8px; font-size: 13px;">
+              <div>
+                <strong>Area ${index + 1}:</strong> ${m.area.toFixed(2)} sq ft<br>
+                <span style="font-size: 12px; opacity: 0.7;">Perimeter: ${m.perimeter.toFixed(2)} ft</span>
+              </div>
+              <button onclick="removeMeasurement(${index})" style="padding: 4px 8px; background: #e74c3c; color: white; border: none; border-radius: 4px; cursor: pointer;">✕</button>
+            </div>
+          `;
+        }
+      }).join('');
+      
+      const totalArea = mapMeasurements.filter(m => !m.isLinear).reduce((sum, m) => sum + (m.area || 0), 0);
+      const totalPerimeter = mapMeasurements.filter(m => !m.isLinear).reduce((sum, m) => sum + (m.perimeter || 0), 0);
+      const totalDistance = mapMeasurements.filter(m => m.isLinear).reduce((sum, m) => sum + (m.distance || 0), 0);
+      
+      document.getElementById('totalArea').textContent = totalArea.toFixed(2);
+      document.getElementById('totalPerimeter').textContent = totalPerimeter.toFixed(2);
+      
+      // Show total distance if any linear measurements exist
+      const totalsDiv = document.getElementById('totalArea').parentElement;
+      const existingDistance = totalsDiv.querySelector('.total-distance');
+      if (existingDistance) existingDistance.remove();
+      
+      if (totalDistance > 0) {
+        const distanceDiv = document.createElement('div');
+        distanceDiv.className = 'total-distance';
+        distanceDiv.style.color = '#3498db';
+        distanceDiv.innerHTML = `Total Distance: <span>${totalDistance.toFixed(2)}</span> ft`;
+        totalsDiv.appendChild(distanceDiv);
+      }
+    }
+
+    // Apply measurements to dimension fields
+    function applyMeasurements() {
+      const totalArea = mapMeasurements.reduce((sum, m) => sum + m.area, 0);
+      const totalPerimeter = mapMeasurements.reduce((sum, m) => sum + m.perimeter, 0);
+      
+      const category = materialCategory.value;
+      
+      if (category === 'sod') {
+        const sqFtInput = document.getElementById('sqFt');
+        if (sqFtInput) sqFtInput.value = totalArea.toFixed(2);
+      } else {
+        const estimatedSide = Math.sqrt(totalArea);
+        const lengthInput = document.getElementById('length');
+        const widthInput = document.getElementById('width');
+        if (lengthInput) lengthInput.value = estimatedSide.toFixed(2);
+        if (widthInput) widthInput.value = estimatedSide.toFixed(2);
+      }
+      
+      // Apply perimeter to edging if enabled
+      if (includeEdging.checked) {
+        edgingLinearFt.value = totalPerimeter.toFixed(2);
+      }
+      
+      calculate();
+      alert('Measurements applied to dimensions!');
+    }
+
+    // Remove a measurement
+    function removeMeasurement(index) {
+      const measurement = mapMeasurements[index];
+      if (measurement && measurement.overlay) {
+        measurement.overlay.setMap(null);
+      }
+      mapMeasurements.splice(index, 1);
+      updateMeasurementsDisplay();
+    }
+
+    // Clear all measurements
+    function clearAllMeasurements() {
+      mapMeasurements.forEach(m => {
+        if (m.overlay) m.overlay.setMap(null);
+      });
+      mapMeasurements = [];
+      updateMeasurementsDisplay();
+    }
+
+    // Search for address and center map (manual search or autocomplete fallback)
+    function searchAddress() {
+      const address = document.getElementById('addressSearch').value;
+      
+      if (!address.trim()) {
+        alert('Please enter an address');
+        return;
+      }
+      
+      if (!map) {
+        alert('Please wait for the map to load');
+        return;
+      }
+      
+      const geocoder = new google.maps.Geocoder();
+      
+      // Bias to Brevard County
+      geocoder.geocode({ 
+        address: address,
+        componentRestrictions: {
+          country: 'US',
+          administrativeArea: 'FL'
+        }
+      }, (results, status) => {
+        if (status === 'OK') {
+          // Auto-fill property address in Project Details
+          const propertyAddressInput = document.getElementById('propertyAddress');
+          if (propertyAddressInput && results[0].formatted_address) {
+            propertyAddressInput.value = results[0].formatted_address;
+          }
+          
+          map.setCenter(results[0].geometry.location);
+          map.setZoom(19); // Closer zoom for property view
+          
+          // Remove old location marker if exists
+          if (locationMarker) {
+            locationMarker.setMap(null);
+          }
+          
+          // Add persistent RED marker at the searched location
+          locationMarker = new google.maps.Marker({
+            map: map,
+            position: results[0].geometry.location,
+            animation: google.maps.Animation.DROP,
+            icon: {
+              url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+            },
+            title: results[0].formatted_address || 'Property Location'
+          });
+        } else {
+          alert('Address not found. Please try:\n• Selecting from dropdown suggestions as you type\n• Format: "123 Main St, Titusville, FL"');
+        }
+      });
+    }
+
+    // Save current material using previous category/type values (before switching)
+    function saveCurrentMaterialBeforeSwitch(prevCategory, prevMaterialType) {
+      // Don't save if it was "none" or no category
+      if (!prevCategory || prevCategory === 'none') return;
+      
+      // Decode HTML entities (quotes) from option value
+      const decodedMaterialType = prevMaterialType.replace(/&quot;/g, '"');
+      const material = MATERIALS[prevCategory]?.find(m => m.name === decodedMaterialType);
+      
+      if (!material) return;
+
+      let materialCost = 0;
+      let details = '';
+
+      if (prevCategory === 'sod') {
+        const length = parseFloat(document.getElementById('length')?.value || 0);
+        const width = parseFloat(document.getElementById('width')?.value || 0);
+        const sqFt = length * width;
+        if (sqFt > 0) {
+          materialCost = sqFt * material.pricePerSqFt;
+          const pallets = Math.ceil(sqFt / 400);
+          details = `${sqFt} sq ft • ${pallets} ${pallets === 1 ? 'pallet' : 'pallets'} (400 sq ft/pallet)`;
+        }
+      } else {
+        const length = parseFloat(document.getElementById('length')?.value || 0);
+        const width = parseFloat(document.getElementById('width')?.value || 0);
+        const depth = parseFloat(document.getElementById('depth')?.value || 1);
+        
+        if (length > 0 && width > 0) {
+          const cubicFeet = (length * width * depth) / 12;
+          const cubicYards = cubicFeet / 27;
+          materialCost = cubicYards * material.pricePerYard;
+          details = `${(length * width).toFixed(0)} sq ft × depth = ${cubicYards.toFixed(2)} yards`;
+        }
+      }
+
+      // Only save if there's a cost
+      if (materialCost > 0) {
+        // Check if this material already exists in completed materials
+        const existingIndex = completedMaterials.findIndex(m => 
+          m.category === prevCategory && m.materialName === decodedMaterialType
+        );
+        
+        const materialData = {
+          category: prevCategory,
+          materialName: decodedMaterialType,
+          cost: materialCost,
+          details
+        };
+        
+        if (existingIndex >= 0) {
+          // Update existing
+          completedMaterials[existingIndex] = materialData;
+        } else {
+          // Add new
+          completedMaterials.push(materialData);
+        }
+      }
+    }
+
+    // Save current material to completedMaterials before switching (DEPRECATED - use saveCurrentMaterialBeforeSwitch)
+    function saveCurrentMaterial() {
+      const category = materialCategory.value;
+      
+      // Don't save if it's "none" or already "none"
+      if (category === 'none') return;
+      
+      const selectedMaterialName = materialType.value;
+      const material = MATERIALS[category]?.find(m => m.name === selectedMaterialName);
+      
+      if (!material) return;
+
+      let materialCost = 0;
+      let details = '';
+
+      if (category === 'sod') {
+        const sqFt = parseFloat(document.getElementById('sqFt')?.value || 0);
+        if (sqFt > 0) {
+          materialCost = sqFt * material.pricePerSqFt;
+          details = `${sqFt} sq ft`;
+        }
+      } else {
+        const length = parseFloat(document.getElementById('length')?.value || 0);
+        const width = parseFloat(document.getElementById('width')?.value || 0);
+        const depth = parseFloat(document.getElementById('depth')?.value || 1);
+        
+        if (length > 0 && width > 0) {
+          const cubicFeet = (length * width * depth) / 12;
+          const cubicYards = cubicFeet / 27;
+          materialCost = cubicYards * material.pricePerYard;
+          details = `${(length * width).toFixed(0)} sq ft × depth = ${cubicYards.toFixed(2)} yards`;
+        }
+      }
+
+      // Only save if there's a cost
+      if (materialCost > 0) {
+        // Check if this material already exists in completed materials
+        const existingIndex = completedMaterials.findIndex(m => 
+          m.category === category && m.materialName === selectedMaterialName
+        );
+        
+        const materialData = {
+          category,
+          materialName: selectedMaterialName,
+          cost: materialCost,
+          details
+        };
+        
+        if (existingIndex >= 0) {
+          // Update existing
+          completedMaterials[existingIndex] = materialData;
+        } else {
+          // Add new
+          completedMaterials.push(materialData);
+        }
+      }
+    }
+
+    function calculate() {
+      const category = materialCategory.value;
+      
+      console.log('Calculate called - Category:', category);
+      
+      // Handle "None" selection
+      if (category === 'none') {
+        // Hide inline display
+        const materialCostDisplay = document.getElementById('materialCostDisplay');
+        if (materialCostDisplay) {
+          materialCostDisplay.style.display = 'none';
+        }
+        
+        // Calculate totals using only completed materials (no current material)
+        const totalCompletedMaterialsCost = completedMaterials.reduce((sum, m) => sum + m.cost, 0);
+        
+        calculateTotalsAndDisplay(0, {
+          category: 'none',
+          materialName: 'None',
+          cubicYards: 0,
+          cubicFeet: 0,
+          totalSqFt: 0,
+          totalLinearFt: 0
+        }, totalCompletedMaterialsCost);
+        return;
+      }
+      
+      const selectedMaterialName = materialType.value;
+      // Decode HTML entities (quotes) from option value
+      const decodedMaterialName = selectedMaterialName.replace(/&quot;/g, '"');
+      const material = MATERIALS[category]?.find(m => m.name === decodedMaterialName);
+      
+      console.log('[Main Calculate] Category:', category, 'Material name:', decodedMaterialName, 'Found:', !!material);
+      if (!material) {
+        console.warn('[Main Calculate] No material found!');
+      }
+      
+      if (!material) return;
+
+      let materialCost = 0;
+      let cubicYards = 0;
+      let cubicFeet = 0;
+      let totalSqFt = 0;
+      let totalLinearFt = 0;
+
+      if (category === 'sod') {
+        const length = parseFloat(document.getElementById('length')?.value || 0);
+        const width = parseFloat(document.getElementById('width')?.value || 0);
+        totalSqFt = length * width;
+        materialCost = totalSqFt * material.pricePerSqFt;
+      } else {
+        const length = parseFloat(document.getElementById('length')?.value || 0);
+        const width = parseFloat(document.getElementById('width')?.value || 0);
+        const depth = parseFloat(document.getElementById('depth')?.value || 1);
+        
+        totalSqFt = length * width;
+        totalLinearFt = length;
+        cubicFeet = (length * width * depth) / 12;
+        cubicYards = cubicFeet / 27;
+        
+        materialCost = cubicYards * material.pricePerYard;
+      }
+
+      // Update inline material cost display
+      const materialCostDisplay = document.getElementById('materialCostDisplay');
+      const materialCostAmount = document.getElementById('materialCostAmount');
+      const materialCostDetails = document.getElementById('materialCostDetails');
+      
+      if (materialCost > 0 && materialCostDisplay && materialCostAmount && materialCostDetails) {
+        materialCostDisplay.style.display = 'block';
+        materialCostAmount.textContent = formatCurrency(materialCost);
+        
+        if (category === 'sod') {
+          materialCostDetails.textContent = `${totalSqFt} sq ft @ ${formatCurrency(material.pricePerSqFt)}/sq ft`;
+        } else {
+          materialCostDetails.textContent = `${totalSqFt.toFixed(0)} sq ft × ${document.getElementById('depth')?.value || 1}" depth = ${cubicYards.toFixed(2)} yards`;
+        }
+      } else if (materialCostDisplay) {
+        materialCostDisplay.style.display = 'none';
+      }
+
+      // Calculate totals with completed materials
+      const totalCompletedMaterialsCost = completedMaterials.reduce((sum, m) => sum + m.cost, 0);
+      
+      calculateTotalsAndDisplay(materialCost, {
+        category,
+        materialName: decodedMaterialName,
+        cubicYards,
+        cubicFeet,
+        totalSqFt,
+        totalLinearFt
+      }, totalCompletedMaterialsCost);
+    }
+
+    // Separate function for calculating totals and displaying
+    function calculateTotalsAndDisplay(currentMaterialCost, currentMaterialData, completedMaterialsCost) {
+      const geoTextileCost = includeGeoTextile.checked 
+        ? (parseFloat(geoTextileLinearFt.value) || 0) * ADDONS.geoTextile.pricePerLinearFt 
+        : 0;
+      const edgingCost = includeEdging.checked 
+        ? (parseFloat(edgingLinearFt.value) || 0) * ADDONS.edging.pricePerLinearFt 
+        : 0;
+      const addOnsCost = geoTextileCost + edgingCost;
+
+      const laborHours = parseFloat(document.getElementById('laborHours').value) || 0;
+      const laborRate = parseFloat(document.getElementById('laborRate').value) || 0;
+      const laborCost = laborHours * laborRate;
+      
+      // Calculate equipment costs from rows
+      const equipmentCost = equipmentRows.reduce((sum, row) => sum + (row.cost || 0), 0);
+      
+      // Calculate equipment rental costs
+      const equipmentRentalCost = equipmentRentalSelections.reduce((sum, rental) => sum + (rental.cost || 0), 0);
+      
+      // Total equipment cost
+      const totalEquipmentCost = equipmentCost + equipmentRentalCost;
+      
+      // Calculate additional materials costs with 10% markup
+      const additionalMaterialsBase = additionalMaterialRows.reduce((sum, row) => sum + (row.cost || 0), 0);
+      const additionalMaterialsMarkup = additionalMaterialsBase * 0.10;
+      const additionalMaterialsCost = additionalMaterialsBase + additionalMaterialsMarkup;
+      
+      const delivery = parseFloat(document.getElementById('deliveryFee').value) || 0;
+      const haul = parseFloat(document.getElementById('haulAway').value) || 0;
+
+      // Total material cost = current material + completed materials
+      const totalMaterialCost = currentMaterialCost + completedMaterialsCost;
+
+      const subtotal = totalMaterialCost + additionalMaterialsCost + addOnsCost + laborCost + totalEquipmentCost + delivery + haul;
+      const markupAmount = subtotal * (parseFloat(document.getElementById('markupPercent').value) / 100);
+      const totalWithMarkup = subtotal + markupAmount;
+
+      // Auto-populate budget hours from labor hours input
+      const budgetHoursInput = document.getElementById('budgetHours');
+      if (budgetHoursInput && laborHours > 0) {
+        budgetHoursInput.value = laborHours;
+      }
+
+      // Get target profit margin from slider
+      const profitMarginSlider = document.getElementById('profitMarginSlider');
+      const targetMarginPercent = profitMarginSlider ? parseFloat(profitMarginSlider.value) : 40;
+      const targetMargin = targetMarginPercent / 100; // Convert to decimal
+      const ccFeeRate = 0.03; // 3% CC fee
+      
+      // Calculate to maintain target profit margin AFTER 3% CC fee
+      // Formula: FinalPrice = (Costs) / (1 - targetMargin - ccFeeRate)
+      // This ensures: (FinalPrice - Costs - CCFee) / FinalPrice = targetMargin
+      const recommendedPrice = totalWithMarkup / (1 - targetMargin - ccFeeRate);
+      const ccFee = recommendedPrice * ccFeeRate;
+      const targetProfit = recommendedPrice - totalWithMarkup - ccFee;
+      const profitMargin = (targetProfit / recommendedPrice) * 100;
+      const subtotalWithProfit = recommendedPrice - ccFee;
+
+      displaySummary({
+        projectName: document.getElementById('projectName')?.value || '',
+        propertyAddress: document.getElementById('propertyAddress')?.value || '',
+        projectType: document.getElementById('projectType')?.value || '',
+        materialCost: currentMaterialCost,
+        completedMaterials: completedMaterials,
+        completedMaterialsCost: completedMaterialsCost,
+        additionalMaterialsBase,
+        additionalMaterialsMarkup,
+        additionalMaterialsCost,
+        additionalMaterials: additionalMaterialRows.filter(r => r.description && r.cost > 0),
+        addOnsCost,
+        geoTextileCost,
+        edgingCost,
+        laborCost,
+        equipmentCost: equipmentCost,
+        equipmentRows: equipmentRows.filter(r => r.description && r.description.trim().length > 0).map(r => ({
+          description: r.description,
+          cost: r.cost
+        })),
+        equipmentRentalCost: equipmentRentalCost,
+        equipmentRentalSelections: equipmentRentalSelections.filter(r => r.name && r.cost > 0),
+        totalEquipmentCost: totalEquipmentCost,
+        deliveryFee: delivery,
+        haulAway: haul,
+        subtotal,
+        markupAmount,
+        totalWithMarkup,
+        targetProfit,
+        subtotalWithProfit,
+        ccFee,
+        recommendedPrice,
+        profitMargin,
+        targetMarginPercent,
+        cubicYards: currentMaterialData.cubicYards,
+        cubicFeet: currentMaterialData.cubicFeet,
+        totalSqFt: currentMaterialData.totalSqFt,
+        totalLinearFt: currentMaterialData.totalLinearFt,
+        category: currentMaterialData.category,
+        materialName: currentMaterialData.materialName
+      });
+    }
+
+    function displaySummary(estimate) {
+      const targetGoal = estimate.targetMarginPercent || 40;
+      const meetsGoal = estimate.profitMargin >= (targetGoal - 0.5); // Allow 0.5% tolerance
+      // FIX #1: Store budget data as attributes for actual cost comparison
+  const summaryDiv = document.getElementById('summaryContent');
+  summaryDiv.setAttribute('data-materials', estimate.materialCost + estimate.additionalMaterialsCost);
+  summaryDiv.setAttribute('data-labor', estimate.laborCost || 0);
+  summaryDiv.setAttribute('data-equipment', estimate.totalEquipmentCost || 0);
+  summaryDiv.setAttribute('data-other', (estimate.deliveryFee || 0) + (estimate.haulAway || 0) + (estimate.addOnsCost || 0));
+      // Store budget data as attributes for actual cost comparison
+      const summaryDiv = document.getElementById('summaryContent');
+      summaryDiv.setAttribute('data-materials', estimate.materialCost + estimate.additionalMaterialsCost);
+      summaryDiv.setAttribute('data-labor', estimate.laborCost || 0);
+      summaryDiv.setAttribute('data-equipment', estimate.equipmentCost || 0);
+      summaryDiv.setAttribute('data-other', (estimate.deliveryFee || 0) + (estimate.haulAway || 0) + (estimate.addOnsCost || 0));
+      
+      summaryContent.innerHTML = `
+        <!-- Measurements -->
+        <div class="info-box">
+          <h3>📏 Measurements</h3>
+          ${estimate.category !== 'sod' ? `
+            <div class="info-row">
+              <span>Area:</span>
+              <span>${estimate.totalSqFt.toFixed(2)} sq ft</span>
+            </div>
+            <div class="info-row">
+              <span>Volume:</span>
+              <span>${estimate.cubicYards.toFixed(2)} cu yd</span>
+            </div>
+            <div class="info-row">
+              <span>Cubic Feet:</span>
+              <span>${estimate.cubicFeet.toFixed(2)} cu ft</span>
+            </div>
+          ` : `
+            <div class="info-row">
+              <span>Area:</span>
+              <span>${estimate.totalSqFt.toFixed(2)} sq ft</span>
+            </div>
+          `}
+        </div>
+
+        <!-- Cost Breakdown -->
+        <div class="info-box" style="background: rgba(0, 0, 0, 0.3);">
+          <h3>💰 Cost Breakdown</h3>
+          
+          <!-- Project/Customer Details -->
+          ${estimate.projectName || estimate.propertyAddress || estimate.projectType ? `
+            <div style="background: #fff; border: 2px solid #3498db; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+              <div style="font-weight: 700; font-size: 14px; color: #2c3e50; margin-bottom: 12px; border-bottom: 2px solid #3498db; padding-bottom: 8px;">
+                📋 Project Information
+              </div>
+              ${estimate.projectName ? `
+                <div style="margin-bottom: 8px;">
+                  <span style="color: #7f8c8d; font-size: 12px; font-weight: 600;">Project:</span>
+                  <span style="color: #2c3e50; font-size: 13px; font-weight: 600; margin-left: 8px;">${estimate.projectName}</span>
+                </div>
+              ` : ''}
+              ${estimate.propertyAddress ? `
+                <div style="margin-bottom: 8px;">
+                  <span style="color: #7f8c8d; font-size: 12px; font-weight: 600;">Address:</span>
+                  <span style="color: #2c3e50; font-size: 13px; margin-left: 8px;">${estimate.propertyAddress}</span>
+                </div>
+              ` : ''}
+              ${estimate.projectType ? `
+                <div>
+                  <span style="color: #7f8c8d; font-size: 12px; font-weight: 600;">Type:</span>
+                  <span style="color: #2c3e50; font-size: 13px; margin-left: 8px;">${estimate.projectType}</span>
+                </div>
+              ` : ''}
+            </div>
+          ` : ''}
+          
+          <!-- Completed Materials (from previous selections) -->
+          ${estimate.completedMaterials && estimate.completedMaterials.length > 0 ? `
+            ${estimate.completedMaterials.map(mat => `
+              <div style="border-left: 4px solid #3498db; background: #f8f9fa; padding: 12px 16px; margin-bottom: 8px; border-radius: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 18px;">
+                      ${mat.category === 'mulch' ? '🪵' : 
+                        mat.category === 'rock' ? '🪨' : 
+                        mat.category === 'dirt' ? '🟤' : 
+                        mat.category === 'sod' ? '🌱' : '📦'}
+                    </span>
+                    <div>
+                      <div style="font-size: 13px; font-weight: 700; color: #2c3e50;">
+                        ${mat.materialName}
+                      </div>
+                      <div style="font-size: 11px; color: #7f8c8d;">
+                        ${mat.details}
+                      </div>
+                    </div>
+                  </div>
+                  <div style="font-size: 18px; font-weight: 700; color: #2c3e50;">
+                    ${formatCurrency(mat.cost)}
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          ` : ''}
+          
+          <!-- Current Material with Details -->
+          ${estimate.category !== 'none' && estimate.materialCost > 0 ? `
+          <div style="border-left: 4px solid #27ae60; background: #f8f9fa; padding: 12px 16px; margin-bottom: 8px; border-radius: 4px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 18px;">
+                  ${estimate.category === 'mulch' ? '🪵' : 
+                    estimate.category === 'rock' ? '🪨' : 
+                    estimate.category === 'dirt' ? '🟤' : 
+                    estimate.category === 'sod' ? '🌱' : '📦'}
+                </span>
+                <div>
+                  <div style="font-size: 13px; font-weight: 700; color: #2c3e50;">
+                    ${estimate.materialName || 'Primary Material'}
+                  </div>
+                  <div style="font-size: 11px; color: #7f8c8d;">
+                    ${estimate.category === 'sod' 
+                      ? `${estimate.totalSqFt.toFixed(0)} sq ft • ${Math.ceil(estimate.totalSqFt / 400)} ${Math.ceil(estimate.totalSqFt / 400) === 1 ? 'pallet' : 'pallets'} (400 sq ft/pallet)` 
+                      : `${estimate.totalSqFt.toFixed(0)} sq ft × depth = ${estimate.cubicYards.toFixed(2)} yards`}
+                  </div>
+                </div>
+              </div>
+              <div style="font-size: 18px; font-weight: 700; color: #27ae60;">
+                ${formatCurrency(estimate.materialCost)}
+              </div>
+            </div>
+          </div>
+          ` : ''}
+          
+          ${estimate.additionalMaterialsCost > 0 ? `
+            ${estimate.additionalMaterials && estimate.additionalMaterials.length > 0 ? `
+              <div style="margin-bottom: 8px;">
+                ${estimate.additionalMaterials.map(m => `
+                  <div style="display: flex; justify-content: space-between; font-size: 13px; color: #2c3e50; margin-bottom: 4px;">
+                    <span>• ${m.description}</span>
+                    <span>${formatCurrency(m.cost)}</span>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+            <div class="info-row" style="margin-left: 16px; font-size: 12px; opacity: 0.8;">
+              <span>Materials Subtotal:</span>
+              <span>${formatCurrency(estimate.additionalMaterialsBase)}</span>
+            </div>
+            <div class="info-row" style="margin-left: 16px; font-size: 12px; opacity: 0.8;">
+              <span>10% Markup:</span>
+              <span>${formatCurrency(estimate.additionalMaterialsMarkup)}</span>
+            </div>
+            <div class="info-row">
+              <span>Additional Materials Total:</span>
+              <span>${formatCurrency(estimate.additionalMaterialsCost)}</span>
+            </div>
+          ` : ''}
+          ${estimate.addOnsCost > 0 ? `
+            <div class="info-row">
+              <span>Add-ons:</span>
+              <span>${formatCurrency(estimate.addOnsCost)}</span>
+            </div>
+          ` : ''}
+          ${estimate.laborCost > 0 ? `
+            <div class="info-row">
+              <span>Labor:</span>
+              <span>${formatCurrency(estimate.laborCost)}</span>
+            </div>
+          ` : ''}
+          ${estimate.equipmentCost > 0 || estimate.equipmentRentalCost > 0 ? `
+            ${estimate.equipmentCost > 0 ? `
+              <div class="info-row">
+                <span>Equipment:</span>
+                <span>${formatCurrency(estimate.equipmentCost)}</span>
+              </div>
+              ${estimate.equipmentRows && estimate.equipmentRows.length > 0 ? `
+                <div style="margin-left: 16px; margin-bottom: 8px;">
+                  ${estimate.equipmentRows.map(e => `
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #7f8c8d; margin-bottom: 4px;">
+                      <span>• ${e.description}</span>
+                      <span>${formatCurrency(e.cost)}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+            ` : ''}
+            ${estimate.equipmentRentalCost > 0 ? `
+              <div class="info-row">
+                <span>Equipment Rental:</span>
+                <span>${formatCurrency(estimate.equipmentRentalCost)}</span>
+              </div>
+              ${estimate.equipmentRentalSelections && estimate.equipmentRentalSelections.length > 0 ? `
+                <div style="margin-left: 16px; margin-bottom: 8px;">
+                  ${estimate.equipmentRentalSelections.map(e => `
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: #7f8c8d; margin-bottom: 4px;">
+                      <span>• ${e.name} (${e.details || e.duration})</span>
+                      <span>${formatCurrency(e.cost)}</span>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+            ` : ''}
+            ${estimate.totalEquipmentCost > 0 && (estimate.equipmentCost > 0 && estimate.equipmentRentalCost > 0) ? `
+              <div class="info-row" style="margin-left: 16px; font-weight: 600; border-top: 1px solid #e0e0e0; padding-top: 4px;">
+                <span>Total Equipment:</span>
+                <span>${formatCurrency(estimate.totalEquipmentCost)}</span>
+              </div>
+            ` : ''}
+          ` : ''}
+          ${estimate.deliveryFee > 0 ? `
+            <div class="info-row">
+              <span>Delivery:</span>
+              <span>${formatCurrency(estimate.deliveryFee)}</span>
+            </div>
+          ` : ''}
+          ${estimate.haulAway > 0 ? `
+            <div class="info-row">
+              <span>Haul Away:</span>
+              <span>${formatCurrency(estimate.haulAway)}</span>
+            </div>
+          ` : ''}
+          <div class="info-row divider" style="font-weight: 700;">
+            <span>Subtotal:</span>
+            <span>${formatCurrency(estimate.subtotal)}</span>
+          </div>
+          ${estimate.markupAmount > 0 ? `
+            <div class="info-row">
+              <span>Markup:</span>
+              <span>${formatCurrency(estimate.markupAmount)}</span>
+            </div>
+          ` : ''}
+          <div class="info-row" style="font-weight: 700; margin-top: 8px;">
+            <span>Total with Markup:</span>
+            <span>${formatCurrency(estimate.totalWithMarkup)}</span>
+          </div>
+        </div>
+
+        <!-- Pricing Recommendation -->
+        <div class="price-box ${meetsGoal ? 'success' : 'warning'}">
+          <h3>🎯 Pricing Recommendation</h3>
+          <div class="big-price">${formatCurrency(estimate.recommendedPrice)}</div>
+          <div style="font-size: 13px; margin-bottom: 12px;">
+            <div style="opacity: 0.8; margin-bottom: 4px;">Subtotal with profit: ${formatCurrency(estimate.subtotalWithProfit)}</div>
+            <div style="opacity: 0.8;">+ 3% CC Fee: ${formatCurrency(estimate.ccFee)}</div>
+          </div>
+          <div style="font-size: 13px; opacity: 0.9; margin-bottom: 12px;">
+            Target profit margin: ${estimate.profitMargin.toFixed(1)}%
+          </div>
+          <div class="status-badge">
+            ${meetsGoal 
+              ? `✓ This project meets the ${targetGoal}% profit margin goal`
+              : `⚠ This project is below the ${targetGoal}% profit margin goal`
+            }
+          </div>
+          <div style="font-size: 12px; opacity: 0.7;">
+            Expected profit: ${formatCurrency(estimate.targetProfit)}
+          </div>
+        </div>
+
+        <!-- Print Button -->
+        <button onclick="window.print()" style="background: linear-gradient(90deg, #3498db 0%, #2980b9 100%); border: none;">
+          🖨️ Print / Save as PDF
+        </button>
+
+        <!-- Budget vs Actual Tracker -->
+        <div style="margin-top: 24px; padding: 20px; background: #fff3e0; border: 2px solid #f39c12; border-radius: 12px;">
+          <h3 style="color: #2c3e50; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+            📊 Budget vs Actual Tracker
+          </h3>
+          
+          <div style="background: white; padding: 16px; border-radius: 8px; margin-bottom: 12px;">
+            <div style="font-weight: 700; margin-bottom: 12px; color: #27ae60; font-size: 16px;">
+              Budgeted (Estimate): ${formatCurrency(estimate.recommendedPrice)}
+            </div>
+            
+            <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #2c3e50;">
+              Enter Actual Costs After Completion:
+            </label>
+            
+            <input 
+              type="number" 
+              id="actualCost" 
+              placeholder="Enter actual project cost..." 
+              step="0.01"
+              onchange="compareActualToBudget()"
+              style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 16px; font-family: 'Space Mono', monospace; margin-bottom: 12px;"
+            >
+            
+            <div id="costComparison" style="display: none; padding: 16px; border-radius: 8px; margin-top: 12px;">
+              <!-- Comparison results will be shown here -->
+            </div>
+          </div>
+          
+          <div style="font-size: 11px; color: #7f8c8d; line-height: 1.5;">
+            💡 <strong>How to use:</strong> After completing the project, enter the actual costs you incurred. This tool will compare your budget estimate against actual spending to help you refine future estimates.
+          </div>
+        </div>
+      `;
+    }
+
+    function downloadEstimate() {
+      const projectName = document.getElementById('projectName').value || 'landscape';
+      const projectType = document.getElementById('projectType').value || '';
+      
+      // Recalculate to get current values
+      calculate();
+      
+      const report = `LANDSCAPING PROJECT ESTIMATE
+${projectName ? `Project: ${projectName}` : ''}
+${projectType ? `Type: ${projectType}` : ''}
+Generated: ${new Date().toLocaleDateString()}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+See estimate details in the interface above.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+
+      const blob = new Blob([report], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `estimate-${projectName}-${Date.now()}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function compareActualToBudget() {
+      const actualCost = parseFloat(document.getElementById('actualCost').value);
+      const comparisonDiv = document.getElementById('costComparison');
+      
+      if (!actualCost || actualCost <= 0) {
+        comparisonDiv.style.display = 'none';
+        return;
+      }
+      
+      // Get budgeted amount from the summary
+      const budgetedAmount = parseFloat(document.querySelector('.big-price')?.textContent.replace(/[$,]/g, '')) || 0;
+      
+      if (!budgetedAmount) {
+        comparisonDiv.style.display = 'none';
+        return;
+      }
+      
+      const difference = actualCost - budgetedAmount;
+      const percentDiff = (difference / budgetedAmount) * 100;
+      const isOverBudget = difference > 0;
+      const isUnderBudget = difference < 0;
+      const isOnBudget = Math.abs(percentDiff) < 2; // Within 2% is "on budget"
+      
+      let statusColor, statusBg, statusIcon, statusText;
+      
+      if (isOnBudget) {
+        statusColor = '#27ae60';
+        statusBg = '#e8f5e9';
+        statusIcon = '✓';
+        statusText = 'On Budget';
+      } else if (isUnderBudget) {
+        statusColor = '#27ae60';
+        statusBg = '#e8f5e9';
+        statusIcon = '✓';
+        statusText = 'Under Budget';
+      } else {
+        statusColor = '#e74c3c';
+        statusBg = '#ffebee';
+        statusIcon = '⚠';
+        statusText = 'Over Budget';
+      }
+      
+      comparisonDiv.style.display = 'block';
+      comparisonDiv.style.background = statusBg;
+      comparisonDiv.style.border = `2px solid ${statusColor}`;
+      
+      comparisonDiv.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <div>
+            <div style="font-size: 14px; font-weight: 700; color: ${statusColor}; margin-bottom: 4px;">
+              ${statusIcon} ${statusText}
+            </div>
+            <div style="font-size: 24px; font-weight: 700; color: ${statusColor};">
+              ${formatCurrency(Math.abs(difference))} ${isOverBudget ? 'over' : 'under'}
+            </div>
+          </div>
+          <div style="font-size: 48px; opacity: 0.3;">
+            ${statusIcon}
+          </div>
+        </div>
+        
+        <div style="background: white; padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span style="color: #7f8c8d;">Budgeted:</span>
+            <span style="font-weight: 700;">${formatCurrency(budgetedAmount)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span style="color: #7f8c8d;">Actual:</span>
+            <span style="font-weight: 700; color: ${statusColor};">${formatCurrency(actualCost)}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 2px solid #e0e0e0;">
+            <span style="font-weight: 700;">Variance:</span>
+            <span style="font-weight: 700; color: ${statusColor};">${percentDiff >= 0 ? '+' : ''}${percentDiff.toFixed(1)}%</span>
+          </div>
+        </div>
+        
+        <div style="font-size: 12px; color: #2c3e50; background: white; padding: 12px; border-radius: 6px;">
+          <strong>💡 Insights:</strong>
+          ${isOnBudget ? 
+            'Great job! Your estimate was very accurate. Keep using similar calculations for future projects.' :
+            isUnderBudget ?
+              `You came in ${formatCurrency(Math.abs(difference))} under budget (${Math.abs(percentDiff).toFixed(1)}%). Consider if you undercharged or if you found efficiencies.` :
+              `Project exceeded budget by ${formatCurrency(difference)} (${percentDiff.toFixed(1)}%). Review what caused the overage to improve future estimates.`
+          }
+        </div>
+      `;
+    }
+
+    // Auto-save functionality
+    let autoSaveTimer;
+    function autoSave() {
+      clearTimeout(autoSaveTimer);
+      autoSaveTimer = setTimeout(() => {
+        const projectData = captureProjectData();
+        localStorage.setItem('wslawncare_autosave', JSON.stringify(projectData));
+        
+        // Show indicator with retention info
+        const indicator = document.getElementById('autoSaveIndicator');
+        if (indicator) {
+          indicator.textContent = '✓ Auto-saved (90 days)';
+          indicator.style.background = 'rgba(46, 204, 113, 0.3)';
+          setTimeout(() => {
+            updateAutoSaveIndicator();
+          }, 2000);
+        }
+      }, 1000); // Auto-save 1 second after last change
+    }
+
+    // Update auto-save indicator to show age
+    function updateAutoSaveIndicator() {
+      const indicator = document.getElementById('autoSaveIndicator');
+      if (!indicator) return;
+      
+      const autosave = localStorage.getItem('wslawncare_autosave');
+      if (autosave) {
+        try {
+          const data = JSON.parse(autosave);
+          const saveDate = new Date(data.timestamp);
+          const daysSince = Math.floor((Date.now() - saveDate.getTime()) / (1000 * 60 * 60 * 24));
+          const daysRemaining = 90 - daysSince;
+          
+          if (daysSince === 0) {
+            indicator.textContent = 'Auto-saved (today)';
+          } else if (daysSince === 1) {
+            indicator.textContent = 'Auto-saved (yesterday)';
+          } else if (daysSince < 7) {
+            indicator.textContent = `Auto-saved (${daysSince}d ago)`;
+          } else if (daysSince < 30) {
+            indicator.textContent = `Auto-saved (${Math.floor(daysSince / 7)}w ago)`;
+          } else if (daysSince < 90) {
+            indicator.textContent = `Auto-saved (${Math.floor(daysSince / 30)}mo ago)`;
+          } else {
+            indicator.textContent = 'Auto-save expired';
+            indicator.style.background = 'rgba(231, 76, 60, 0.3)';
+            return;
+          }
+          
+          // Color code based on age
+          if (daysSince < 30) {
+            indicator.style.background = 'rgba(255,255,255,0.2)'; // Normal
+          } else if (daysSince < 60) {
+            indicator.style.background = 'rgba(241, 196, 15, 0.3)'; // Warning (yellow)
+          } else {
+            indicator.style.background = 'rgba(230, 126, 34, 0.3)'; // Urgent (orange)
+          }
+        } catch (error) {
+          indicator.textContent = 'Auto-saved';
+          indicator.style.background = 'rgba(255,255,255,0.2)';
+        }
+      } else {
+        indicator.textContent = 'No auto-save';
+        indicator.style.background = 'rgba(255,255,255,0.2)';
+      }
+    }
+
+    // Capture all project data
+    function captureProjectData() {
+      const data = {
+        timestamp: new Date().toISOString(),
+        projectDetails: {
+          projectName: document.getElementById('projectName')?.value || '',
+          propertyAddress: document.getElementById('propertyAddress')?.value || '',
+          projectType: document.getElementById('projectType')?.value || ''
+        },
+        materials: {
+          category: document.getElementById('materialCategory')?.value || 'mulch',
+          type: document.getElementById('materialType')?.value || ''
+        },
+        dimensions: {},
+        addOns: {
+          geoTextile: document.getElementById('includeGeoTextile')?.checked || false,
+          geoTextileLinearFt: document.getElementById('geoTextileLinearFt')?.value || '',
+          edging: document.getElementById('includeEdging')?.checked || false,
+          edgingLinearFt: document.getElementById('edgingLinearFt')?.value || ''
+        },
+        labor: {
+          laborHours: document.getElementById('laborHours')?.value || '',
+          laborRate: document.getElementById('laborRate')?.value || '91',
+          deliveryFee: document.getElementById('deliveryFee')?.value || '',
+          haulAway: document.getElementById('haulAway')?.value || '',
+          markupPercent: document.getElementById('markupPercent')?.value || '0',
+          profitMargin: document.getElementById('profitMarginSlider')?.value || '40'
+        },
+        equipment: equipmentRows.map(r => ({
+          description: document.getElementById(`equipment-desc-${r.id}`)?.value || '',
+          cost: parseFloat(document.getElementById(`equipment-cost-${r.id}`)?.value) || 0
+        })).filter(e => e.description && e.description.trim().length > 0),
+        equipmentRental: equipmentRentalSelections.map(r => ({
+          name: r.name,
+          duration: r.duration,
+          baseCost: r.baseCost,
+          insurance: r.insurance,
+          salesTax: r.salesTax,
+          cost: r.cost,
+          details: r.details
+        })).filter(e => e.name && e.cost > 0),
+        additionalMaterials: additionalMaterialRows.map(r => ({
+          description: document.getElementById(`material-desc-${r.id}`)?.value || '',
+          cost: document.getElementById(`material-cost-${r.id}`)?.value || ''
+        })).filter(m => m.description || m.cost),
+        actualCosts: {
+          materials: document.getElementById('actualMaterials')?.value || '',
+          labor: document.getElementById('actualLabor')?.value || '',
+          equipment: document.getElementById('actualEquipment')?.value || '',
+          other: document.getElementById('actualOther')?.value || ''
+        },
+        timeTracking: {
+          budgetHours: document.getElementById('budgetHours')?.value || '',
+          actualHours: document.getElementById('actualHours')?.value || ''
+        },
+        projectNotes: {
+          wentWell: document.getElementById('notesWentWell')?.value || '',
+          challenges: document.getElementById('notesChallenges')?.value || '',
+          actionSteps: document.getElementById('notesActionSteps')?.value || ''
+        },
+        completedMaterials: completedMaterials || []
+      };
+      
+      // Capture dimension fields dynamically
+      const dimensionsContainer = document.getElementById('dimensionsContainer');
+      if (dimensionsContainer) {
+        const inputs = dimensionsContainer.querySelectorAll('input');
+        inputs.forEach(input => {
+          if (input.id) {
+            data.dimensions[input.id] = input.value;
+          }
+        });
+      }
+      
+      return data;
+    }
+
+    // Restore project data
+    function restoreProjectData(data) {
+      if (!data) return;
+      
+      // Project details
+      if (data.projectDetails) {
+        if (document.getElementById('projectName')) document.getElementById('projectName').value = data.projectDetails.projectName || '';
+        if (document.getElementById('propertyAddress')) document.getElementById('propertyAddress').value = data.projectDetails.propertyAddress || '';
+        if (document.getElementById('projectType')) document.getElementById('projectType').value = data.projectDetails.projectType || '';
+      }
+      
+      // Materials - restore category first to create proper dimension fields
+      if (data.materials) {
+        if (document.getElementById('materialCategory')) {
+          document.getElementById('materialCategory').value = data.materials.category || 'mulch';
+          updateMaterialOptions();
+          updateDimensionsInputs(); // Create dimension inputs based on category
+        }
+        setTimeout(() => {
+          if (document.getElementById('materialType')) document.getElementById('materialType').value = data.materials.type || '';
+          
+          // Restore dimensions AFTER inputs are created
+          if (data.dimensions) {
+            Object.keys(data.dimensions).forEach(key => {
+              const input = document.getElementById(key);
+              if (input) input.value = data.dimensions[key];
+            });
+          }
+        }, 100);
+      }
+      
+      // Add-ons
+      if (data.addOns) {
+        if (document.getElementById('includeGeoTextile')) {
+          document.getElementById('includeGeoTextile').checked = data.addOns.geoTextile;
+          document.getElementById('geoTextileLinearFt').style.display = data.addOns.geoTextile ? 'block' : 'none';
+          document.getElementById('geoTextileLinearFt').value = data.addOns.geoTextileLinearFt || '';
+        }
+        if (document.getElementById('includeEdging')) {
+          document.getElementById('includeEdging').checked = data.addOns.edging;
+          document.getElementById('edgingLinearFt').style.display = data.addOns.edging ? 'block' : 'none';
+          document.getElementById('edgingLinearFt').value = data.addOns.edgingLinearFt || '';
+        }
+      }
+      
+      // Labor
+      if (data.labor) {
+        if (document.getElementById('laborHours')) document.getElementById('laborHours').value = data.labor.laborHours || '';
+        if (document.getElementById('laborRate')) document.getElementById('laborRate').value = data.labor.laborRate || '91';
+        if (document.getElementById('deliveryFee')) document.getElementById('deliveryFee').value = data.labor.deliveryFee || '';
+        if (document.getElementById('haulAway')) document.getElementById('haulAway').value = data.labor.haulAway || '';
+        if (document.getElementById('markupPercent')) document.getElementById('markupPercent').value = data.labor.markupPercent || '0';
+        if (document.getElementById('profitMarginSlider')) {
+          document.getElementById('profitMarginSlider').value = data.labor.profitMargin || '40';
+          document.getElementById('profitMarginDisplay').textContent = (data.labor.profitMargin || '40') + '%';
+        }
+      }
+      
+      // Equipment
+      if (data.equipment && data.equipment.length > 0) {
+        equipmentRows = [];
+        document.getElementById('equipmentContainer').innerHTML = '';
+        data.equipment.forEach(eq => {
+          addEquipmentRow();
+          const lastRow = equipmentRows[equipmentRows.length - 1];
+          setTimeout(() => {
+            document.getElementById(`equipment-desc-${lastRow.id}`).value = eq.description;
+            document.getElementById(`equipment-cost-${lastRow.id}`).value = eq.cost;
+            // Update the tracked values too
+            lastRow.description = eq.description;
+            lastRow.cost = parseFloat(eq.cost) || 0;
+          }, 50);
+        });
+      }
+      
+      // Equipment Rental
+      if (data.equipmentRental && data.equipmentRental.length > 0) {
+        equipmentRentalSelections = [];
+        equipmentRentalIdCounter = 0;
+        document.getElementById('equipmentRentalList').innerHTML = '';
+        data.equipmentRental.forEach(rental => {
+          addEquipmentRental();
+          const id = equipmentRentalIdCounter - 1;
+          setTimeout(() => {
+            document.getElementById(`equipment-rental-type-${id}`).value = rental.name;
+            document.getElementById(`equipment-rental-duration-${id}`).value = rental.duration;
+            updateEquipmentRentalCost(id);
+          }, 50);
+        });
+      }
+      
+      // Additional Materials
+      if (data.additionalMaterials && data.additionalMaterials.length > 0) {
+        additionalMaterialRows = [];
+        document.getElementById('additionalMaterialsContainer').innerHTML = '';
+        data.additionalMaterials.forEach(mat => {
+          addMaterialRow();
+          const lastRow = additionalMaterialRows[additionalMaterialRows.length - 1];
+          setTimeout(() => {
+            document.getElementById(`material-desc-${lastRow.id}`).value = mat.description;
+            document.getElementById(`material-cost-${lastRow.id}`).value = mat.cost;
+          }, 50);
+        });
+      }
+      
+      // Actual costs
+      if (data.actualCosts) {
+        if (document.getElementById('actualMaterials')) document.getElementById('actualMaterials').value = data.actualCosts.materials || '';
+        if (document.getElementById('actualLabor')) document.getElementById('actualLabor').value = data.actualCosts.labor || '';
+        if (document.getElementById('actualEquipment')) document.getElementById('actualEquipment').value = data.actualCosts.equipment || '';
+        if (document.getElementById('actualOther')) document.getElementById('actualOther').value = data.actualCosts.other || '';
+        
+        // Update comparison if there are actual costs
+        if (data.actualCosts.materials || data.actualCosts.labor || data.actualCosts.equipment || data.actualCosts.other) {
+          setTimeout(() => updateActualComparison(), 300);
+        }
+      }
+      
+      // Time tracking
+      if (data.timeTracking) {
+        if (document.getElementById('budgetHours')) document.getElementById('budgetHours').value = data.timeTracking.budgetHours || '';
+        if (document.getElementById('actualHours')) document.getElementById('actualHours').value = data.timeTracking.actualHours || '';
+        
+        // Update time tracking display if there are actual hours
+        if (data.timeTracking.actualHours) {
+          setTimeout(() => updateTimeTracking(), 300);
+        }
+      }
+      
+      // Project notes
+      if (data.projectNotes) {
+        if (document.getElementById('notesWentWell')) document.getElementById('notesWentWell').value = data.projectNotes.wentWell || '';
+        if (document.getElementById('notesChallenges')) document.getElementById('notesChallenges').value = data.projectNotes.challenges || '';
+        if (document.getElementById('notesActionSteps')) document.getElementById('notesActionSteps').value = data.projectNotes.actionSteps || '';
+      }
+      
+      // Completed materials
+      if (data.completedMaterials) {
+        completedMaterials = data.completedMaterials;
+      }
+      
+      // Re-attach auto-save listeners to newly created dimension inputs
+      setTimeout(() => {
+        const dimensionInputs = document.getElementById('dimensionsContainer')?.querySelectorAll('input');
+        dimensionInputs?.forEach(input => {
+          input.addEventListener('input', () => {
+            calculate();
+            autoSave();
+          });
+        });
+      }, 150);
+      
+      // Recalculate with proper delay to ensure all fields are populated
+      setTimeout(() => calculate(), 300);
+    }
+
+    // Save project (manual save with prompt)
+    function saveProject() {
+      const projectName = document.getElementById('projectName')?.value || 'Unnamed Project';
+      const data = captureProjectData();
+      
+      const savedProjects = JSON.parse(localStorage.getItem('wslawncare_projects') || '[]');
+      
+      const existingIndex = savedProjects.findIndex(p => p.projectDetails?.projectName === projectName);
+      
+      if (existingIndex >= 0) {
+        if (confirm(`Project "${projectName}" already exists. Overwrite?`)) {
+          savedProjects[existingIndex] = data;
+        } else {
+          return;
+        }
+      } else {
+        savedProjects.push(data);
+      }
+      
+      localStorage.setItem('wslawncare_projects', JSON.stringify(savedProjects));
+      alert(`✓ Project "${projectName}" saved successfully!`);
+    }
+
+    // Load project (show list of saved projects)
+    function loadProject() {
+      const savedProjects = JSON.parse(localStorage.getItem('wslawncare_projects') || '[]');
+      
+      if (savedProjects.length === 0) {
+        alert('No saved projects found.');
+        return;
+      }
+      
+      let projectList = 'Select a project to load:\n\n';
+      savedProjects.forEach((proj, index) => {
+        const name = proj.projectDetails?.projectName || 'Unnamed';
+        const date = proj.timestamp ? new Date(proj.timestamp).toLocaleDateString() : 'Unknown date';
+        projectList += `${index + 1}. ${name} (${date})\n`;
+      });
+      
+      const choice = prompt(projectList + '\nEnter project number:');
+      const index = parseInt(choice) - 1;
+      
+      if (index >= 0 && index < savedProjects.length) {
+        restoreProjectData(savedProjects[index]);
+        alert(`✓ Project "${savedProjects[index].projectDetails?.projectName || 'Unnamed'}" loaded!`);
+      }
+    }
+
+    // Export project as JSON file
+    // Load auto-save on page load
+    function loadAutoSave() {
+      const autosave = localStorage.getItem('wslawncare_autosave');
+      if (autosave) {
+        try {
+          const data = JSON.parse(autosave);
+          // Only restore if it's recent (within 90 days / 3 months)
+          const saveDate = new Date(data.timestamp);
+          const daysSince = (Date.now() - saveDate.getTime()) / (1000 * 60 * 60 * 24);
+          
+          if (daysSince < 90) {
+            restoreProjectData(data);
+          } else {
+            // Auto-save is older than 90 days, clear it
+            localStorage.removeItem('wslawncare_autosave');
+            console.log('Auto-save cleared (older than 90 days)');
+          }
+        } catch (error) {
+          console.error('Error loading auto-save:', error);
+        }
+      }
+    }
+
+    // New Estimate - Clear all fields and start fresh
+    function newEstimate() {
+      if (!confirm('Start a new estimate? This will clear all current data.\n\n(Current project auto-save will be cleared. Make sure to save first if needed!)')) {
+        return;
+      }
+      
+      // Clear all input fields
+      document.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => {
+        if (input.id !== 'laborRate' && input.id !== 'profitMarginSlider') {
+          input.value = '';
+        }
+      });
+      
+      // Reset labor rate and profit margin to defaults
+      if (document.getElementById('laborRate')) document.getElementById('laborRate').value = '91';
+      if (document.getElementById('profitMarginSlider')) {
+        document.getElementById('profitMarginSlider').value = '40';
+        document.getElementById('profitMarginDisplay').textContent = '40%';
+      }
+      if (document.getElementById('markupPercent')) document.getElementById('markupPercent').value = '0';
+      
+      // Uncheck checkboxes
+      document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+        checkbox.checked = false;
+      });
+      
+      // Hide conditional fields
+      if (document.getElementById('geoTextileLinearFt')) document.getElementById('geoTextileLinearFt').style.display = 'none';
+      if (document.getElementById('edgingLinearFt')) document.getElementById('edgingLinearFt').style.display = 'none';
+      
+      // Reset material category to mulch
+      if (document.getElementById('materialCategory')) {
+        document.getElementById('materialCategory').value = 'mulch';
+        updateMaterialOptions();
+        updateDimensionsInputs();
+      }
+      
+      // Clear equipment rows
+      equipmentRows = [];
+      const equipmentContainer = document.getElementById('equipmentContainer');
+      if (equipmentContainer) equipmentContainer.innerHTML = '';
+      
+      // Clear equipment rental
+      equipmentRentalSelections = [];
+      equipmentRentalIdCounter = 0;
+      const equipmentRentalList = document.getElementById('equipmentRentalList');
+      if (equipmentRentalList) equipmentRentalList.innerHTML = '';
+      
+      // Clear additional materials rows
+      additionalMaterialRows = [];
+      const materialsContainer = document.getElementById('additionalMaterialsContainer');
+      if (materialsContainer) materialsContainer.innerHTML = '';
+      
+      // Clear completed materials
+      completedMaterials = [];
+      
+      // Clear actual costs
+      if (document.getElementById('actualMaterials')) document.getElementById('actualMaterials').value = '';
+      if (document.getElementById('actualLabor')) document.getElementById('actualLabor').value = '';
+      if (document.getElementById('actualEquipment')) document.getElementById('actualEquipment').value = '';
+      if (document.getElementById('actualOther')) document.getElementById('actualOther').value = '';
+      
+      // Clear time tracking
+      if (document.getElementById('budgetHours')) document.getElementById('budgetHours').value = '';
+      if (document.getElementById('actualHours')) document.getElementById('actualHours').value = '';
+      
+      // Clear project notes
+      if (document.getElementById('notesWentWell')) document.getElementById('notesWentWell').value = '';
+      if (document.getElementById('notesChallenges')) document.getElementById('notesChallenges').value = '';
+      if (document.getElementById('notesActionSteps')) document.getElementById('notesActionSteps').value = '';
+      
+      // Hide actual costs section
+      const actualCostsSection = document.getElementById('actualCostsSection');
+      if (actualCostsSection) actualCostsSection.style.display = 'none';
+      
+      const toggleButton = document.getElementById('toggleActualCosts');
+      if (toggleButton) {
+        toggleButton.textContent = '📈 Track Actual Costs (Budget vs Actual)';
+        toggleButton.style.background = 'linear-gradient(90deg, #9b59b6 0%, #8e44ad 100%)';
+      }
+      
+      // Hide comparison display
+      const comparisonDisplay = document.getElementById('comparisonDisplay');
+      if (comparisonDisplay) comparisonDisplay.style.display = 'none';
+      
+      // Clear auto-save
+      localStorage.removeItem('wslawncare_autosave');
+      
+      // Clear map measurements if any
+      if (mapMeasurements.length > 0) {
+        clearAllMeasurements();
+      }
+      
+      // Remove location marker from map
+      if (locationMarker) {
+        locationMarker.setMap(null);
+        locationMarker = null;
+      }
+      
+      // Recalculate (will show empty summary)
+      calculate();
+      
+      // Show success message
+      const indicator = document.getElementById('autoSaveIndicator');
+      if (indicator) {
+        indicator.textContent = 'Ready for new estimate';
+        indicator.style.background = 'rgba(46, 204, 113, 0.3)';
+        setTimeout(() => {
+          indicator.textContent = 'Auto-saved';
+          indicator.style.background = 'rgba(255,255,255,0.2)';
+        }, 2000);
+      }
+    }
+
+    // Toggle Actual Costs Section
+    function toggleActualCostsSection() {
+      const section = document.getElementById('actualCostsSection');
+      const button = document.getElementById('toggleActualCosts');
+      
+      if (section.style.display === 'none') {
+        section.style.display = 'block';
+        button.textContent = '✓ Actual Costs Tracking Active';
+        button.style.background = 'linear-gradient(90deg, #27ae60 0%, #229954 100%)';
+      } else {
+        section.style.display = 'none';
+        button.textContent = '📈 Track Actual Costs (Budget vs Actual)';
+        button.style.background = 'linear-gradient(90deg, #9b59b6 0%, #8e44ad 100%)';
+      }
+    }
+
+    // Update Time Tracking and Efficiency Calculations
+    function updateTimeTracking() {
+      const budgetHours = parseFloat(document.getElementById('budgetHours')?.value) || 0;
+      const actualHours = parseFloat(document.getElementById('actualHours')?.value) || 0;
+      const laborRate = parseFloat(document.getElementById('laborRate')?.value) || 91;
+      
+      const timeDisplay = document.getElementById('timeTrackingDisplay');
+      if (!timeDisplay) return;
+      
+      if (actualHours === 0) {
+        timeDisplay.style.display = 'none';
+        return;
+      }
+      
+      // Calculate metrics
+      const hoursDifference = actualHours - budgetHours;
+      const hoursVariancePercent = budgetHours > 0 ? (hoursDifference / budgetHours) * 100 : 0;
+      
+      // Budget vs Actual labor cost
+      const budgetLaborCost = budgetHours * laborRate;
+      const actualLaborCost = actualHours * laborRate;
+      const costDifference = actualLaborCost - budgetLaborCost;
+      
+      // Efficiency rate calculations
+      // Efficiency = (Budget Hours / Actual Hours) × 100
+      // >100% = More efficient (did it faster)
+      // <100% = Less efficient (took longer)
+      const efficiencyRate = budgetHours > 0 ? (budgetHours / actualHours) * 100 : 0;
+      
+      // Determine status
+      const isEfficient = actualHours <= budgetHours;
+      const isOnTime = Math.abs(hoursVariancePercent) <= 10; // Within 10% is "on time"
+      
+      const statusColor = isOnTime ? '#27ae60' : isEfficient ? '#3498db' : '#e74c3c';
+      const statusIcon = isOnTime ? '✓' : isEfficient ? '↓' : '↑';
+      const statusText = isOnTime ? 'On Schedule' : isEfficient ? 'Under Budget' : 'Over Budget';
+      
+      timeDisplay.style.display = 'block';
+      timeDisplay.innerHTML = `
+        <!-- Time Status Header -->
+        <div style="text-align: center; padding: 16px; background: white; border: 3px solid ${statusColor}; border-radius: 8px; margin-bottom: 16px;">
+          <div style="font-size: 12px; color: #7f8c8d; margin-bottom: 6px;">TIME EFFICIENCY</div>
+          <div style="font-size: 32px; font-weight: 700; color: ${statusColor}; margin-bottom: 8px;">
+            ${efficiencyRate.toFixed(0)}%
+          </div>
+          <div style="font-size: 14px; font-weight: 600; color: ${statusColor};">
+            ${statusIcon} ${statusText}
+          </div>
+        </div>
+        
+        <!-- Time Comparison Bars -->
+        <div style="background: white; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+          <div style="margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <strong style="font-size: 14px;">⏱️ Hours</strong>
+              <span style="font-size: 13px;">Budget: ${budgetHours}h | Actual: ${actualHours}h</span>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <div style="flex: 1; background: #ecf0f1; height: 12px; border-radius: 6px; overflow: hidden; position: relative;">
+                <div style="background: ${isEfficient ? '#27ae60' : '#e74c3c'}; height: 100%; width: ${Math.min(100, (actualHours / Math.max(budgetHours, actualHours)) * 100)}%; transition: width 0.3s;"></div>
+              </div>
+              <span style="font-weight: 700; color: ${statusColor}; min-width: 60px; text-align: right; font-size: 13px;">
+                ${hoursDifference >= 0 ? '+' : ''}${hoursDifference.toFixed(1)}h
+              </span>
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <strong style="font-size: 14px;">💵 Labor Cost</strong>
+              <span style="font-size: 13px;">Budget: ${formatCurrency(budgetLaborCost)} | Actual: ${formatCurrency(actualLaborCost)}</span>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <div style="flex: 1; background: #ecf0f1; height: 12px; border-radius: 6px; overflow: hidden;">
+                <div style="background: ${isEfficient ? '#27ae60' : '#e74c3c'}; height: 100%; width: ${Math.min(100, (actualLaborCost / Math.max(budgetLaborCost, actualLaborCost)) * 100)}%; transition: width 0.3s;"></div>
+              </div>
+              <span style="font-weight: 700; color: ${statusColor}; min-width: 60px; text-align: right; font-size: 13px;">
+                ${costDifference >= 0 ? '+' : ''}${formatCurrency(costDifference)}
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Efficiency Analysis -->
+        <div style="background: ${isOnTime ? '#e8f5e9' : isEfficient ? '#e3f2fd' : '#ffebee'}; padding: 14px; border-radius: 8px; margin-bottom: 16px;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div>
+              <div style="font-size: 11px; color: #7f8c8d; margin-bottom: 4px;">Efficiency Rate</div>
+              <div style="font-size: 20px; font-weight: 700; color: ${statusColor};">
+                ${efficiencyRate.toFixed(1)}%
+              </div>
+              <div style="font-size: 10px; color: #7f8c8d; margin-top: 2px;">
+                ${efficiencyRate > 100 ? 'Faster than planned' : efficiencyRate === 100 ? 'Exactly on time' : 'Slower than planned'}
+              </div>
+            </div>
+            <div>
+              <div style="font-size: 11px; color: #7f8c8d; margin-bottom: 4px;">Time Variance</div>
+              <div style="font-size: 20px; font-weight: 700; color: ${statusColor};">
+                ${hoursVariancePercent >= 0 ? '+' : ''}${hoursVariancePercent.toFixed(1)}%
+              </div>
+              <div style="font-size: 10px; color: #7f8c8d; margin-top: 2px;">
+                ${Math.abs(hoursDifference).toFixed(1)}h ${hoursDifference >= 0 ? 'over' : 'under'}
+              </div>
+            </div>
+          </div>
+          
+          <div style="padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.1);">
+            <div style="font-size: 11px; font-weight: 600; color: #2c3e50; margin-bottom: 6px;">📊 Performance Analysis:</div>
+            <div style="font-size: 11px; line-height: 1.5; color: #2c3e50;">
+              ${efficiencyRate >= 110 ? 
+                `<strong>Excellent!</strong> Job completed ${((efficiencyRate - 100)).toFixed(0)}% faster than budgeted. You're highly efficient on this type of work.` :
+                efficiencyRate >= 100 ?
+                  `<strong>Great!</strong> Job completed within budget time. Your estimates are accurate.` :
+                  efficiencyRate >= 90 ?
+                    `<strong>Good.</strong> Slightly over by ${Math.abs(hoursDifference).toFixed(1)} hours (${Math.abs(hoursVariancePercent).toFixed(0)}%). Minor adjustment needed.` :
+                    efficiencyRate >= 75 ?
+                      `<strong>Over budget.</strong> Job took ${Math.abs(hoursVariancePercent).toFixed(0)}% longer than planned. Review what caused the delay.` :
+                      `<strong>Significantly over.</strong> Took ${Math.abs(hoursDifference).toFixed(1)} extra hours. Investigate obstacles and adjust future estimates.`
+              }
+            </div>
+          </div>
+        </div>
+        
+        <!-- Productivity Metric -->
+        <div style="background: white; padding: 12px; border-radius: 8px; border: 2px solid #e0e0e0;">
+          <div style="font-size: 11px; color: #7f8c8d; margin-bottom: 6px;">💡 Key Takeaway</div>
+          <div style="font-size: 12px; line-height: 1.5; color: #2c3e50;">
+            ${budgetHours > 0 ? 
+              `For every budgeted hour, actual time was <strong>${(actualHours / budgetHours).toFixed(2)}h</strong>. ${
+                actualHours < budgetHours ? 
+                  `You saved <strong>${formatCurrency(Math.abs(costDifference))}</strong> on labor.` :
+                  `Labor overrun cost <strong>${formatCurrency(costDifference)}</strong> extra.`
+              }` :
+              'Enter budget hours from your estimate to track efficiency.'
+            }
+          </div>
+        </div>
+      `;
+      
+      // Also trigger cost comparison update
+      updateActualComparison();
+    }
+
+    // Update Actual vs Budget Comparison
+    function updateActualComparison() {
+      const actualMaterials = parseFloat(document.getElementById('actualMaterials').value) || 0;
+      const actualLabor = parseFloat(document.getElementById('actualLabor').value) || 0;
+      const actualEquipment = parseFloat(document.getElementById('actualEquipment').value) || 0;
+      const actualOther = parseFloat(document.getElementById('actualOther').value) || 0;
+      
+      const totalActual = actualMaterials + actualLabor + actualEquipment + actualOther;
+      
+      // Get budgeted amounts from current estimate
+      const budgetMaterials = (parseFloat(document.getElementById('summaryContent').getAttribute('data-materials')) || 0);
+      const budgetLabor = (parseFloat(document.getElementById('summaryContent').getAttribute('data-labor')) || 0);
+      const budgetEquipment = (parseFloat(document.getElementById('summaryContent').getAttribute('data-equipment')) || 0);
+      const budgetOther = (parseFloat(document.getElementById('summaryContent').getAttribute('data-other')) || 0);
+      
+      const totalBudget = budgetMaterials + budgetLabor + budgetEquipment + budgetOther;
+      
+      if (totalActual === 0) {
+        document.getElementById('comparisonDisplay').style.display = 'none';
+        return;
+      }
+      
+      const difference = totalActual - totalBudget;
+      const percentDiff = totalBudget > 0 ? (difference / totalBudget) * 100 : 0;
+      const isUnderBudget = difference < 0;
+      const isOnBudget = Math.abs(percentDiff) <= 5; // Within 5% is "on budget"
+      
+      const statusColor = isOnBudget ? '#27ae60' : isUnderBudget ? '#3498db' : '#e74c3c';
+      const statusIcon = isOnBudget ? '✓' : isUnderBudget ? '↓' : '↑';
+      const statusText = isOnBudget ? 'On Budget' : isUnderBudget ? 'Under Budget' : 'Over Budget';
+      
+      document.getElementById('comparisonDisplay').style.display = 'block';
+      document.getElementById('comparisonDisplay').innerHTML = `
+        <div style="background: white; border: 3px solid ${statusColor}; border-radius: 8px; padding: 20px;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 14px; color: #7f8c8d; margin-bottom: 8px;">PROJECT STATUS</div>
+            <div style="font-size: 24px; font-weight: 700; color: ${statusColor};">
+              ${statusIcon} ${statusText}
+            </div>
+          </div>
+          
+          <!-- Budget vs Actual Comparison Bars -->
+          <div style="margin-bottom: 20px;">
+            <div style="margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+                <strong>💰 Materials</strong>
+                <span>Budget: ${formatCurrency(budgetMaterials)} | Actual: ${formatCurrency(actualMaterials)}</span>
+              </div>
+              <div style="background: #ecf0f1; height: 8px; border-radius: 4px; overflow: hidden;">
+                <div style="background: ${actualMaterials <= budgetMaterials ? '#27ae60' : '#e74c3c'}; height: 100%; width: ${Math.min(100, (actualMaterials / Math.max(budgetMaterials, actualMaterials)) * 100)}%; transition: width 0.3s;"></div>
+              </div>
+            </div>
+            
+            <div style="margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+                <strong>👷 Labor</strong>
+                <span>Budget: ${formatCurrency(budgetLabor)} | Actual: ${formatCurrency(actualLabor)}</span>
+              </div>
+              <div style="background: #ecf0f1; height: 8px; border-radius: 4px; overflow: hidden;">
+                <div style="background: ${actualLabor <= budgetLabor ? '#27ae60' : '#e74c3c'}; height: 100%; width: ${Math.min(100, (actualLabor / Math.max(budgetLabor, actualLabor)) * 100)}%; transition: width 0.3s;"></div>
+              </div>
+            </div>
+            
+            <div style="margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+                <strong>🚜 Equipment</strong>
+                <span>Budget: ${formatCurrency(budgetEquipment)} | Actual: ${formatCurrency(actualEquipment)}</span>
+              </div>
+              <div style="background: #ecf0f1; height: 8px; border-radius: 4px; overflow: hidden;">
+                <div style="background: ${actualEquipment <= budgetEquipment ? '#27ae60' : '#e74c3c'}; height: 100%; width: ${Math.min(100, (actualEquipment / Math.max(budgetEquipment, actualEquipment)) * 100)}%; transition: width 0.3s;"></div>
+              </div>
+            </div>
+            
+            <div style="margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 13px;">
+                <strong>📦 Other</strong>
+                <span>Budget: ${formatCurrency(budgetOther)} | Actual: ${formatCurrency(actualOther)}</span>
+              </div>
+              <div style="background: #ecf0f1; height: 8px; border-radius: 4px; overflow: hidden;">
+                <div style="background: ${actualOther <= budgetOther ? '#27ae60' : '#e74c3c'}; height: 100%; width: ${Math.min(100, (actualOther / Math.max(budgetOther, actualOther)) * 100)}%; transition: width 0.3s;"></div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Total Comparison -->
+          <div style="padding: 16px; background: ${isOnBudget ? '#e8f5e9' : isUnderBudget ? '#e3f2fd' : '#ffebee'}; border-radius: 6px; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <strong>Total Budget:</strong>
+              <span style="font-size: 16px;">${formatCurrency(totalBudget)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <strong>Total Actual:</strong>
+              <span style="font-size: 16px;">${formatCurrency(totalActual)}</span>
+            </div>
+            <div style="border-top: 2px solid #ddd; padding-top: 8px; margin-top: 8px; display: flex; justify-content: space-between;">
+              <strong>Difference:</strong>
+              <span style="font-weight: 700; color: ${statusColor};">${difference >= 0 ? '+' : ''}${formatCurrency(difference)} (${percentDiff >= 0 ? '+' : ''}${percentDiff.toFixed(1)}%)</span>
+            </div>
+          </div>
+          
+          <div style="font-size: 12px; color: #2c3e50; background: #f8f9fa; padding: 12px; border-radius: 6px;">
+            <strong>💡 Insights:</strong>
+            ${isOnBudget ? 
+              ' Great job! Your estimate was very accurate. Keep using similar calculations for future projects.' :
+              isUnderBudget ?
+                ` You came in ${formatCurrency(Math.abs(difference))} under budget (${Math.abs(percentDiff).toFixed(1)}%). Consider if you undercharged or if you found efficiencies.` :
+                ` Project exceeded budget by ${formatCurrency(difference)} (${percentDiff.toFixed(1)}%). Review what caused the overage to improve future estimates.`
+            }
+          </div>
+        </div>
+      `;
+    }
+
+    function downloadPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      const projectName = document.getElementById('projectName').value || 'Landscape Project';
+      const propertyAddress = document.getElementById('propertyAddress').value || '';
+      const projectType = document.getElementById('projectType').value || '';
+      
+      // Get current estimate data from the summary
+      const summaryDiv = document.getElementById('summaryContent');
+      if (!summaryDiv.innerHTML) {
+        alert('Please complete the estimate first!');
+        return;
+      }
+      
+      // Header
+      doc.setFontSize(20);
+      doc.setFont(undefined, 'bold');
+      doc.text('WS LAWN CARE', 105, 20, { align: 'center' });
+      
+      doc.setFontSize(16);
+      doc.text('PROJECT ESTIMATE', 105, 30, { align: 'center' });
+      
+      // Project Info
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'normal');
+      doc.text(`Date: ${new Date().toLocaleDateString()}`, 20, 45);
+      doc.text(`Project: ${projectName}`, 20, 52);
+      
+      let yPos = 59;
+      if (propertyAddress) {
+        doc.text(`Property: ${propertyAddress}`, 20, yPos);
+        yPos += 7;
+      }
+      if (projectType) {
+        doc.text(`Type: ${projectType}`, 20, yPos);
+        yPos += 7;
+      }
+      
+      doc.line(20, yPos + 6, 190, yPos + 6);
+      
+      yPos += 16;
+      
+      // Get data from current estimate calculation
+      const category = document.getElementById('materialCategory').value;
+      const materialName = document.getElementById('materialType').value;
+      
+      // Material Selection
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.text('MATERIAL SELECTION', 20, yPos);
+      yPos += 7;
+      
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'normal');
+      doc.text(`Primary Material: ${materialName}`, 25, yPos);
+      yPos += 7;
+      
+      // Dimensions
+      if (category === 'sod') {
+        const sqFt = document.getElementById('sqFt')?.value || 0;
+        doc.text(`Area: ${parseFloat(sqFt).toFixed(2)} sq ft`, 25, yPos);
+        yPos += 7;
+      } else {
+        const length = document.getElementById('length')?.value || 0;
+        const width = document.getElementById('width')?.value || 0;
+        const depth = document.getElementById('depth')?.value || 1;
+        doc.text(`Dimensions: ${length}' L x ${width}' W x ${depth}" D`, 25, yPos);
+        yPos += 7;
+      }
+      
+      yPos += 5;
+      
+      // Additional Materials
+      if (additionalMaterialRows.length > 0) {
+        const filledMaterials = additionalMaterialRows.filter(r => r.description && r.cost > 0);
+        if (filledMaterials.length > 0) {
+          doc.setFont(undefined, 'bold');
+          doc.text('ADDITIONAL MATERIALS', 20, yPos);
+          yPos += 7;
+          doc.setFont(undefined, 'normal');
+          
+          filledMaterials.forEach(m => {
+            doc.text(`${m.description}`, 25, yPos);
+            doc.text(`$${m.cost.toFixed(2)}`, 170, yPos, { align: 'right' });
+            yPos += 6;
+          });
+          yPos += 3;
+        }
+      }
+      
+      // Equipment
+      if (equipmentRows.length > 0) {
+        const filledEquipment = equipmentRows.filter(r => r.description && r.cost > 0);
+        if (filledEquipment.length > 0) {
+          doc.setFont(undefined, 'bold');
+          doc.text('EQUIPMENT', 20, yPos);
+          yPos += 7;
+          doc.setFont(undefined, 'normal');
+          
+          filledEquipment.forEach(e => {
+            doc.text(`${e.description}`, 25, yPos);
+            doc.text(`$${e.cost.toFixed(2)}`, 170, yPos, { align: 'right' });
+            yPos += 6;
+          });
+          yPos += 3;
+        }
+      }
+      
+      // Add-ons
+      const hasGeoTextile = document.getElementById('includeGeoTextile').checked;
+      const hasEdging = document.getElementById('includeEdging').checked;
+      
+      if (hasGeoTextile || hasEdging) {
+        doc.setFont(undefined, 'bold');
+        doc.text('ADD-ONS', 20, yPos);
+        yPos += 7;
+        doc.setFont(undefined, 'normal');
+        
+        if (hasGeoTextile) {
+          const geoFt = document.getElementById('geoTextileLinearFt').value || 0;
+          const geoCost = parseFloat(geoFt) * 1.20;
+          doc.text(`Geo Textile Fabric (${geoFt} ft)`, 25, yPos);
+          doc.text(`$${geoCost.toFixed(2)}`, 170, yPos, { align: 'right' });
+          yPos += 6;
+        }
+        
+        if (hasEdging) {
+          const edgeFt = document.getElementById('edgingLinearFt').value || 0;
+          const edgeCost = parseFloat(edgeFt) * 5.00;
+          doc.text(`Composite Edging (${edgeFt} ft)`, 25, yPos);
+          doc.text(`$${edgeCost.toFixed(2)}`, 170, yPos, { align: 'right' });
+          yPos += 6;
+        }
+        yPos += 3;
+      }
+      
+      // Check if we need a new page
+      if (yPos > 240) {
+        doc.addPage();
+        yPos = 20;
+      }
+      
+      // Labor
+      const laborHours = document.getElementById('laborHours').value || 0;
+      const laborRate = document.getElementById('laborRate').value || 91;
+      if (parseFloat(laborHours) > 0) {
+        doc.setFont(undefined, 'bold');
+        doc.text('LABOR', 20, yPos);
+        yPos += 7;
+        doc.setFont(undefined, 'normal');
+        doc.text(`${laborHours} hours @ $${laborRate}/hr`, 25, yPos);
+        const laborCost = parseFloat(laborHours) * parseFloat(laborRate);
+        doc.text(`$${laborCost.toFixed(2)}`, 170, yPos, { align: 'right' });
+        yPos += 10;
+      }
+      
+      // Get final pricing from summary (this ensures accuracy)
+      const priceElement = document.querySelector('.big-price');
+      const finalPrice = priceElement ? priceElement.textContent : '$0.00';
+      
+      const profitElement = document.querySelector('.price-box .status-badge').previousElementSibling;
+      const profitMarginText = profitElement ? profitElement.textContent : '';
+      const profitMatch = profitMarginText.match(/(\d+\.\d+)%/);
+      const profitMargin = profitMatch ? profitMatch[1] : '0';
+      
+      yPos += 5;
+      doc.line(20, yPos, 190, yPos);
+      yPos += 10;
+      
+      // Final Pricing
+      doc.setFontSize(14);
+      doc.setFont(undefined, 'bold');
+      doc.text('TOTAL PRICE', 20, yPos);
+      doc.text(finalPrice, 190, yPos, { align: 'right' });
+      yPos += 10;
+      
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'normal');
+      doc.text(`Includes 3% credit card processing fee`, 25, yPos);
+      yPos += 6;
+      doc.text(`Target profit margin: ${profitMargin}%`, 25, yPos);
+      yPos += 15;
+      
+      // Time Tracking (if actual hours entered)
+      const actualHours = parseFloat(document.getElementById('actualHours')?.value) || 0;
+      const budgetHours = parseFloat(document.getElementById('budgetHours')?.value) || 0;
+      
+      if (actualHours > 0 || budgetHours > 0) {
+        // Check if we need a new page
+        if (yPos > 220) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text('TIME TRACKING & EFFICIENCY', 20, yPos);
+        yPos += 8;
+        
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        
+        // Budget vs Actual Hours
+        doc.text(`Budget Hours: ${budgetHours.toFixed(1)} hours`, 25, yPos);
+        yPos += 6;
+        
+        if (actualHours > 0) {
+          doc.text(`Actual Hours: ${actualHours.toFixed(1)} hours`, 25, yPos);
+          yPos += 6;
+          
+          const hoursDiff = actualHours - budgetHours;
+          const hoursVariance = budgetHours > 0 ? ((hoursDiff / budgetHours) * 100) : 0;
+          const efficiency = budgetHours > 0 ? ((budgetHours / actualHours) * 100) : 0;
+          
+          doc.text(`Time Variance: ${hoursDiff >= 0 ? '+' : ''}${hoursDiff.toFixed(1)} hours (${hoursVariance >= 0 ? '+' : ''}${hoursVariance.toFixed(1)}%)`, 25, yPos);
+          yPos += 6;
+          doc.text(`Efficiency Rate: ${efficiency.toFixed(1)}%`, 25, yPos);
+          yPos += 6;
+          
+          // Labor cost comparison
+          const budgetLaborCost = budgetHours * parseFloat(laborRate);
+          const actualLaborCost = actualHours * parseFloat(laborRate);
+          const laborCostDiff = actualLaborCost - budgetLaborCost;
+          
+          doc.text(`Budget Labor Cost: $${budgetLaborCost.toFixed(2)}`, 25, yPos);
+          yPos += 6;
+          doc.text(`Actual Labor Cost: $${actualLaborCost.toFixed(2)}`, 25, yPos);
+          yPos += 6;
+          doc.text(`Labor Cost Variance: ${laborCostDiff >= 0 ? '+' : ''}$${Math.abs(laborCostDiff).toFixed(2)}`, 25, yPos);
+          yPos += 6;
+          
+          // Status
+          doc.setFont(undefined, 'bold');
+          const status = efficiency >= 100 ? 'ON SCHEDULE / UNDER BUDGET' : 
+                        efficiency >= 90 ? 'SLIGHTLY OVER BUDGET' :
+                        'OVER BUDGET';
+          doc.text(`Status: ${status}`, 25, yPos);
+          yPos += 10;
+        }
+      }
+      
+      // Project Notes (if any entered)
+      const notesWentWell = document.getElementById('notesWentWell')?.value || '';
+      const notesChallenges = document.getElementById('notesChallenges')?.value || '';
+      const notesActionSteps = document.getElementById('notesActionSteps')?.value || '';
+      
+      if (notesWentWell || notesChallenges || notesActionSteps) {
+        // Check if we need a new page
+        if (yPos > 200) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        doc.setFontSize(12);
+        doc.setFont(undefined, 'bold');
+        doc.text('PROJECT SUMMARY NOTES', 20, yPos);
+        yPos += 8;
+        
+        doc.setFontSize(10);
+        doc.setFont(undefined, 'normal');
+        
+        // What Went Well
+        if (notesWentWell) {
+          doc.setFont(undefined, 'bold');
+          doc.text('What Went Well:', 25, yPos);
+          yPos += 6;
+          doc.setFont(undefined, 'normal');
+          
+          const wentWellLines = doc.splitTextToSize(notesWentWell, 160);
+          doc.text(wentWellLines, 25, yPos);
+          yPos += (wentWellLines.length * 5) + 5;
+        }
+        
+        // Challenges / Issues
+        if (notesChallenges) {
+          if (yPos > 240) {
+            doc.addPage();
+            yPos = 20;
+          }
+          
+          doc.setFont(undefined, 'bold');
+          doc.text('Challenges / Issues:', 25, yPos);
+          yPos += 6;
+          doc.setFont(undefined, 'normal');
+          
+          const challengesLines = doc.splitTextToSize(notesChallenges, 160);
+          doc.text(challengesLines, 25, yPos);
+          yPos += (challengesLines.length * 5) + 5;
+        }
+        
+        // Action Steps
+        if (notesActionSteps) {
+          if (yPos > 240) {
+            doc.addPage();
+            yPos = 20;
+          }
+          
+          doc.setFont(undefined, 'bold');
+          doc.text('Action Steps for Future Jobs:', 25, yPos);
+          yPos += 6;
+          doc.setFont(undefined, 'normal');
+          
+          const actionLines = doc.splitTextToSize(notesActionSteps, 160);
+          doc.text(actionLines, 25, yPos);
+          yPos += (actionLines.length * 5) + 10;
+        }
+      }
+      
+      // Footer
+      doc.line(20, yPos, 190, yPos);
+      yPos += 7;
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'normal');
+      doc.text('Thank you for choosing WS Lawn Care!', 105, yPos, { align: 'center' });
+      yPos += 5;
+      doc.text('Professional Landscaping Services - Titusville, FL', 105, yPos, { align: 'center' });
+      
+      // Save
+      doc.save(`WS-Estimate-${projectName.replace(/\s+/g, '-')}-${Date.now()}.pdf`);
+    }
+
+    // Initialize on load
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
