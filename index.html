@@ -2044,12 +2044,7 @@
   summaryDiv.setAttribute('data-labor', estimate.laborCost || 0);
   summaryDiv.setAttribute('data-equipment', estimate.totalEquipmentCost || 0);
   summaryDiv.setAttribute('data-other', (estimate.deliveryFee || 0) + (estimate.haulAway || 0) + (estimate.addOnsCost || 0));
-      // Store budget data as attributes for actual cost comparison
-      const summaryDiv = document.getElementById('summaryContent');
-      summaryDiv.setAttribute('data-materials', estimate.materialCost + estimate.additionalMaterialsCost);
-      summaryDiv.setAttribute('data-labor', estimate.laborCost || 0);
-      summaryDiv.setAttribute('data-equipment', estimate.equipmentCost || 0);
-      summaryDiv.setAttribute('data-other', (estimate.deliveryFee || 0) + (estimate.haulAway || 0) + (estimate.addOnsCost || 0));
+     
       
       summaryContent.innerHTML = `
         <!-- Measurements -->
