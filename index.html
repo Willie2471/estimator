@@ -1330,19 +1330,29 @@
     }
 
     // Remove material row
-   function removeMaterialRow(id) {
-    // Remove from DOM
-    const element = document.getElementById(`material-${id}`);
-    if (element) {
-        element.remove();
-    }
-    
-    // Remove from tracking array
-    additionalMaterialRows = additionalMaterialRows.filter(r => r.id !== id);
-    
-    // Recalculate and save
+  function removeMaterialRow(id) {
+  console.log('Removing material row:', id);
+  
+  // Remove from DOM
+  const element = document.getElementById(`material-${id}`);
+  if (element) {
+    element.remove();
+    console.log('DOM element removed');
+  }
+  
+  // Remove from tracking array - STRICT comparison
+  const beforeLength = additionalMaterialRows.length;
+  additionalMaterialRows = additionalMaterialRows.filter(r => String(r.id) !== String(id));
+  const afterLength = additionalMaterialRows.length;
+  
+  console.log(`Array filtered: ${beforeLength} → ${afterLength}`);
+  console.log('Remaining rows:', additionalMaterialRows);
+  
+  // Force recalculation
+  setTimeout(() => {
     calculate();
     autoSave();
+  }, 10);
 }
 
 function clearAllAdditionalMaterials() {
