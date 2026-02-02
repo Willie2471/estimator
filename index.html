@@ -1332,13 +1332,35 @@
     }
 
     // Remove material row
-    function removeMaterialRow(id) {
-      const element = document.getElementById(`material-${id}`);
-      if (element) element.remove();
-      additionalMaterialRows = additionalMaterialRows.filter(r => r.id !== id);
-      calculate();
-      autoSave();
+   function removeMaterialRow(id) {
+    // Remove from DOM
+    const element = document.getElementById(`material-${id}`);
+    if (element) {
+        element.remove();
     }
+    
+    // Remove from tracking array
+    additionalMaterialRows = additionalMaterialRows.filter(r => r.id !== id);
+    
+    // Recalculate and save
+    calculate();
+    autoSave();
+}
+
+function clearAllAdditionalMaterials() {
+    // Clear all rows from DOM
+    const container = document.getElementById('additionalMaterialsContainer');
+    if (container) {
+        container.innerHTML = '';
+    }
+    
+    // Reset tracking array
+    additionalMaterialRows = [];
+    
+    // Recalculate and save
+    calculate();
+    autoSave();
+}
 
     // Initialize Google Maps
     function initializeGoogleMaps() {
