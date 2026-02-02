@@ -2007,7 +2007,28 @@ function clearAllAdditionalMaterials() {
       const totalEquipmentCost = equipmentCost + equipmentRentalCost;
       
       // Calculate additional materials costs with 10% markup
-      const additionalMaterialsBase = additionalMaterialRows.reduce((sum, row) => sum + (row.cost || 0), 0);
+     // Filter to only include rows that still exist in DOM and have valid data
+const additionalMaterialsBase = additionalMaterialRows
+  .filter(row => {
+    // Check if row still exists in DOM
+    const rowElement = document.getElementById(`material-${row.id}`);
+    if (!rowElement) return false;
+    
+    // Get current values from DOM
+    const descInput = document.querySelector(`.material-desc[data-id="${row.id}"]`);
+    const costInput = document.querySelector(`.material-cost[data-id="${row.id}"]`);
+    
+    const desc = descInput ? descInput.value.trim() : '';
+    const cost = costInput ? parseFloat(costInput.value) : 0;
+    
+    // Update the row object with current values
+    row.description = desc;
+    row.cost = cost;
+    
+    // Only include if has description AND cost
+    return desc.length > 0 && cost > 0;
+  })
+  .reduce((sum, row) => sum + row.cost, 0);
       const additionalMaterialsMarkup = additionalMaterialsBase * 0.10;
       const additionalMaterialsCost = additionalMaterialsBase + additionalMaterialsMarkup;
       
