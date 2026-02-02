@@ -1216,53 +1216,76 @@
     }
 
     function updateEquipmentRentalCost(id) {
-      const equipmentName = document.getElementById(`equipment-rental-type-${id}`).value;
-      const duration = document.getElementById(`equipment-rental-duration-${id}`).value;
-      
-      if (!equipmentName) {
+    const equipmentName = document.getElementById(`equipment-rental-type-${id}`).value;
+    const duration = document.getElementById(`equipment-rental-duration-${id}`).value;
+    
+    // Reset if no equipment selected
+    if (!equipmentName || equipmentName === '') {
         document.getElementById(`equipment-rental-cost-${id}`).textContent = '$0.00';
         document.getElementById(`equipment-rental-details-${id}`).textContent = '';
+        
+        // Update selection array
+        const selection = equipmentRentalSelections.find(e => e.id === id);
+        if (selection) {
+            selection.name = '';
+            selection.duration = duration;
+            selection.baseCost = 0;
+            selection.insurance = 0;
+            selection.salesTax = 0;
+            selection.cost = 0;
+            selection.details = '';
+        }
+        
+        calculate();
+        autoSave();
+        return; // ← CRITICAL: Exit early if nothing selected
+    }
+    
+    // Find equipment in EQUIPMENT_RENTAL array
+    const equipment = EQUIPMENT_RENTAL.find(e => e.name === equipmentName);
+    if (!equipment) {
+        console.error('Equipment not found:', equipmentName);
         return;
-      }
-      
-      const equipment = EQUIPMENT_RENTAL.find(e => e.name === equipmentName);
-      if (!equipment) return;
-      
-      let baseCost = 0;
-      let details = '';
-      
-      if (duration === '4hour') {
-        baseCost = equipment.fourHourRate;
+    }
+    
+    let baseCost = 0;
+    let details = '';
+    
+    // Determine base cost based on duration
+    if (duration === '4hour') {
+        baseCost = equipment.fourHourRate || 0;
         details = `4 hour rental`;
-      } else if (duration === 'full') {
-        baseCost = equipment.dailyRate;
+    } else if (duration === 'full') {
+        baseCost = equipment.dailyRate || 0;
         details = `Full day rental`;
-      } else if (duration === 'week') {
-        baseCost = equipment.weekRate;
+    } else if (duration === 'week') {
+        baseCost = equipment.weekRate || 0;
         details = `Week rental`;
-      } else if (duration === '4week') {
-        baseCost = equipment.fourWeekRate;
+    } else if (duration === '4week') {
+        baseCost = equipment.fourWeekRate || 0;
         details = `4 weeks rental`;
-      }
-      
-      // Add 15% rental insurance
-      const insurance = baseCost * 0.15;
-      
-      // Add 7% sales tax on (base + insurance)
-      const subtotalWithInsurance = baseCost + insurance;
-      const salesTax = subtotalWithInsurance * 0.07;
-      
-      // Total cost passed to customer
-      const totalCost = baseCost + insurance + salesTax;
-      
-      const detailsWithBreakdown = `${details} | Base: ${formatCurrency(baseCost)} + Insurance (15%): ${formatCurrency(insurance)} + Tax (7%): ${formatCurrency(salesTax)}`;
-      
-      document.getElementById(`equipment-rental-cost-${id}`).textContent = formatCurrency(totalCost);
-      document.getElementById(`equipment-rental-details-${id}`).textContent = detailsWithBreakdown;
-      
-      // Update selection
-      const selection = equipmentRentalSelections.find(e => e.id === id);
-      if (selection) {
+    }
+    
+    // Calculate 15% insurance
+    const insurance = baseCost * 0.15;
+    
+    // Calculate 7% sales tax on (base + insurance)
+    const subtotalWithInsurance = baseCost + insurance;
+    const salesTax = subtotalWithInsurance * 0.07;
+    
+    // Total cost to customer
+    const totalCost = baseCost + insurance + salesTax;
+    
+    // Build detailed breakdown
+    const detailsWithBreakdown = `${details} | Base: ${formatCurrency(baseCost)} + Insurance (15%): ${formatCurrency(insurance)} + Tax (7%): ${formatCurrency(salesTax)}`;
+    
+    // Update DOM elements - THIS IS KEY!
+    document.getElementById(`equipment-rental-cost-${id}`).textContent = formatCurrency(totalCost);
+    document.getElementById(`equipment-rental-details-${id}`).textContent = detailsWithBreakdown;
+    
+    // Update equipment selection in tracking array
+    const selection = equipmentRentalSelections.find(e => e.id === id);
+    if (selection) {
         selection.name = equipmentName;
         selection.duration = duration;
         selection.baseCost = baseCost;
@@ -1270,11 +1293,12 @@
         selection.salesTax = salesTax;
         selection.cost = totalCost;
         selection.details = details;
-      }
-      
-      calculate();
-      autoSave();
     }
+    
+    // Recalculate totals and auto-save
+    calculate();
+    autoSave();
+}
 
     // Add material row
     function addMaterialRow() {
