@@ -1187,7 +1187,34 @@
         calculate();
       });
     }
-
+// Remove a completed material from the list
+    function removeCompletedMaterial(category, materialName) {
+      if (!confirm(`Remove ${materialName} from this estimate?`)) {
+        return;
+      }
+      
+      // Remove from completedMaterials array
+      completedMaterials = completedMaterials.filter(m => 
+        !(m.category === category && m.materialName === materialName)
+      );
+      
+      // Recalculate and update display
+      calculate();
+      autoSave();
+    }
+     // Remove a completed material from the list
+    function removeCompletedMaterial(category, materialName) {
+      if (!confirm(`Remove ${materialName} from this estimate?`)) {
+        return;
+      }
+      
+      completedMaterials = completedMaterials.filter(m => 
+        !(m.category === category && m.materialName === materialName)
+      );
+      
+      calculate();
+      autoSave();
+    }
     // Remove material row
   function removeMaterialRow(id) {
   console.log('Removing material row:', id);
@@ -1634,9 +1661,14 @@ summaryDiv.setAttribute('data-labor', estimate.laborCost || 0);
           
           <!-- Completed Materials (from previous selections) -->
           ${estimate.completedMaterials && estimate.completedMaterials.length > 0 ? `
-            ${estimate.completedMaterials.map(mat => `
-              <div style="border-left: 4px solid #3498db; background: #f8f9fa; padding: 12px 16px; margin-bottom: 8px; border-radius: 4px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+  ${estimate.completedMaterials.map(mat => `
+        <div style="border-left: 4px solid #3498db; background: #f8f9fa; padding: 12px 16px; margin-bottom: 8px; border-radius: 4px; position: relative;">
+                <button 
+                  onclick="removeCompletedMaterial('${mat.category}', '${mat.materialName.replace(/'/g, "\\'")}')" 
+                  style="position: absolute; top: 8px; right: 8px; background: #e74c3c; color: white; border: none; border-radius: 4px; width: 24px; height: 24px; cursor: pointer; font-size: 16px; line-height: 1; padding: 0; display: flex; align-items: center; justify-content: center;"
+                  title="Remove this material"
+                >×</button>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; padding-right: 32px;">
                   <div style="display: flex; align-items: center; gap: 8px;">
                     <span style="font-size: 18px;">
                       ${mat.category === 'mulch' ? '🪵' : 
