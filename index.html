@@ -1186,22 +1186,7 @@
         if (row) row.cost = parseFloat(e.target.value) || 0;
         calculate();
       });
-    }
-// Remove a completed material from the list
-    function removeCompletedMaterial(category, materialName) {
-      if (!confirm(`Remove ${materialName} from this estimate?`)) {
-        return;
-      }
-      
-      // Remove from completedMaterials array
-      completedMaterials = completedMaterials.filter(m => 
-        !(m.category === category && m.materialName === materialName)
-      );
-      
-      // Recalculate and update display
-      calculate();
-      autoSave();
-    }
+
      // Remove a completed material from the list
     function removeCompletedMaterial(category, materialName) {
       if (!confirm(`Remove ${materialName} from this estimate?`)) {
