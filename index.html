@@ -1739,11 +1739,14 @@ summaryDiv.setAttribute('data-labor', estimate.laborCost || 0);
             </div>
           ` : ''}
           ${estimate.laborCost > 0 ? `
-            <div class="info-row">
-              <span>Labor:</span>
-              <span>${formatCurrency(estimate.laborCost)}</span>
-            </div>
-          ` : ''}
+  <div class="info-row">
+    <span>Labor:${(() => {
+      const laborHours = parseFloat(document.getElementById('laborHours')?.value) || 0;
+      return laborHours > 0 ? ` (${laborHours} ${laborHours === 1 ? 'hour' : 'hours'})` : '';
+    })()}</span>
+    <span>${formatCurrency(estimate.laborCost)}</span>
+  </div>
+` : ''}
           ${estimate.equipmentCost > 0 || estimate.equipmentRentalCost > 0 ? `
             ${estimate.equipmentCost > 0 ? `
               <div class="info-row">
