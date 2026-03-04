@@ -117,10 +117,11 @@
             <div id="materialCostDetails" style="color:rgba(255,255,255,0.85);font-size:12px;"></div>
           </div>
 
-          <!-- FIX #3: Project Notes for current material -->
+          <!-- Area label + notes for current material -->
           <div class="notes-section" style="margin-top:12px;">
             <div style="font-size:12px;font-weight:700;color:#3498db;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">📝 Material Notes</div>
-            <textarea id="materialNotes" placeholder="e.g. Order 4.5 cubic yards (round up to 5), delivery Tuesday morning, use 3" depth in back beds..."></textarea>
+            <input type="text" id="materialAreaLabel" placeholder="Area label (e.g. Side of Pool, Back of Shed, Front Beds)" style="margin-bottom:8px;border-color:#b0d4f1;font-size:13px;">
+            <textarea id="materialNotes" placeholder="e.g. Order 4.5 cubic yards (round up to 5), delivery Tuesday morning, use 3 inch depth..."></textarea>
           </div>
 
           <!-- FIX #2: Send to Cost Breakdown button -->
@@ -492,94 +493,81 @@
   }
 
   // ============================================================
-  // FIX #2: Send current material to cost breakdown
-  // ============================================================
+  // Allow MULTIPLE entries of same material type (e.g. Pine Bark x2 different areas)
   function sendMaterialToBreakdown() {
     const category = materialCategory.value;
-    if (!category || category === 'none') {
-      alert('Please select a material category first.');
-      return;
-    }
+    if (!category || category === 'none') { alert('Please select a material category first.'); return; }
 
     const selectedName = materialType.value;
     const decodedName = selectedName.replace(/&quot;/g, '"');
     const material = MATERIALS[category]?.find(m => m.name === decodedName);
-    if (!material) {
-      alert('Please select a material type.');
-      return;
-    }
+    if (!material) { alert('Please select a material type.'); return; }
 
-    let materialCost = 0;
-    let details = '';
-    let orderInfo = '';
+    let materialCost = 0, details = '', orderInfo = '';
 
     if (category === 'sod') {
       const length = parseFloat(document.getElementById('length')?.value) || 0;
       const width = parseFloat(document.getElementById('width')?.value) || 0;
       const sqFt = length * width;
-      if (sqFt <= 0) { alert('Please enter dimensions (length and width) for this material.'); return; }
+      if (sqFt <= 0) { alert('Please enter dimensions for this material.'); return; }
       materialCost = sqFt * material.pricePerSqFt;
       const pallets = Math.ceil(sqFt / 400);
-      details = `${sqFt.toFixed(0)} sq ft • ${pallets} ${pallets === 1 ? 'pallet' : 'pallets'} (400 sq ft/pallet)`;
+      details = `${sqFt.toFixed(0)} sq ft • ${pallets} ${pallets === 1 ? 'pallet' : 'pallets'}`;
       orderInfo = `Order: ${pallets} pallet${pallets !== 1 ? 's' : ''} (${sqFt.toFixed(0)} sq ft)`;
     } else {
       const length = parseFloat(document.getElementById('length')?.value) || 0;
       const width = parseFloat(document.getElementById('width')?.value) || 0;
       const depth = parseFloat(document.getElementById('depth')?.value) || 1;
-      if (length <= 0 || width <= 0) { alert('Please enter dimensions (length and width) for this material.'); return; }
+      if (length <= 0 || width <= 0) { alert('Please enter dimensions for this material.'); return; }
       const cubicFeet = (length * width * depth) / 12;
       const cubicYards = cubicFeet / 27;
       materialCost = cubicYards * material.pricePerYard;
-      details = `${(length * width).toFixed(0)} sq ft × ${depth}" depth = ${cubicYards.toFixed(2)} cu yds`;
-      orderInfo = `Order: ${Math.ceil(cubicYards * 10) / 10} cu yds (rounded up)`;
+      details = `${length}' × ${width}' × ${depth}" = ${cubicYards.toFixed(2)} cu yds`;
+      orderInfo = `Order: ${(Math.ceil(cubicYards * 10) / 10).toFixed(1)} cu yds (rounded up)`;
     }
 
-    // Get notes for this material
+    const areaLabel = document.getElementById('materialAreaLabel')?.value?.trim() || '';
     const materialNotes = document.getElementById('materialNotes')?.value || '';
 
-    // Check if already exists
-    const existingIndex = completedMaterials.findIndex(m => m.category === category && m.materialName === decodedName);
-    const materialData = { category, materialName: decodedName, cost: materialCost, details, orderInfo, notes: materialNotes };
+    // Each click = new unique entry, NO duplicate merging — allows Pine Bark x2 for different areas
+    const entryId = `mat_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
+    completedMaterials.push({ entryId, category, materialName: decodedName, areaLabel, cost: materialCost, details, orderInfo, notes: materialNotes });
 
-    if (existingIndex >= 0) {
-      completedMaterials[existingIndex] = materialData;
-    } else {
-      completedMaterials.push(materialData);
-    }
-
-    // Clear dimensions and notes so user can enter a new material
-    document.getElementById('materialNotes').value = '';
+    // Clear for next entry
+    if (document.getElementById('materialAreaLabel')) document.getElementById('materialAreaLabel').value = '';
+    if (document.getElementById('materialNotes')) document.getElementById('materialNotes').value = '';
     if (document.getElementById('length')) document.getElementById('length').value = '';
     if (document.getElementById('width')) document.getElementById('width').value = '';
     if (document.getElementById('depth')) document.getElementById('depth').value = '1';
-
-    // Hide inline cost display
     const mcd = document.getElementById('materialCostDisplay');
     if (mcd) mcd.style.display = 'none';
 
     calculate();
     autoSave();
 
-    // Visual feedback
+    // Visual feedback showing what was added
     const btn = document.querySelector('.send-to-breakdown-btn');
-    const origText = btn.textContent;
-    btn.textContent = '✓ Added to Cost Breakdown!';
+    const label = areaLabel ? ` — ${areaLabel}` : '';
+    btn.textContent = `✓ ${decodedName}${label} Added!`;
     btn.style.background = 'linear-gradient(90deg, #27ae60 0%, #2ecc71 100%)';
     setTimeout(() => {
-      btn.textContent = origText;
+      btn.textContent = '➕ Add to Cost Breakdown';
       btn.style.background = '';
       btn.className = 'send-to-breakdown-btn';
-    }, 2000);
+    }, 2500);
   }
 
-  function removeCompletedMaterial(category, materialName) {
-    if (!confirm(`Remove ${materialName} from this estimate?`)) return;
-    completedMaterials = completedMaterials.filter(m => !(m.category === category && m.materialName === materialName));
+  // Remove by unique entryId (supports duplicate material names)
+  function removeCompletedMaterial(entryId) {
+    const entry = completedMaterials.find(m => m.entryId === entryId);
+    const label = entry ? (entry.areaLabel ? `${entry.materialName} (${entry.areaLabel})` : entry.materialName) : 'this material';
+    if (!confirm(`Remove ${label} from this estimate?`)) return;
+    completedMaterials = completedMaterials.filter(m => m.entryId !== entryId);
     calculate();
     autoSave();
   }
 
-  function addEquipmentRental() {
+    function addEquipmentRental() {
     const id = equipmentRentalIdCounter++;
     const container = document.getElementById('equipmentRentalList');
     const rentalDiv = document.createElement('div');
@@ -873,17 +861,20 @@
           </div>
         ` : ''}
 
-        <!-- Completed Materials -->
+        <!-- Completed Materials — each uses entryId for removal, supports duplicates of same type -->
         ${estimate.completedMaterials && estimate.completedMaterials.length > 0 ? `
           ${estimate.completedMaterials.map(mat => `
             <div style="border-left:4px solid #3498db;background:#f8f9fa;padding:12px 16px;margin-bottom:8px;border-radius:4px;position:relative;">
-              <button onclick="removeCompletedMaterial('${mat.category}','${mat.materialName.replace(/'/g,"\\'").replace(/"/g,'&quot;')}')"
+              <button onclick="removeCompletedMaterial('${mat.entryId}')"
                 style="position:absolute;top:8px;right:8px;background:#e74c3c;color:white;border:none;border-radius:4px;width:24px;height:24px;cursor:pointer;font-size:16px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;" title="Remove">×</button>
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;padding-right:32px;">
                 <div style="display:flex;align-items:center;gap:8px;">
                   <span style="font-size:18px;">${mat.category==='mulch'?'🪵':mat.category==='rock'?'🪨':mat.category==='dirt'?'🟤':mat.category==='sod'?'🌱':'📦'}</span>
                   <div>
-                    <div style="font-size:13px;font-weight:700;color:#2c3e50;">${mat.materialName}</div>
+                    <div style="font-size:13px;font-weight:700;color:#2c3e50;">
+                      ${mat.materialName}
+                      ${mat.areaLabel ? `<span style="font-size:11px;background:#3498db;color:white;padding:2px 7px;border-radius:10px;margin-left:6px;font-weight:600;">${mat.areaLabel}</span>` : ''}
+                    </div>
                     <div style="font-size:11px;color:#7f8c8d;">${mat.details}</div>
                     <div style="font-size:11px;color:#3498db;font-weight:600;">${mat.orderInfo || ''}</div>
                     ${mat.notes ? `<div style="font-size:11px;color:#e67e22;margin-top:2px;font-style:italic;">📝 ${mat.notes}</div>` : ''}
@@ -895,7 +886,7 @@
           `).join('')}
         ` : ''}
 
-        <!-- Current (in-progress) Material -->
+                <!-- Current (in-progress) Material -->
         ${estimate.category !== 'none' && estimate.materialCost > 0 ? `
           <div style="border-left:4px solid #27ae60;background:#f8f9fa;padding:12px 16px;margin-bottom:8px;border-radius:4px;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -1113,7 +1104,8 @@
         orderNotes: document.getElementById('orderNotes')?.value || '',
         equipmentNotes: document.getElementById('equipmentNotes')?.value || '',
         siteNotes: document.getElementById('siteNotes')?.value || '',
-        materialNotes: document.getElementById('materialNotes')?.value || ''
+        materialNotes: document.getElementById('materialNotes')?.value || '',
+        materialAreaLabel: document.getElementById('materialAreaLabel')?.value || ''
       },
       completedMaterials: completedMaterials || []
     };
@@ -1244,6 +1236,7 @@
       if (document.getElementById('equipmentNotes')) document.getElementById('equipmentNotes').value = data.generalNotes.equipmentNotes || '';
       if (document.getElementById('siteNotes')) document.getElementById('siteNotes').value = data.generalNotes.siteNotes || '';
       if (document.getElementById('materialNotes')) document.getElementById('materialNotes').value = data.generalNotes.materialNotes || '';
+      if (document.getElementById('materialAreaLabel')) document.getElementById('materialAreaLabel').value = data.generalNotes.materialAreaLabel || '';
     }
     if (data.completedMaterials) completedMaterials = data.completedMaterials;
 
