@@ -312,10 +312,13 @@ function fetchFromDrive(action, params) {
 
 function postToDrive(action, body) {
   if (!APPS_SCRIPT_URL) return Promise.reject('No URL configured');
-  // Send as GET with URL-encoded payload — avoids all CORS preflight issues
-  var payload = encodeURIComponent(JSON.stringify(body));
-  var url = APPS_SCRIPT_URL + '?action=' + action + '&payload=' + payload;
-  return fetch(url).then(r => r.json());
+  // action is inside the JSON body — Apps Script reads e.postData.contents
+  var payload = Object.assign({ action: action }, body);
+  return fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' }, // text/plain skips CORS preflight
+    body: JSON.stringify(payload)
+  }).then(r => r.json());
 }
 
 // ============================================================
