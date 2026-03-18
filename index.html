@@ -186,10 +186,15 @@
           ☁️ Project Management
           <span id="driveStatusBadge" class="drive-status loading" style="margin-left:auto;">Connecting...</span>
         </h3>
-        <div style="margin-bottom:10px;">
+        <!-- Collapsible URL config — hidden once connected -->
+        <div id="urlConfigPanel" style="margin-bottom:10px;">
           <div style="font-size:11px;opacity:0.85;margin-bottom:5px;">Apps Script Web App URL (one-time setup):</div>
           <input type="text" id="appsScriptUrl" placeholder="Paste your deployed Web App URL here..." style="font-size:12px;padding:8px;margin-bottom:5px;border-color:#9b8ec4;background:rgba(255,255,255,0.15);color:white;">
           <button onclick="saveScriptUrl()" style="padding:8px;font-size:12px;background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.5);border-radius:6px;width:100%;letter-spacing:0;">💾 Save URL & Connect</button>
+        </div>
+        <!-- Shown only when connected — small gear link to re-open URL config -->
+        <div id="urlConfigToggle" style="display:none;margin-bottom:10px;text-align:right;">
+          <span onclick="toggleUrlConfig()" style="font-size:11px;opacity:0.7;cursor:pointer;text-decoration:underline;text-underline-offset:2px;">⚙ Change connection URL</span>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
           <button onclick="saveProject()" style="padding:10px;background:white;color:#667eea;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:13px;letter-spacing:0;text-transform:none;">💾 Save to Drive</button>
@@ -279,6 +284,23 @@ function setBadge(text, type) {
   if (!b) return;
   b.textContent = text;
   b.className = 'drive-status ' + type;
+  var panel = document.getElementById('urlConfigPanel');
+  var toggle = document.getElementById('urlConfigToggle');
+  if (type === 'ok') {
+    if (panel) panel.style.display = 'none';
+    if (toggle) toggle.style.display = 'block';
+  }
+}
+
+function toggleUrlConfig() {
+  var panel = document.getElementById('urlConfigPanel');
+  var toggle = document.getElementById('urlConfigToggle');
+  if (!panel || !toggle) return;
+  var opening = panel.style.display === 'none';
+  panel.style.display = opening ? 'block' : 'none';
+  toggle.innerHTML = opening
+    ? '<span onclick="toggleUrlConfig()" style="font-size:11px;opacity:0.7;cursor:pointer;text-decoration:underline;text-underline-offset:2px;">▲ Hide connection settings</span>'
+    : '<span onclick="toggleUrlConfig()" style="font-size:11px;opacity:0.7;cursor:pointer;text-decoration:underline;text-underline-offset:2px;">⚙ Change connection URL</span>';
 }
 
 function fetchFromDrive(action, params) {
