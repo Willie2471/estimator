@@ -312,10 +312,12 @@ function fetchFromDrive(action, params) {
 
 function postToDrive(action, body) {
   if (!APPS_SCRIPT_URL) return Promise.reject('No URL configured');
+  // Use FormData (no Content-Type header = no CORS preflight)
+  var fd = new FormData();
+  fd.append('payload', JSON.stringify(body));
   return fetch(APPS_SCRIPT_URL + '?action=' + action, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+    body: fd
   }).then(r => r.json());
 }
 
