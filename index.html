@@ -123,13 +123,13 @@
         <button class="send-to-breakdown-btn" onclick="sendMaterialToBreakdown()">➕ Add to Cost Breakdown</button>
         <div style="font-size:11px;color:#7f8c8d;margin-top:6px;text-align:center;">Add this material to the estimate, then select another material type above</div>
       </div>
+      <div class="section"><h2>📐 Dimensions</h2><div id="dimensionsContainer"></div></div>
       <div class="section">
         <h2>🚜 Equipment Rental</h2>
         <p style="font-size:13px;color:#7f8c8d;margin-bottom:12px;">Select equipment for this project</p>
         <div id="equipmentRentalList"></div>
         <button onclick="addEquipmentRental()" style="width:100%;padding:12px;background:#3498db;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;margin-top:8px;">➕ Add Equipment</button>
       </div>
-      <div class="section"><h2>📐 Dimensions</h2><div id="dimensionsContainer"></div></div>
       <div class="section">
         <h2>📦 Additional Materials</h2>
         <div id="additionalMaterialsContainer"></div>
@@ -312,11 +312,10 @@ function fetchFromDrive(action, params) {
 
 function postToDrive(action, body) {
   if (!APPS_SCRIPT_URL) return Promise.reject('No URL configured');
-  // action is inside the JSON body — Apps Script reads e.postData.contents
   var payload = Object.assign({ action: action }, body);
   return fetch(APPS_SCRIPT_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain' }, // text/plain skips CORS preflight
+    headers: { 'Content-Type': 'text/plain' },
     body: JSON.stringify(payload)
   }).then(r => r.json());
 }
@@ -950,7 +949,6 @@ function restoreProjectData(data) {
   }
   if (data.actualCosts) {
     ['actualMaterials','actualLabor','actualEquipment','actualOther','totalPriceCharged'].forEach(id => { const el = document.getElementById(id); if(el) el.value = data.actualCosts[id.replace('actual','').replace('totalPriceCharged','totalPriceCharged').toLowerCase()]||data.actualCosts[id]||''; });
-    // fix mapping
     if (document.getElementById('actualMaterials')) document.getElementById('actualMaterials').value = data.actualCosts.materials||'';
     if (document.getElementById('actualLabor')) document.getElementById('actualLabor').value = data.actualCosts.labor||'';
     if (document.getElementById('actualEquipment')) document.getElementById('actualEquipment').value = data.actualCosts.equipment||'';
