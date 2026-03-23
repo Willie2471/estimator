@@ -984,7 +984,7 @@ function newEstimate() {
     if (!['profitMarginSlider','appsScriptUrl'].includes(input.id)) input.value = '';
   });
   document.querySelectorAll('textarea').forEach(ta => ta.value = '');
-  if (document.getElementById('laborRate')) document.getElementById('laborRate').value = '91';
+  if (document.getElementById('laborRate')) document.getElementById('laborRate').value = '158';
   if (document.getElementById('profitMarginSlider')) { document.getElementById('profitMarginSlider').value = '40'; document.getElementById('profitMarginDisplay').textContent = '40%'; }
   if (document.getElementById('markupPercent')) document.getElementById('markupPercent').value = '0';
   document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
@@ -1010,7 +1010,7 @@ function toggleActualCostsSection() {
 function updateTimeTracking() {
   const bh = parseFloat(document.getElementById('budgetHours')?.value)||0;
   const ah = parseFloat(document.getElementById('actualHours')?.value)||0;
-  const lr = parseFloat(document.getElementById('laborRate')?.value)||91;
+  const lr = parseFloat(document.getElementById('laborRate')?.value)||158;
   const td = document.getElementById('timeTrackingDisplay'); if(!td) return;
   if (ah === 0) { td.style.display = 'none'; return; }
   const diff = ah-bh, eff = bh>0?(bh/ah)*100:0, blc = bh*lr, alc = ah*lr, cd = alc-blc;
