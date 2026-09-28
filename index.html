@@ -179,12 +179,12 @@
           <div><label style="font-weight:700;color:#27ae60;font-size:13px;">📐 Measurements & Site Notes</label><textarea id="siteNotes" placeholder="e.g. Back beds are 3 areas: 15x8, 20x6, 12x5. Gate is 36 inches wide. Park trailer on street..."></textarea></div>
           <div style="margin-top:16px;padding-top:16px;border-top:2px dashed #f0c674;">
             <label style="font-weight:700;color:#8e44ad;font-size:13px;">✉️ Send Order Details to Project Manager</label>
-            <input type="email" id="pmEmail" placeholder="Project manager email" style="margin-bottom:8px;border-color:#d5b8e6;font-size:13px;">
+            <input type="email" multiple id="pmEmail" placeholder="Email(s), separate multiple with commas" style="margin-bottom:8px;border-color:#d5b8e6;font-size:13px;">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
               <button onclick="emailProjectManager('gmail')" style="padding:12px;background:linear-gradient(90deg,#8e44ad 0%,#9b59b6 100%);font-size:12px;letter-spacing:0;text-transform:none;">✉️ Email via Gmail</button>
               <button onclick="emailProjectManager('mailto')" style="padding:12px;background:#7f8c8d;font-size:12px;letter-spacing:0;text-transform:none;box-shadow:none;">📧 Default Mail App</button>
             </div>
-            <div style="font-size:11px;color:#7f8c8d;margin-top:8px;line-height:1.5;">Opens a ready-to-send email with the material order totals, area breakdown, equipment and all three notes. Prices are left out. Email is remembered on this device.</div>
+            <div style="font-size:11px;color:#7f8c8d;margin-top:8px;line-height:1.5;">Opens a ready-to-send email with the material order totals, area breakdown, equipment and all three notes. Prices are left out. Separate multiple addresses with commas. Emails are remembered on this device.</div>
           </div>
         </div>
       </div>
@@ -775,13 +775,16 @@ function buildOrderEmail() {
 }
 
 function emailProjectManager(mode) {
-  const to = (document.getElementById('pmEmail')?.value || '').trim();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) { alert('Please enter the project manager\'s email address first.'); return; }
-  try { localStorage.setItem('ws_pm_email', to); } catch(err) {}
+  const raw = (document.getElementById('pmEmail')?.value || '').trim();
+  const list = raw.split(/[,;\s]+/).filter(Boolean);
+  const bad = list.filter(a => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a));
+  if (!list.length || bad.length) { alert(bad.length ? 'This email address looks invalid: ' + bad[0] : 'Please enter at least one email address first.'); return; }
+  try { localStorage.setItem('ws_pm_email', list.join(', ')); } catch(err) {}
+  const to = list.join(',');
   const { subject, body } = buildOrderEmail();
   const enc = encodeURIComponent;
   const make = b => mode === 'mailto'
-    ? `mailto:${to}?subject=${enc(subject)}&body=${enc(b)}`
+    ? `mailto:${list.map(enc).join(',')}?subject=${enc(subject)}&body=${enc(b)}`
     : `https://mail.google.com/mail/?view=cm&fs=1&to=${enc(to)}&su=${enc(subject)}&body=${enc(b)}`;
   let url = make(body);
   if (url.length > 7000) {
