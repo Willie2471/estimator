@@ -125,22 +125,25 @@
       </div>
       <div class="section"><h2>📐 Dimensions</h2><div id="dimensionsContainer"></div></div>
       <div class="section">
+        <h2>🧱 Additional Materials & Add-ons</h2>
+        <div style="border:2px solid #27ae60;border-radius:8px;padding:16px;background:#f8fdf9;">
+          <div style="font-size:12px;font-weight:700;color:#27ae60;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">📦 Additional Materials <span style="font-weight:400;text-transform:none;opacity:0.8;">(10% markup applied)</span></div>
+          <div id="additionalMaterialsContainer"></div>
+          <button onclick="addMaterialRow()" style="width:100%;padding:10px;background:#27ae60;color:white;border:none;border-radius:6px;cursor:pointer;margin-top:8px;">➕ Add Material Row</button>
+          <div style="margin-top:18px;padding-top:16px;border-top:2px dashed #b7dfc5;">
+            <div style="font-size:12px;font-weight:700;color:#27ae60;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">➕ Add-ons</div>
+            <label class="checkbox-label" id="geoTextileLabel"><input type="checkbox" id="includeGeoTextile"><span>Geo Textile Fabric ($1.20/ft)</span></label>
+            <input type="number" id="geoTextileLinearFt" placeholder="Linear feet" style="display:none;">
+            <label class="checkbox-label" id="edgingLabel"><input type="checkbox" id="includeEdging"><span>Composite Edging ($3.00/ft)</span></label>
+            <input type="number" id="edgingLinearFt" placeholder="Linear feet" style="display:none;">
+          </div>
+        </div>
+      </div>
+      <div class="section">
         <h2>🚜 Equipment Rental</h2>
         <p style="font-size:13px;color:#7f8c8d;margin-bottom:12px;">Select equipment for this project</p>
         <div id="equipmentRentalList"></div>
         <button onclick="addEquipmentRental()" style="width:100%;padding:12px;background:#3498db;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;margin-top:8px;">➕ Add Equipment</button>
-      </div>
-      <div class="section">
-        <h2>📦 Additional Materials</h2>
-        <div id="additionalMaterialsContainer"></div>
-        <button onclick="addMaterialRow()" style="width:100%;padding:10px;background:#27ae60;color:white;border:none;border-radius:6px;cursor:pointer;margin-top:8px;">➕ Add Material Row</button>
-      </div>
-      <div class="section">
-        <h2>➕ Add-ons</h2>
-        <label class="checkbox-label" id="geoTextileLabel"><input type="checkbox" id="includeGeoTextile"><span>Geo Textile Fabric ($1.20/ft)</span></label>
-        <input type="number" id="geoTextileLinearFt" placeholder="Linear feet" style="display:none;">
-        <label class="checkbox-label" id="edgingLabel"><input type="checkbox" id="includeEdging"><span>Composite Edging ($3.00/ft)</span></label>
-        <input type="number" id="edgingLinearFt" placeholder="Linear feet" style="display:none;">
       </div>
       <div class="section">
         <h2>🔧 Additional Equipment</h2>
@@ -447,12 +450,12 @@ function sendMaterialToBreakdown() {
   const name = sel.replace(/&quot;/g, '"');
   const material = MATERIALS[cat]?.find(m => m.name === name);
   if (!material) { alert('Please select a material type.'); return; }
-  let cost = 0, details = '', orderInfo = '';
+  let cost = 0, details = '', orderInfo = '', qCy = 0, qSq = 0;
   if (cat === 'sod') {
     const l = parseFloat(document.getElementById('length')?.value) || 0, w = parseFloat(document.getElementById('width')?.value) || 0;
     const sqFt = l * w;
     if (sqFt <= 0) { alert('Please enter dimensions.'); return; }
-    cost = sqFt * material.pricePerSqFt;
+    cost = sqFt * material.pricePerSqFt; qSq = sqFt;
     const pallets = Math.ceil(sqFt / 400);
     details = `${sqFt.toFixed(0)} sq ft • ${pallets} pallet${pallets===1?'':'s'}`;
     orderInfo = `Order: ${pallets} pallet${pallets!==1?'s':''} (${sqFt.toFixed(0)} sq ft)`;
@@ -460,14 +463,14 @@ function sendMaterialToBreakdown() {
     const l = parseFloat(document.getElementById('length')?.value) || 0, w = parseFloat(document.getElementById('width')?.value) || 0, d = parseFloat(document.getElementById('depth')?.value) || 1;
     if (l <= 0 || w <= 0) { alert('Please enter dimensions.'); return; }
     const cy = (l * w * d) / 12 / 27;
-    cost = cy * material.pricePerYard;
+    cost = cy * material.pricePerYard; qCy = cy; qSq = l * w;
     details = `${l}' × ${w}' × ${d}" = ${cy.toFixed(2)} cu yds`;
     orderInfo = `Order: ${(Math.ceil(cy * 10) / 10).toFixed(1)} cu yds (rounded up)`;
   }
   const areaLabel = document.getElementById('materialAreaLabel')?.value?.trim() || '';
   const notes = document.getElementById('materialNotes')?.value || '';
   const entryId = `mat_${Date.now()}_${Math.random().toString(36).substr(2,6)}`;
-  completedMaterials.push({ entryId, category: cat, materialName: name, areaLabel, cost, details, orderInfo, notes });
+  completedMaterials.push({ entryId, category: cat, materialName: name, areaLabel, cost, details, orderInfo, notes, cy: qCy, sqFt: qSq });
   ['materialAreaLabel','materialNotes','length','width'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
   const de = document.getElementById('depth'); if(de) de.value = '1';
   const mcd = document.getElementById('materialCostDisplay'); if(mcd) mcd.style.display = 'none';
@@ -672,6 +675,53 @@ function calculateTotalsAndDisplay(curCost, curData, completedCost) {
   });
 }
 
+function getMaterialQty(m) {
+  let cy = m.cy, sq = m.sqFt;
+  if (m.category !== 'sod' && cy === undefined) { const x = /=\s*([\d.]+)\s*cu yds/.exec(m.details || ''); cy = x ? parseFloat(x[1]) : 0; }
+  if (m.category === 'sod' && sq === undefined) { const x = /^([\d.,]+)\s*sq ft/.exec(m.details || ''); sq = x ? parseFloat(x[1].replace(/,/g, '')) : 0; }
+  return { cy: cy || 0, sq: sq || 0 };
+}
+
+// Running order totals grouped by material category (mulch, rock, dirt, sod) for easier ordering
+function buildOrderSummary(e) {
+  const items = [];
+  (e.completedMaterials || []).forEach(m => { const q = getMaterialQty(m); items.push({ category: m.category, name: m.materialName, cost: m.cost || 0, cy: q.cy, sq: q.sq }); });
+  const hasCurrent = e.category && e.category !== 'none' && e.materialCost > 0;
+  if (hasCurrent) items.push({ category: e.category, name: e.materialName, cost: e.materialCost, cy: e.category === 'sod' ? 0 : (e.cubicYards || 0), sq: e.category === 'sod' ? (e.totalSqFt || 0) : 0 });
+  const addOns = [];
+  if (e.geoTextileCost > 0) addOns.push(['🧵 Geo Textile Fabric', `${e.geoTextileLinearFt} linear ft`]);
+  if (e.edgingCost > 0) addOns.push(['🔲 Composite Edging', `${e.edgingLinearFt} linear ft`]);
+  if (!items.length && !addOns.length) return '';
+  const CATS = [['mulch','Mulch','🪵'],['rock','Decorative Rock','🪨'],['dirt','Dirt / Soil','🟤'],['sod','Sod','🌱']];
+  const roundUp = v => (Math.ceil(v * 10 - 1e-9) / 10).toFixed(1);
+  let html = '<div class="info-box"><h3>🛒 Material Order Summary</h3>';
+  CATS.forEach(([key, label, icon]) => {
+    const list = items.filter(i => i.category === key);
+    if (!list.length) return;
+    const byName = new Map();
+    list.forEach(i => { const g = byName.get(i.name) || { cost: 0, cy: 0, sq: 0 }; g.cost += i.cost; g.cy += i.cy; g.sq += i.sq; byName.set(i.name, g); });
+    const isSod = key === 'sod';
+    let totCost = 0, totCy = 0, totSq = 0, totPallets = 0;
+    let rows = '';
+    byName.forEach((g, name) => {
+      totCost += g.cost; totCy += g.cy; totSq += g.sq;
+      const pallets = Math.ceil(g.sq / 400 - 1e-9);
+      if (isSod) totPallets += pallets;
+      const qty = isSod ? `${g.sq.toFixed(0)} sq ft • ${pallets} pallet${pallets === 1 ? '' : 's'}` : `${g.cy.toFixed(2)} cu yd (order ${roundUp(g.cy)})`;
+      rows += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#2c3e50;margin-bottom:4px;"><span>• ${name}: ${qty}</span><span>${formatCurrency(g.cost)}</span></div>`;
+    });
+    const totalLine = isSod ? `${totSq.toFixed(0)} sq ft • ${totPallets} pallet${totPallets === 1 ? '' : 's'} total` : `${totCy.toFixed(2)} cu yd → order ${roundUp(totCy)} cu yd`;
+    html += `<div style="border-left:4px solid #27ae60;background:#fff;padding:10px 14px;margin-bottom:10px;border-radius:4px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><div style="font-size:13px;font-weight:700;color:#2c3e50;">${icon} ${label} Total</div><div style="font-size:15px;font-weight:700;color:#27ae60;">${formatCurrency(totCost)}</div></div>
+      ${rows}
+      <div style="border-top:1px solid #e0e0e0;margin-top:6px;padding-top:6px;font-size:12px;font-weight:700;color:#27ae60;">${totalLine}</div>
+    </div>`;
+  });
+  if (addOns.length) html += `<div style="font-size:12px;color:#2c3e50;padding:0 4px;">${addOns.map(a => `<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>${a[0]}</span><span style="font-weight:600;">${a[1]}</span></div>`).join('')}</div>`;
+  if (hasCurrent) html += '<div style="font-size:10px;color:#7f8c8d;margin-top:6px;">Includes the material currently being configured (not yet added).</div>';
+  return html + '</div>';
+}
+
 function matIcon(cat) { return cat==='mulch'?'🪵':cat==='rock'?'🪨':cat==='dirt'?'🟤':cat==='sod'?'🌱':'📦'; }
 
 function displaySummary(e) {
@@ -687,6 +737,7 @@ function displaySummary(e) {
       ${e.category!=='sod'?`<div class="info-row"><span>Area:</span><span>${(e.totalSqFt||0).toFixed(2)} sq ft</span></div><div class="info-row"><span>Volume:</span><span>${(e.cubicYards||0).toFixed(2)} cu yd</span></div><div class="info-row"><span>Cubic Feet:</span><span>${(e.cubicFeet||0).toFixed(2)} cu ft</span></div>`
       :`<div class="info-row"><span>Area:</span><span>${(e.totalSqFt||0).toFixed(2)} sq ft</span></div>`}
     </div>
+    ${buildOrderSummary(e)}
     <div class="info-box"><h3>💰 Cost Breakdown</h3>
       ${(e.projectName||e.propertyAddress||e.projectType)?`
         <div style="background:#fff;border:2px solid #3498db;border-radius:8px;padding:16px;margin-bottom:16px;">
