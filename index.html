@@ -118,7 +118,6 @@
         <div class="notes-section" style="margin-top:12px;">
           <div style="font-size:12px;font-weight:700;color:#3498db;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">📝 Material Notes</div>
           <input type="text" id="materialAreaLabel" placeholder="Area label (e.g. Side of Pool, Back of Shed, Front Beds)" style="margin-bottom:8px;border-color:#b0d4f1;font-size:13px;">
-          <textarea id="materialNotes" placeholder="e.g. Order 4.5 cubic yards (round up to 5), delivery Tuesday morning..."></textarea>
         </div>
         <button class="send-to-breakdown-btn" onclick="sendMaterialToBreakdown()">➕ Add to Cost Breakdown</button>
         <div style="font-size:11px;color:#7f8c8d;margin-top:6px;text-align:center;">Add this material to the estimate, then select another material type above</div>
@@ -178,6 +177,15 @@
           <div style="margin-bottom:12px;"><label style="font-weight:700;color:#e67e22;font-size:13px;">📦 Order Notes</label><textarea id="orderNotes" placeholder="e.g. Order 5 cu yds brown mulch, 3 pallets Floratam sod (400 sq ft/pallet), delivery by Tuesday..."></textarea></div>
           <div style="margin-bottom:12px;"><label style="font-weight:700;color:#3498db;font-size:13px;">🚜 Equipment Notes</label><textarea id="equipmentNotes" placeholder="e.g. Rent mini skid steer full day, need sod cutter 4 hours, call Sun Belt at 7am day before..."></textarea></div>
           <div><label style="font-weight:700;color:#27ae60;font-size:13px;">📐 Measurements & Site Notes</label><textarea id="siteNotes" placeholder="e.g. Back beds are 3 areas: 15x8, 20x6, 12x5. Gate is 36 inches wide. Park trailer on street..."></textarea></div>
+          <div style="margin-top:16px;padding-top:16px;border-top:2px dashed #f0c674;">
+            <label style="font-weight:700;color:#8e44ad;font-size:13px;">✉️ Send Order Details to Project Manager</label>
+            <input type="email" id="pmEmail" placeholder="Project manager email" style="margin-bottom:8px;border-color:#d5b8e6;font-size:13px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <button onclick="emailProjectManager('gmail')" style="padding:12px;background:linear-gradient(90deg,#8e44ad 0%,#9b59b6 100%);font-size:12px;letter-spacing:0;text-transform:none;">✉️ Email via Gmail</button>
+              <button onclick="emailProjectManager('mailto')" style="padding:12px;background:#7f8c8d;font-size:12px;letter-spacing:0;text-transform:none;box-shadow:none;">📧 Default Mail App</button>
+            </div>
+            <div style="font-size:11px;color:#7f8c8d;margin-top:8px;line-height:1.5;">Opens a ready-to-send email with the material order totals, area breakdown, equipment and all three notes. Prices are left out. Email is remembered on this device.</div>
+          </div>
         </div>
       </div>
     </div>
@@ -392,6 +400,7 @@ function init() {
   var savedUrl = localStorage.getItem('ws_apps_script_url') || '';
   if (savedUrl) { document.getElementById('appsScriptUrl').value = savedUrl; APPS_SCRIPT_URL = savedUrl; }
   checkDriveConnection();
+  try { const pm = localStorage.getItem('ws_pm_email'); if (pm) document.getElementById('pmEmail').value = pm; } catch(err) {}
 
   updateMaterialOptions();
   updateDimensionsInputs();
@@ -682,44 +691,108 @@ function getMaterialQty(m) {
   return { cy: cy || 0, sq: sq || 0 };
 }
 
-// Running order totals grouped by material category (mulch, rock, dirt, sod) for easier ordering
-function buildOrderSummary(e) {
+// Groups every selected material by category (mulch, rock, dirt, sod) for ordering
+const ORDER_CATS = [['mulch','Mulch','🪵'],['rock','Decorative Rock','🪨'],['dirt','Dirt / Soil','🟤'],['sod','Sod','🌱']];
+const roundUpTenth = v => (Math.ceil(v * 10 - 1e-9) / 10).toFixed(1);
+
+function groupMaterials(e) {
   const items = [];
-  (e.completedMaterials || []).forEach(m => { const q = getMaterialQty(m); items.push({ category: m.category, name: m.materialName, cost: m.cost || 0, cy: q.cy, sq: q.sq }); });
-  const hasCurrent = e.category && e.category !== 'none' && e.materialCost > 0;
-  if (hasCurrent) items.push({ category: e.category, name: e.materialName, cost: e.materialCost, cy: e.category === 'sod' ? 0 : (e.cubicYards || 0), sq: e.category === 'sod' ? (e.totalSqFt || 0) : 0 });
+  (e.completedMaterials || []).forEach(m => { const q = getMaterialQty(m); items.push({ category: m.category, name: m.materialName, area: m.areaLabel || '', cost: m.cost || 0, cy: q.cy, sq: q.sq }); });
+  const hasCurrent = !!(e.category && e.category !== 'none' && e.materialCost > 0);
+  if (hasCurrent) items.push({ category: e.category, name: e.materialName, area: (document.getElementById('materialAreaLabel')?.value || '').trim(), cost: e.materialCost, cy: e.category === 'sod' ? 0 : (e.cubicYards || 0), sq: e.category === 'sod' ? (e.totalSqFt || 0) : 0 });
   const addOns = [];
-  if (e.geoTextileCost > 0) addOns.push(['🧵 Geo Textile Fabric', `${e.geoTextileLinearFt} linear ft`]);
-  if (e.edgingCost > 0) addOns.push(['🔲 Composite Edging', `${e.edgingLinearFt} linear ft`]);
-  if (!items.length && !addOns.length) return '';
-  const CATS = [['mulch','Mulch','🪵'],['rock','Decorative Rock','🪨'],['dirt','Dirt / Soil','🟤'],['sod','Sod','🌱']];
-  const roundUp = v => (Math.ceil(v * 10 - 1e-9) / 10).toFixed(1);
-  let html = '<div class="info-box"><h3>🛒 Material Order Summary</h3>';
-  CATS.forEach(([key, label, icon]) => {
+  if (e.geoTextileCost > 0) addOns.push(['Geo Textile Fabric', `${e.geoTextileLinearFt} linear ft`, '🧵']);
+  if (e.edgingCost > 0) addOns.push(['Composite Edging', `${e.edgingLinearFt} linear ft`, '🔲']);
+  const groups = [];
+  ORDER_CATS.forEach(([key, label, icon]) => {
     const list = items.filter(i => i.category === key);
     if (!list.length) return;
     const byName = new Map();
-    list.forEach(i => { const g = byName.get(i.name) || { cost: 0, cy: 0, sq: 0 }; g.cost += i.cost; g.cy += i.cy; g.sq += i.sq; byName.set(i.name, g); });
+    list.forEach(i => { const g = byName.get(i.name) || { name: i.name, cost: 0, cy: 0, sq: 0 }; g.cost += i.cost; g.cy += i.cy; g.sq += i.sq; byName.set(i.name, g); });
     const isSod = key === 'sod';
-    let totCost = 0, totCy = 0, totSq = 0, totPallets = 0;
-    let rows = '';
-    byName.forEach((g, name) => {
-      totCost += g.cost; totCy += g.cy; totSq += g.sq;
-      const pallets = Math.ceil(g.sq / 400 - 1e-9);
-      if (isSod) totPallets += pallets;
-      const qty = isSod ? `${g.sq.toFixed(0)} sq ft • ${pallets} pallet${pallets === 1 ? '' : 's'}` : `${g.cy.toFixed(2)} cu yd (order ${roundUp(g.cy)})`;
-      rows += `<div style="display:flex;justify-content:space-between;font-size:12px;color:#2c3e50;margin-bottom:4px;"><span>• ${name}: ${qty}</span><span>${formatCurrency(g.cost)}</span></div>`;
-    });
-    const totalLine = isSod ? `${totSq.toFixed(0)} sq ft • ${totPallets} pallet${totPallets === 1 ? '' : 's'} total` : `${totCy.toFixed(2)} cu yd → order ${roundUp(totCy)} cu yd`;
+    const rows = [...byName.values()].map(g => ({ ...g, pallets: Math.ceil(g.sq / 400 - 1e-9) }));
+    groups.push({ key, label, icon, isSod, rows,
+      totCost: rows.reduce((t, r) => t + r.cost, 0), totCy: rows.reduce((t, r) => t + r.cy, 0),
+      totSq: rows.reduce((t, r) => t + r.sq, 0), totPallets: isSod ? rows.reduce((t, r) => t + r.pallets, 0) : 0 });
+  });
+  return { items, groups, addOns, hasCurrent };
+}
+
+// Running order totals grouped by material category for easier ordering
+function buildOrderSummary(e) {
+  const { groups, addOns, hasCurrent } = groupMaterials(e);
+  if (!groups.length && !addOns.length) return '';
+  let html = '<div class="info-box"><h3>🛒 Material Order Summary</h3>';
+  groups.forEach(g => {
+    const rows = g.rows.map(r => {
+      const qty = g.isSod ? `${r.sq.toFixed(0)} sq ft • ${r.pallets} pallet${r.pallets === 1 ? '' : 's'}` : `${r.cy.toFixed(2)} cu yd (order ${roundUpTenth(r.cy)})`;
+      return `<div style="display:flex;justify-content:space-between;font-size:12px;color:#2c3e50;margin-bottom:4px;"><span>• ${r.name}: ${qty}</span><span>${formatCurrency(r.cost)}</span></div>`;
+    }).join('');
+    const totalLine = g.isSod ? `${g.totSq.toFixed(0)} sq ft • ${g.totPallets} pallet${g.totPallets === 1 ? '' : 's'} total` : `${g.totCy.toFixed(2)} cu yd → order ${roundUpTenth(g.totCy)} cu yd`;
     html += `<div style="border-left:4px solid #27ae60;background:#fff;padding:10px 14px;margin-bottom:10px;border-radius:4px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><div style="font-size:13px;font-weight:700;color:#2c3e50;">${icon} ${label} Total</div><div style="font-size:15px;font-weight:700;color:#27ae60;">${formatCurrency(totCost)}</div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><div style="font-size:13px;font-weight:700;color:#2c3e50;">${g.icon} ${g.label} Total</div><div style="font-size:15px;font-weight:700;color:#27ae60;">${formatCurrency(g.totCost)}</div></div>
       ${rows}
       <div style="border-top:1px solid #e0e0e0;margin-top:6px;padding-top:6px;font-size:12px;font-weight:700;color:#27ae60;">${totalLine}</div>
     </div>`;
   });
-  if (addOns.length) html += `<div style="font-size:12px;color:#2c3e50;padding:0 4px;">${addOns.map(a => `<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>${a[0]}</span><span style="font-weight:600;">${a[1]}</span></div>`).join('')}</div>`;
+  if (addOns.length) html += `<div style="font-size:12px;color:#2c3e50;padding:0 4px;">${addOns.map(a => `<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>${a[2]} ${a[0]}</span><span style="font-weight:600;">${a[1]}</span></div>`).join('')}</div>`;
   if (hasCurrent) html += '<div style="font-size:10px;color:#7f8c8d;margin-top:6px;">Includes the material currently being configured (not yet added).</div>';
   return html + '</div>';
+}
+
+// Plain-text ordering email (quantities only, no prices)
+function buildOrderEmail() {
+  const e = window.lastSummaryData || {};
+  const { items, groups, addOns } = groupMaterials(e);
+  const name = (e.projectName || '').trim(), addr = (e.propertyAddress || '').trim();
+  const subject = 'Material Order' + (name ? ' - ' + name : '') + (addr ? ' - ' + addr : '');
+  const L = [];
+  L.push('Hi,', '', 'Please see the ordering details for this project below.', '');
+  L.push('PROJECT: ' + (name || '(not entered)'));
+  if (addr) L.push('ADDRESS: ' + addr);
+  if (e.projectType) L.push('TYPE: ' + e.projectType);
+  if (groups.length || addOns.length) {
+    L.push('', 'MATERIAL ORDER (TOTALS)');
+    groups.forEach(g => {
+      L.push(g.label + ': ' + (g.isSod ? `${g.totSq.toFixed(0)} sq ft = ${g.totPallets} pallet${g.totPallets === 1 ? '' : 's'}` : `${g.totCy.toFixed(2)} cu yd (order ${roundUpTenth(g.totCy)})`));
+      g.rows.forEach(r => L.push('   - ' + r.name + ': ' + (g.isSod ? `${r.sq.toFixed(0)} sq ft (${r.pallets} pallet${r.pallets === 1 ? '' : 's'})` : `${r.cy.toFixed(2)} cu yd (order ${roundUpTenth(r.cy)})`)));
+    });
+    addOns.forEach(a => L.push(a[0] + ': ' + a[1]));
+  }
+  if (items.some(i => i.area)) {
+    L.push('', 'BREAKDOWN BY AREA');
+    items.forEach(i => L.push('   - ' + (i.area || '(no label)') + ': ' + i.name + ', ' + (i.category === 'sod' ? `${i.sq.toFixed(0)} sq ft` : `${i.cy.toFixed(2)} cu yd`)));
+  }
+  const addMats = (e.additionalMaterials || []).map(m => '   - ' + m.description);
+  if (addMats.length) L.push('', 'ADDITIONAL MATERIALS', ...addMats);
+  const eq = [...(e.equipmentRentalSelections || []).map(r => '   - ' + r.name + ' (' + (r.details || r.duration) + ')'), ...(e.equipmentRows || []).map(r => '   - ' + r.description)];
+  if (eq.length) L.push('', 'EQUIPMENT', ...eq);
+  if ((e.orderNotes || '').trim()) L.push('', 'ORDER NOTES:', e.orderNotes.trim());
+  if ((e.equipmentNotes || '').trim()) L.push('', 'EQUIPMENT NOTES:', e.equipmentNotes.trim());
+  if ((e.siteNotes || '').trim()) L.push('', 'SITE & MEASUREMENTS:', e.siteNotes.trim());
+  L.push('', 'Thank you,', 'WS Lawn Care Services LLC');
+  return { subject, body: L.join('\n') };
+}
+
+function emailProjectManager(mode) {
+  const to = (document.getElementById('pmEmail')?.value || '').trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) { alert('Please enter the project manager\'s email address first.'); return; }
+  try { localStorage.setItem('ws_pm_email', to); } catch(err) {}
+  const { subject, body } = buildOrderEmail();
+  const enc = encodeURIComponent;
+  const make = b => mode === 'mailto'
+    ? `mailto:${to}?subject=${enc(subject)}&body=${enc(b)}`
+    : `https://mail.google.com/mail/?view=cm&fs=1&to=${enc(to)}&su=${enc(subject)}&body=${enc(b)}`;
+  let url = make(body);
+  if (url.length > 7000) {
+    // Too long for a link: copy the full text and let the user paste it
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(body).catch(() => {});
+    url = make('(The order details are too long to pre-fill. They were copied to your clipboard. Paste them here.)');
+    alert('The order details are long, so they were copied to your clipboard. Paste them into the email body.');
+  }
+  const a = document.createElement('a');
+  a.href = url; a.target = '_blank'; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
 }
 
 function matIcon(cat) { return cat==='mulch'?'🪵':cat==='rock'?'🪨':cat==='dirt'?'🟤':cat==='sod'?'🌱':'📦'; }
@@ -727,6 +800,7 @@ function matIcon(cat) { return cat==='mulch'?'🪵':cat==='rock'?'🪨':cat==='d
 function displaySummary(e) {
   const tg = e.targetMarginPercent||40, meetsGoal = e.profitMargin >= (tg-0.5);
   const sd = document.getElementById('summaryContent');
+  window.lastSummaryData = e;
   sd.setAttribute('data-materials', (e.materialCost||0)+(e.completedMaterialsCost||0)+(e.additionalMaterialsCost||0));
   sd.setAttribute('data-labor', e.laborCost||0);
   sd.setAttribute('data-equipment', e.totalEquipmentCost||0);
