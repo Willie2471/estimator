@@ -365,6 +365,60 @@ const MATERIALS = {
   ]
 };
 
+// SOD PRICING (running total per sod type across all areas)
+// Whole pallets (400 sq ft each) + the leftover sold by the piece (16"x24" = 2.66 sq ft, $3 each).
+// If the leftover is 200 sq ft or more, the customer pays for another full pallet instead.
+const SOD_PIECE = { price: 3, sqFt: 2.66, maxSqFt: 200, palletSqFt: 400 };
+
+function sodSplit(totalSq) {
+  if (!(totalSq > 0)) return { pallets: 0, pieces: 0 };
+  let pallets = Math.floor(totalSq / SOD_PIECE.palletSqFt + 1e-9);
+  const rem = totalSq - pallets * SOD_PIECE.palletSqFt;
+  let pieces = 0;
+  if (rem > 1e-9) {
+    if (rem < SOD_PIECE.maxSqFt) pieces = Math.ceil(rem / SOD_PIECE.sqFt - 1e-9);
+    else pallets += 1;
+  }
+  return { pallets, pieces };
+}
+
+function sodSplitText(s) {
+  const parts = [];
+  if (s.pallets > 0) parts.push(`${s.pallets} pallet${s.pallets === 1 ? '' : 's'}`);
+  if (s.pieces > 0) parts.push(`${s.pieces} piece${s.pieces === 1 ? '' : 's'}`);
+  return parts.join(' + ') || '0';
+}
+
+function sodCostForTotal(totalSq, material) {
+  const s = sodSplit(totalSq);
+  return s.pallets * (material.pricePerPallet || 0) + s.pieces * SOD_PIECE.price;
+}
+
+function getSodPricing(sqFt, material) {
+  const s = sodSplit(sqFt);
+  return { pallets: s.pallets, pieces: s.pieces, cost: sodCostForTotal(sqFt, material),
+    details: `${sqFt.toFixed(0)} sq ft`, short: `${sodSplitText(s)} (${sqFt.toFixed(0)} sq ft)` };
+}
+
+// Re-prices every sod entry from the running total of its sod type (saved areas + the area being entered).
+// Each area's cost is its share (by sq ft) of the combined cost. Returns the current area's cost and running total.
+function allocateSodCosts(curName, curSq) {
+  const names = new Set(completedMaterials.filter(m => m.category === 'sod').map(m => m.materialName));
+  if (curName && curSq > 0) names.add(curName);
+  let curCost = 0, curTotal = 0;
+  names.forEach(name => {
+    const mat = MATERIALS.sod.find(m => m.name === name);
+    if (!mat) return;
+    const entries = completedMaterials.filter(m => m.category === 'sod' && m.materialName === name);
+    const curShare = name === curName ? curSq : 0;
+    const total = entries.reduce((s, m) => s + getMaterialQty(m).sq, 0) + curShare;
+    const groupCost = sodCostForTotal(total, mat);
+    entries.forEach(m => { m.cost = total > 0 ? groupCost * getMaterialQty(m).sq / total : 0; });
+    if (name === curName) { curCost = total > 0 ? groupCost * curShare / total : 0; curTotal = total; }
+  });
+  return { curCost, curTotal };
+}
+
 const ADDONS = {
   geoTextile: { name: 'Geo Textile Fabric', pricePerLinearFt: 1.20 },
   edging: { name: 'Composite Edging', pricePerLinearFt: 3.00 }
@@ -459,15 +513,14 @@ function sendMaterialToBreakdown() {
   const name = sel.replace(/&quot;/g, '"');
   const material = MATERIALS[cat]?.find(m => m.name === name);
   if (!material) { alert('Please select a material type.'); return; }
-  let cost = 0, details = '', orderInfo = '', qCy = 0, qSq = 0;
+  let cost = 0, details = '', orderInfo = '', qCy = 0, qSq = 0, qPieces = 0;
   if (cat === 'sod') {
     const l = parseFloat(document.getElementById('length')?.value) || 0, w = parseFloat(document.getElementById('width')?.value) || 0;
     const sqFt = l * w;
     if (sqFt <= 0) { alert('Please enter dimensions.'); return; }
-    cost = sqFt * material.pricePerSqFt; qSq = sqFt;
-    const pallets = Math.ceil(sqFt / 400);
-    details = `${sqFt.toFixed(0)} sq ft • ${pallets} pallet${pallets===1?'':'s'}`;
-    orderInfo = `Order: ${pallets} pallet${pallets!==1?'s':''} (${sqFt.toFixed(0)} sq ft)`;
+    const sodInfo = getSodPricing(sqFt, material);
+    cost = sodInfo.cost; qSq = sqFt;
+    details = sodInfo.details; orderInfo = '';
   } else {
     const l = parseFloat(document.getElementById('length')?.value) || 0, w = parseFloat(document.getElementById('width')?.value) || 0, d = parseFloat(document.getElementById('depth')?.value) || 1;
     if (l <= 0 || w <= 0) { alert('Please enter dimensions.'); return; }
@@ -479,7 +532,7 @@ function sendMaterialToBreakdown() {
   const areaLabel = document.getElementById('materialAreaLabel')?.value?.trim() || '';
   const notes = document.getElementById('materialNotes')?.value || '';
   const entryId = `mat_${Date.now()}_${Math.random().toString(36).substr(2,6)}`;
-  completedMaterials.push({ entryId, category: cat, materialName: name, areaLabel, cost, details, orderInfo, notes, cy: qCy, sqFt: qSq });
+  completedMaterials.push({ entryId, category: cat, materialName: name, areaLabel, cost, details, orderInfo, notes, cy: qCy, sqFt: qSq, pieces: qPieces });
   ['materialAreaLabel','materialNotes','length','width'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
   const de = document.getElementById('depth'); if(de) de.value = '1';
   const mcd = document.getElementById('materialCostDisplay'); if(mcd) mcd.style.display = 'none';
@@ -605,6 +658,14 @@ function removeEquipmentRow(id) {
 
 function calculate() {
   const cat = materialCategory.value;
+  // Sod: price from the running total across all areas of the same sod type
+  let sodAlloc = { curCost: 0, curTotal: 0 };
+  {
+    const sn = cat === 'sod' ? materialType.value.replace(/&quot;/g, '"') : '';
+    const sl = cat === 'sod' ? (parseFloat(document.getElementById('length')?.value) || 0) : 0;
+    const sw = cat === 'sod' ? (parseFloat(document.getElementById('width')?.value) || 0) : 0;
+    sodAlloc = allocateSodCosts(sn, sl * sw);
+  }
   if (cat === 'none') {
     const mcd = document.getElementById('materialCostDisplay'); if(mcd) mcd.style.display = 'none';
     calculateTotalsAndDisplay(0, { category:'none', materialName:'None', cubicYards:0, cubicFeet:0, totalSqFt:0, totalLinearFt:0 }, completedMaterials.reduce((s,m) => s+m.cost, 0));
@@ -613,10 +674,10 @@ function calculate() {
   const selName = materialType.value.replace(/&quot;/g, '"');
   const material = MATERIALS[cat]?.find(m => m.name === selName);
   if (!material) return;
-  let cost = 0, cy = 0, cf = 0, sqFt = 0, linFt = 0;
+  let cost = 0, cy = 0, cf = 0, sqFt = 0, linFt = 0, sodInfo = null;
   if (cat === 'sod') {
     const l = parseFloat(document.getElementById('length')?.value)||0, w = parseFloat(document.getElementById('width')?.value)||0;
-    sqFt = l * w; cost = sqFt * material.pricePerSqFt;
+    sqFt = l * w; sodInfo = getSodPricing(sodAlloc.curTotal, material); cost = sodAlloc.curCost;
   } else {
     const l = parseFloat(document.getElementById('length')?.value)||0, w = parseFloat(document.getElementById('width')?.value)||0, d = parseFloat(document.getElementById('depth')?.value)||1;
     sqFt = l * w; linFt = l; cf = (l*w*d)/12; cy = cf/27; cost = cy * material.pricePerYard;
@@ -624,7 +685,7 @@ function calculate() {
   const mcd = document.getElementById('materialCostDisplay'), mca = document.getElementById('materialCostAmount'), mcdet = document.getElementById('materialCostDetails');
   if (cost > 0 && mcd && mca && mcdet) {
     mcd.style.display = 'block'; mca.textContent = formatCurrency(cost);
-    mcdet.textContent = cat === 'sod' ? `${sqFt} sq ft @ ${formatCurrency(material.pricePerSqFt)}/sq ft` : `${sqFt.toFixed(0)} sq ft × ${document.getElementById('depth')?.value||1}" depth = ${cy.toFixed(2)} yards`;
+    mcdet.textContent = cat === 'sod' ? (sodAlloc.curTotal > sqFt + 0.5 ? `${sqFt.toFixed(0)} sq ft • running total ${sodInfo.short}` : sodInfo.short) : `${sqFt.toFixed(0)} sq ft × ${document.getElementById('depth')?.value||1}" depth = ${cy.toFixed(2)} yards`;
   } else if (mcd) { mcd.style.display = 'none'; }
   calculateTotalsAndDisplay(cost, { category:cat, materialName:selName, cubicYards:cy, cubicFeet:cf, totalSqFt:sqFt, totalLinearFt:linFt }, completedMaterials.reduce((s,m) => s+m.cost, 0));
 }
@@ -688,12 +749,17 @@ function getMaterialQty(m) {
   let cy = m.cy, sq = m.sqFt;
   if (m.category !== 'sod' && cy === undefined) { const x = /=\s*([\d.]+)\s*cu yds/.exec(m.details || ''); cy = x ? parseFloat(x[1]) : 0; }
   if (m.category === 'sod' && sq === undefined) { const x = /^([\d.,]+)\s*sq ft/.exec(m.details || ''); sq = x ? parseFloat(x[1].replace(/,/g, '')) : 0; }
-  return { cy: cy || 0, sq: sq || 0 };
+  return { cy: cy || 0, sq: sq || 0, pieces: m.pieces || 0 };
 }
 
 // Groups every selected material by category (mulch, rock, dirt, sod) for ordering
 const ORDER_CATS = [['mulch','Mulch','🪵'],['rock','Decorative Rock','🪨'],['dirt','Dirt / Soil','🟤'],['sod','Sod','🌱']];
 const roundUpTenth = v => (Math.ceil(v * 10 - 1e-9) / 10).toFixed(1);
+
+// Sod quantity text: whole pallets plus leftover pieces
+function sodQtyText(sqft, pallets, pieces, sep) {
+  return `${sqft.toFixed(0)} sq ft${sep}${sodSplitText({ pallets, pieces })}`;
+}
 
 function groupMaterials(e) {
   const items = [];
@@ -710,10 +776,10 @@ function groupMaterials(e) {
     const byName = new Map();
     list.forEach(i => { const g = byName.get(i.name) || { name: i.name, cost: 0, cy: 0, sq: 0 }; g.cost += i.cost; g.cy += i.cy; g.sq += i.sq; byName.set(i.name, g); });
     const isSod = key === 'sod';
-    const rows = [...byName.values()].map(g => ({ ...g, pallets: Math.ceil(g.sq / 400 - 1e-9) }));
+    const rows = [...byName.values()].map(g => ({ ...g, ...(isSod ? sodSplit(g.sq) : { pallets: 0, pieces: 0 }) }));
     groups.push({ key, label, icon, isSod, rows,
       totCost: rows.reduce((t, r) => t + r.cost, 0), totCy: rows.reduce((t, r) => t + r.cy, 0),
-      totSq: rows.reduce((t, r) => t + r.sq, 0), totPallets: isSod ? rows.reduce((t, r) => t + r.pallets, 0) : 0 });
+      totSq: rows.reduce((t, r) => t + r.sq, 0), totPallets: isSod ? rows.reduce((t, r) => t + r.pallets, 0) : 0, totPieces: rows.reduce((t, r) => t + r.pieces, 0) });
   });
   return { items, groups, addOns, hasCurrent };
 }
@@ -725,10 +791,10 @@ function buildOrderSummary(e) {
   let html = '<div class="info-box"><h3>🛒 Material Order Summary</h3>';
   groups.forEach(g => {
     const rows = g.rows.map(r => {
-      const qty = g.isSod ? `${r.sq.toFixed(0)} sq ft • ${r.pallets} pallet${r.pallets === 1 ? '' : 's'}` : `${r.cy.toFixed(2)} cu yd (order ${roundUpTenth(r.cy)})`;
+      const qty = g.isSod ? sodQtyText(r.sq, r.pallets, r.pieces, ' • ') : `${r.cy.toFixed(2)} cu yd (order ${roundUpTenth(r.cy)})`;
       return `<div style="display:flex;justify-content:space-between;font-size:12px;color:#2c3e50;margin-bottom:4px;"><span>• ${r.name}: ${qty}</span><span>${formatCurrency(r.cost)}</span></div>`;
     }).join('');
-    const totalLine = g.isSod ? `${g.totSq.toFixed(0)} sq ft • ${g.totPallets} pallet${g.totPallets === 1 ? '' : 's'} total` : `${g.totCy.toFixed(2)} cu yd → order ${roundUpTenth(g.totCy)} cu yd`;
+    const totalLine = g.isSod ? `${g.totSq.toFixed(0)} sq ft • ${[g.totPallets > 0 ? g.totPallets + ' pallet' + (g.totPallets === 1 ? '' : 's') : '', g.totPieces > 0 ? g.totPieces + ' piece' + (g.totPieces === 1 ? '' : 's') : ''].filter(Boolean).join(' + ')} total` : `${g.totCy.toFixed(2)} cu yd → order ${roundUpTenth(g.totCy)} cu yd`;
     html += `<div style="border-left:4px solid #27ae60;background:#fff;padding:10px 14px;margin-bottom:10px;border-radius:4px;">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><div style="font-size:13px;font-weight:700;color:#2c3e50;">${g.icon} ${g.label} Total</div><div style="font-size:15px;font-weight:700;color:#27ae60;">${formatCurrency(g.totCost)}</div></div>
       ${rows}
@@ -754,8 +820,8 @@ function buildOrderEmail() {
   if (groups.length || addOns.length) {
     L.push('', 'MATERIAL ORDER (TOTALS)');
     groups.forEach(g => {
-      L.push(g.label + ': ' + (g.isSod ? `${g.totSq.toFixed(0)} sq ft = ${g.totPallets} pallet${g.totPallets === 1 ? '' : 's'}` : `${g.totCy.toFixed(2)} cu yd (order ${roundUpTenth(g.totCy)})`));
-      g.rows.forEach(r => L.push('   - ' + r.name + ': ' + (g.isSod ? `${r.sq.toFixed(0)} sq ft (${r.pallets} pallet${r.pallets === 1 ? '' : 's'})` : `${r.cy.toFixed(2)} cu yd (order ${roundUpTenth(r.cy)})`)));
+      L.push(g.label + ': ' + (g.isSod ? `${g.totSq.toFixed(0)} sq ft = ${[g.totPallets > 0 ? g.totPallets + ' pallet' + (g.totPallets === 1 ? '' : 's') : '', g.totPieces > 0 ? g.totPieces + ' piece' + (g.totPieces === 1 ? '' : 's') : ''].filter(Boolean).join(' + ')}` : `${g.totCy.toFixed(2)} cu yd (order ${roundUpTenth(g.totCy)})`));
+      g.rows.forEach(r => L.push('   - ' + r.name + ': ' + (g.isSod ? sodQtyText(r.sq, r.pallets, r.pieces, ' = ') : `${r.cy.toFixed(2)} cu yd (order ${roundUpTenth(r.cy)})`)));
     });
     addOns.forEach(a => L.push(a[0] + ': ' + a[1]));
   }
@@ -846,7 +912,7 @@ function displaySummary(e) {
               <span style="font-size:18px;">${matIcon(e.category)}</span>
               <div>
                 <div style="font-size:13px;font-weight:700;color:#2c3e50;">${e.materialName||'Primary Material'} <span style="font-size:10px;background:#27ae60;color:white;padding:2px 6px;border-radius:4px;margin-left:4px;">CURRENT</span></div>
-                <div style="font-size:11px;color:#7f8c8d;">${e.category==='sod'?`${(e.totalSqFt||0).toFixed(0)} sq ft • ${Math.ceil((e.totalSqFt||0)/400)} pallet(s)`:`${(e.totalSqFt||0).toFixed(0)} sq ft × depth = ${(e.cubicYards||0).toFixed(2)} yds`}</div>
+                <div style="font-size:11px;color:#7f8c8d;">${e.category==='sod'?`${(e.totalSqFt||0).toFixed(0)} sq ft`:`${(e.totalSqFt||0).toFixed(0)} sq ft × depth = ${(e.cubicYards||0).toFixed(2)} yds`}</div>
               </div>
             </div>
             <div style="font-size:18px;font-weight:700;color:#27ae60;">${formatCurrency(e.materialCost)}</div>
