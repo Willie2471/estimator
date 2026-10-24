@@ -201,6 +201,8 @@
         <div id="urlConfigPanel" style="margin-bottom:10px;">
           <div style="font-size:11px;opacity:0.85;margin-bottom:5px;">Apps Script Web App URL (one-time setup):</div>
           <input type="text" id="appsScriptUrl" placeholder="Paste your deployed Web App URL here..." style="font-size:12px;padding:8px;margin-bottom:5px;border-color:#9b8ec4;background:rgba(255,255,255,0.15);color:white;">
+          <div style="font-size:11px;opacity:0.85;margin:6px 0 5px;">Shared key (only if you set SHARED_KEY in the script; otherwise leave blank):</div>
+          <input type="password" id="sharedKeyInput" placeholder="Optional shared key" style="font-size:12px;padding:8px;margin-bottom:5px;border-color:#9b8ec4;background:rgba(255,255,255,0.15);color:white;">
           <button onclick="saveScriptUrl()" style="padding:8px;font-size:12px;background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.5);border-radius:6px;width:100%;letter-spacing:0;">💾 Save URL & Connect</button>
         </div>
         <!-- Shown only when connected — small gear link to re-open URL config -->
@@ -211,6 +213,8 @@
           <button onclick="saveProject()" style="padding:10px;background:white;color:#667eea;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:13px;letter-spacing:0;text-transform:none;">💾 Save to Drive</button>
           <button onclick="openLoadModal()" style="padding:10px;background:rgba(255,255,255,0.2);color:white;border:2px solid white;border-radius:6px;font-weight:600;cursor:pointer;font-size:13px;letter-spacing:0;text-transform:none;">📂 Load Project</button>
         </div>
+        <button onclick="openSurveyModal()" style="width:100%;padding:10px;margin-bottom:8px;background:linear-gradient(90deg,#f39c12 0%,#e67e22 100%);color:white;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px;letter-spacing:0;text-transform:none;">📥 Import Site Survey (from Field Survey app)</button>
+        <div id="surveyLinkBox" style="display:none;font-size:11px;background:rgba(255,255,255,0.18);border-radius:6px;padding:8px;margin-bottom:8px;line-height:1.5;"></div>
         <button onclick="newEstimate()" style="width:100%;padding:10px;background:linear-gradient(90deg,#e74c3c 0%,#c0392b 100%);color:white;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:13px;letter-spacing:0;text-transform:none;">🆕 New Estimate (Clear All)</button>
         <div style="font-size:11px;margin-top:10px;opacity:0.9;line-height:1.5;">💡 Projects saved to shared Google Drive — any staff member can load, update, and save.</div>
       </div>
@@ -267,17 +271,29 @@
   </div>
 </div>
 
+<div id="surveyModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeSurveyModal()">
+  <div class="modal-box">
+    <h3>📥 Import Site Survey</h3>
+    <div id="surveyModalStatus" style="font-size:13px;color:#7f8c8d;margin-bottom:12px;"></div>
+    <div id="surveyListContainer"></div>
+    <button onclick="closeSurveyModal()" style="margin-top:12px;background:#95a5a6;box-shadow:none;">Close</button>
+  </div>
+</div>
+
 <script>
 // ============================================================
 // APPS SCRIPT URL — configured once, stored in localStorage
 // ============================================================
 var APPS_SCRIPT_URL = localStorage.getItem('ws_apps_script_url') || '';
+var SHARED_KEY = localStorage.getItem('ws_shared_key') || '';
 
 function saveScriptUrl() {
   var url = document.getElementById('appsScriptUrl').value.trim();
   if (!url) { alert('Please paste your Apps Script Web App URL.'); return; }
   APPS_SCRIPT_URL = url;
   localStorage.setItem('ws_apps_script_url', url);
+  SHARED_KEY = (document.getElementById('sharedKeyInput').value || '').trim();
+  localStorage.setItem('ws_shared_key', SHARED_KEY);
   checkDriveConnection();
 }
 
@@ -316,14 +332,14 @@ function toggleUrlConfig() {
 
 function fetchFromDrive(action, params) {
   if (!APPS_SCRIPT_URL) return Promise.reject('No URL configured');
-  var url = APPS_SCRIPT_URL + '?action=' + action;
+  var url = APPS_SCRIPT_URL + '?action=' + action + (SHARED_KEY ? '&key=' + encodeURIComponent(SHARED_KEY) : '');
   if (params) Object.keys(params).forEach(k => url += '&' + k + '=' + encodeURIComponent(params[k]));
   return fetch(url).then(r => r.json());
 }
 
 function postToDrive(action, body) {
   if (!APPS_SCRIPT_URL) return Promise.reject('No URL configured');
-  var payload = Object.assign({ action: action }, body);
+  var payload = Object.assign({ action: action, key: SHARED_KEY }, body);
   return fetch(APPS_SCRIPT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
@@ -338,6 +354,7 @@ let equipmentRows = [];
 let additionalMaterialRows = [];
 let completedMaterials = [];
 let currentFileId = null;
+let surveyRef = null; // { folderId, folderUrl, customer, importedAt } — link back to the Field Survey photos
 
 const MATERIALS = {
   mulch: [
@@ -453,6 +470,7 @@ const summaryContent = document.getElementById('summaryContent');
 function init() {
   var savedUrl = localStorage.getItem('ws_apps_script_url') || '';
   if (savedUrl) { document.getElementById('appsScriptUrl').value = savedUrl; APPS_SCRIPT_URL = savedUrl; }
+  var sk = document.getElementById('sharedKeyInput'); if (sk) sk.value = SHARED_KEY;
   checkDriveConnection();
   try { const pm = localStorage.getItem('ws_pm_email'); if (pm) document.getElementById('pmEmail').value = pm; } catch(err) {}
 
@@ -474,6 +492,16 @@ function init() {
   if (ah) ah.addEventListener('input', calculateLaborFromHours);
 
   calculate();
+
+  // Deep link from the Field Survey app: estimator/?survey=<driveFolderId>
+  try {
+    var sid = new URLSearchParams(location.search).get('survey');
+    if (sid) {
+      history.replaceState(null, '', location.pathname);
+      if (APPS_SCRIPT_URL) importSurvey(sid);
+      else alert('Enter your Apps Script URL under Project Management first, then open the survey link again.');
+    }
+  } catch (e) {}
 }
 
 function calculateLaborFromHours() {
@@ -1053,6 +1081,100 @@ function showToast(msg) {
 }
 
 // ============================================================
+// SITE SURVEY IMPORT  (from the WS Field Survey app)
+// ============================================================
+function renderSurveyLink() {
+  var box = document.getElementById('surveyLinkBox'); if (!box) return;
+  if (surveyRef && surveyRef.folderUrl) {
+    box.style.display = 'block';
+    box.innerHTML = '📎 Linked survey: <b>' + String(surveyRef.customer || 'survey').replace(/</g, '&lt;') + '</b> — <a href="' + surveyRef.folderUrl + '" target="_blank" rel="noopener" style="color:#fff;font-weight:700;">open photos in Drive ↗</a>';
+  } else { box.style.display = 'none'; box.innerHTML = ''; }
+}
+function closeSurveyModal() { document.getElementById('surveyModal').style.display = 'none'; }
+async function openSurveyModal() {
+  if (!APPS_SCRIPT_URL) { alert('Please configure your Apps Script URL first.'); return; }
+  document.getElementById('surveyModal').style.display = 'flex';
+  var st = document.getElementById('surveyModalStatus'), lc = document.getElementById('surveyListContainer');
+  st.textContent = 'Loading surveys from Drive...'; lc.innerHTML = '';
+  try {
+    var r = await fetchFromDrive('listSurveys');
+    if (!r.success) throw new Error(r.error || 'Failed to list surveys');
+    var list = r.surveys || [];
+    if (!list.length) { st.textContent = 'No site surveys found on Drive yet.'; return; }
+    st.textContent = list.length + ' survey' + (list.length !== 1 ? 's' : '') + ' — click to import:';
+    lc.innerHTML = list.map(function (s) {
+      var d = new Date(s.lastModified).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      var nm = String(s.customerName || 'Unnamed').replace(/</g, '&lt;'), ad = String(s.propertyAddress || 'No address').replace(/</g, '&lt;');
+      return '<div class="project-row" onclick="importSurvey(\'' + s.folderId + '\')"><div><div class="proj-name">🏡 ' + nm + '</div><div class="proj-addr">' + ad + ' · ' + s.itemCount + ' items · ' + s.photoCount + ' photos</div></div><div class="proj-date">' + d + '</div></div>';
+    }).join('');
+  } catch (err) { st.textContent = 'Error: ' + err.message; }
+}
+async function importSurvey(folderId) {
+  try {
+    var st = document.getElementById('surveyModalStatus'); if (st) st.textContent = 'Importing...';
+    var r = await fetchFromDrive('loadSurvey', { folderId: folderId });
+    if (!r.success) throw new Error(r.error || 'Load failed');
+    closeSurveyModal();
+    applySurvey(r.survey, folderId, r.folderUrl);
+  } catch (err) { closeSurveyModal(); alert('Error importing survey: ' + err.message); }
+}
+function applySurvey(s, folderId, folderUrl) {
+  if (!s || !Array.isArray(s.items)) { alert('That survey file looks empty or damaged.'); return; }
+  var hasData = completedMaterials.length > 0 || (document.getElementById('siteNotes').value || '').trim() || (document.getElementById('projectName').value || '').trim();
+  if (surveyRef && surveyRef.folderId === folderId && !confirm('This survey was already imported into this estimate. Import it again? (Materials will be added twice.)')) return;
+  if (hasData && !(surveyRef && surveyRef.folderId === folderId) && !confirm('This estimate already has data.\n\nOK = ADD the survey items to it\nCancel = stop (use New Estimate first for a clean start)')) return;
+  var J = s.job || {};
+  var setIfBlank = function (id, v) { var el = document.getElementById(id); if (el && v && !el.value.trim()) el.value = v; };
+  setIfBlank('projectName', J.customerName); setIfBlank('propertyAddress', J.propertyAddress); setIfBlank('projectType', J.projectType);
+  var matCount = 0, warnCount = 0, edgingFt = 0, fabricFt = 0, notes = [];
+  s.items.forEach(function (it) {
+    var q = parseFloat(it.value) || 0; if (!(q > 0)) return;
+    var tag = it.verified ? '' : (it.method === 'photo' ? ' (≈ photo estimate)' : ' (unverified)');
+    var catMap = { mulch: 'mulch', rock: 'rock', dirt: 'dirt', sod: 'sod' };
+    var cat = catMap[it.service];
+    if (cat) {
+      var list = MATERIALS[cat], mat = list.find(function (m) { return m.name === it.material; }), warn = '';
+      if (!mat) { mat = list[0]; warn = '⚠ Material not chosen in survey — verify. '; warnCount++; }
+      var cost = 0, cy = 0, details = '', orderInfo = '';
+      if (cat === 'sod') { var si = getSodPricing(q, mat); cost = si.cost; details = si.details; }
+      else { var d = parseFloat(it.depthIn) || 1; cy = q * d / 12 / 27; cost = cy * mat.pricePerYard; details = q.toFixed(0) + ' sq ft × ' + d + '" = ' + cy.toFixed(2) + ' cu yds'; orderInfo = 'Order: ' + (Math.ceil(cy * 10 - 1e-9) / 10).toFixed(1) + ' cu yds (rounded up)'; }
+      completedMaterials.push({ entryId: 'mat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), category: cat, materialName: mat.name, areaLabel: it.name || '', cost: cost, details: details, orderInfo: orderInfo, notes: (warn + (it.notes || '') + tag).trim(), cy: cy, sqFt: q, pieces: 0 });
+      matCount++;
+    } else if (it.service === 'edging') { edgingFt += q; }
+    else if (it.service === 'fabric') { fabricFt += q; }
+    else {
+      var unit = it.measure === 'count' ? 'ea' : it.measure === 'length' ? 'lin ft' : 'sq ft';
+      var lbl = { hedge: 'Hedge/Shrub Trim', plants: 'Plants/Trees', removal: 'Removal/Haul-off', other: 'Other' }[it.service] || it.service;
+      notes.push('• ' + lbl + ' — ' + (it.name || '') + ': ' + q + ' ' + unit + (it.heightFt ? ', ' + it.heightFt + ' ft tall' : '') + (it.notes ? ' — ' + it.notes : '') + tag);
+    }
+  });
+  var addOn = function (cbId, ftId, lblId, add) {
+    if (!(add > 0)) return;
+    var cb = document.getElementById(cbId), ft = document.getElementById(ftId);
+    var cur = cb.checked ? (parseFloat(ft.value) || 0) : 0;
+    cb.checked = true; ft.style.display = 'block'; ft.value = (Math.round((cur + add) * 10) / 10);
+    document.getElementById(lblId).classList.add('active');
+  };
+  addOn('includeEdging', 'edgingLinearFt', 'edgingLabel', edgingFt);
+  addOn('includeGeoTextile', 'geoTextileLinearFt', 'geoTextileLabel', fabricFt);
+  var head = '— Site survey' + (s.crew ? ' by ' + s.crew : '') + (s.createdAt ? ' (' + new Date(s.createdAt).toLocaleDateString('en-US') + ')' : '') + ' —';
+  var lines = [head];
+  if (edgingFt > 0) lines.push('• Edging: ' + (Math.round(edgingFt * 10) / 10) + ' lin ft (added to Add-ons)');
+  if (fabricFt > 0) lines.push('• Weed fabric: ' + (Math.round(fabricFt * 10) / 10) + ' lin ft (added to Add-ons)');
+  lines = lines.concat(notes);
+  if (s.siteNotes) lines.push('Site notes: ' + s.siteNotes);
+  var lab = s.labor && parseFloat(s.labor.hours) > 0 ? parseFloat(s.labor.hours) : 0;
+  var lh = document.getElementById('laborHours');
+  if (lab > 0 && !(parseFloat(lh.value) > 0)) { lh.value = lab; lines.push('Labor hours (' + lab + ') were suggested from the survey production rates — verify.'); }
+  var sn = document.getElementById('siteNotes'); sn.value = (sn.value ? sn.value.trim() + '\n\n' : '') + lines.join('\n');
+  surveyRef = { folderId: folderId, folderUrl: folderUrl || '', customer: J.customerName || '', importedAt: new Date().toISOString() };
+  renderSurveyLink(); calculate();
+  var msg = '✓ Survey imported: ' + matCount + ' material area' + (matCount !== 1 ? 's' : '') + (edgingFt || fabricFt ? ' + add-ons' : '');
+  showToast(msg);
+  if (warnCount) alert(warnCount + ' item(s) had no material chosen in the survey. They were added with the first material in that category and flagged in the notes — please check them under Cost Breakdown.');
+}
+
+// ============================================================
 // CAPTURE / RESTORE
 // ============================================================
 function captureProjectData() {
@@ -1075,7 +1197,8 @@ function captureProjectData() {
     timeTracking: { budgetHours: document.getElementById('budgetHours')?.value||'', actualHours: document.getElementById('actualHours')?.value||'' },
     projectNotes: { wentWell: document.getElementById('notesWentWell')?.value||'', challenges: document.getElementById('notesChallenges')?.value||'', actionSteps: document.getElementById('notesActionSteps')?.value||'' },
     generalNotes: { orderNotes: document.getElementById('orderNotes')?.value||'', equipmentNotes: document.getElementById('equipmentNotes')?.value||'', siteNotes: document.getElementById('siteNotes')?.value||'', materialNotes: document.getElementById('materialNotes')?.value||'', materialAreaLabel: document.getElementById('materialAreaLabel')?.value||'' },
-    completedMaterials: completedMaterials||[]
+    completedMaterials: completedMaterials||[],
+    survey: surveyRef
   };
   const dc = document.getElementById('dimensionsContainer');
   if(dc) dc.querySelectorAll('input').forEach(input => { if(input.id) data.dimensions[input.id] = input.value; });
@@ -1170,12 +1293,14 @@ function restoreProjectData(data) {
     if (document.getElementById('materialAreaLabel')) document.getElementById('materialAreaLabel').value = data.generalNotes.materialAreaLabel||'';
   }
   if (data.completedMaterials) completedMaterials = data.completedMaterials;
+  surveyRef = data.survey || null; renderSurveyLink();
   setTimeout(() => { const dc = document.getElementById('dimensionsContainer'); dc?.querySelectorAll('input').forEach(input => input.addEventListener('input', () => calculate())); }, 150);
   setTimeout(() => calculate(), 300);
 }
 
 function newEstimate() {
   if (!confirm('Start a new estimate? This will clear all current data.')) return;
+  surveyRef = null; renderSurveyLink();
   document.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => {
     if (!['profitMarginSlider','appsScriptUrl'].includes(input.id)) input.value = '';
   });
