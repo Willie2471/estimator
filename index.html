@@ -1,1401 +1,1069 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Landscaping Cost Estimator</title>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <style>
-    /* BASE STYLES */
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; overflow: auto; -webkit-overflow-scrolling: touch; }
-    body { font-family: 'Space Mono', 'Courier New', monospace; background: #f5f5f5; padding: 20px; color: #2c3e50; margin: 0; }
-    .container { max-width: 1400px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e0e0e0; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-    .header { background: linear-gradient(90deg, #2ecc71 0%, #27ae60 100%); padding: 32px; border-bottom: 1px solid #27ae60; color: #ffffff; }
-    .header h1 { font-size: 32px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; color: #ffffff; }
-    .header p { opacity: 0.95; font-size: 14px; letter-spacing: 0.5px; color: #ffffff; }
-    .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #e0e0e0; }
-    .left-panel { background: #ffffff; padding: 32px; }
-    .right-panel { background: #fafafa; padding: 32px; }
-    .section { margin-bottom: 32px; }
-    .section h2 { font-size: 18px; font-weight: 700; margin-bottom: 20px; color: #27ae60; text-transform: uppercase; letter-spacing: 1px; }
-    input, select, textarea { width: 100%; padding: 12px 16px; margin-bottom: 12px; background: #ffffff; border: 2px solid #e0e0e0; border-radius: 8px; color: #2c3e50; font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.2s; }
-    input:focus, select:focus, textarea:focus { border-color: #27ae60; }
-    input::placeholder, textarea::placeholder { color: #95a5a6; opacity: 0.8; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    label { display: block; margin-bottom: 8px; font-size: 13px; opacity: 0.9; color: #2c3e50; }
-    .checkbox-label { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; cursor: pointer; border: 2px solid #e0e0e0; transition: all 0.2s; background: #ffffff; }
-    .checkbox-label.active { background: #e8f5e9; border-color: #27ae60; }
-    .info-box { background: #f8f9fa; border: 2px solid #e0e0e0; border-radius: 8px; padding: 20px; margin-bottom: 24px; }
-    .info-box h3 { font-size: 14px; font-weight: 700; margin-bottom: 16px; color: #27ae60; text-transform: uppercase; letter-spacing: 1px; }
-    .info-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: #2c3e50; }
-    .info-row span:first-child { opacity: 0.7; }
-    .info-row span:last-child { font-weight: 600; }
-    .divider { border-top: 2px solid #e0e0e0; margin: 12px 0; padding-top: 12px; }
-    .price-box { border-radius: 8px; padding: 24px; margin-bottom: 24px; border: 2px solid; }
-    .price-box.success { background: #e8f5e9; border-color: #27ae60; }
-    .price-box.warning { background: #fff3e0; border-color: #f39c12; }
-    .price-box h3 { font-size: 14px; font-weight: 700; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px; }
-    .big-price { font-size: 28px; font-weight: 700; margin-bottom: 12px; }
-    .price-box.success .big-price, .price-box.success h3 { color: #27ae60; }
-    .price-box.warning .big-price, .price-box.warning h3 { color: #f39c12; }
-    .status-badge { font-size: 12px; opacity: 0.9; padding: 12px; background: rgba(255,255,255,0.8); border-radius: 6px; margin-bottom: 12px; color: #2c3e50; }
-    button { width: 100%; padding: 16px; background: linear-gradient(90deg, #27ae60 0%, #2ecc71 100%); border: none; border-radius: 8px; color: #ffffff; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; font-family: inherit; transition: all 0.2s; box-shadow: 0 2px 8px rgba(39,174,96,0.3); }
-    button:hover { background: linear-gradient(90deg, #2ecc71 0%, #27ae60 100%); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(39,174,96,0.4); }
-    .footer { background: #f8f9fa; padding: 16px 32px; border-top: 1px solid #e0e0e0; text-align: center; font-size: 12px; opacity: 0.7; color: #7f8c8d; }
-    @media (max-width: 968px) { .main-grid { grid-template-columns: 1fr; } }
-    input[type="range"] { -webkit-appearance: none; appearance: none; outline: none; }
-    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; border-radius: 50%; background: #27ae60; cursor: pointer; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: all 0.2s ease; }
-    input[type="range"]::-webkit-slider-thumb:hover { background: #2ecc71; transform: scale(1.1); }
-    input[type="range"]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: #27ae60; cursor: pointer; border: 3px solid white; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
-    .notes-section { background: #f0f8ff; border: 2px solid #3498db; border-radius: 8px; padding: 16px; margin-top: 12px; }
-    .notes-section textarea { min-height: 60px; resize: vertical; margin-bottom: 8px; border-color: #b0d4f1; font-size: 13px; }
-    .notes-section textarea:focus { border-color: #3498db; }
-    .send-to-breakdown-btn { background: linear-gradient(90deg, #e67e22 0%, #d35400 100%); box-shadow: 0 2px 8px rgba(230,126,34,0.3); margin-top: 8px; }
-    .send-to-breakdown-btn:hover { background: linear-gradient(90deg, #d35400 0%, #e67e22 100%); }
-    /* Modal */
-    .modal-overlay { position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:1000;display:flex;align-items:center;justify-content:center; }
-    .modal-box { background:white;border-radius:12px;padding:24px;max-width:620px;width:92%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.25); }
-    .modal-box h3 { font-size:18px;font-weight:700;margin-bottom:16px;color:#2c3e50; }
-    .project-row { display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:2px solid #e0e0e0;border-radius:8px;margin-bottom:8px;cursor:pointer;transition:all 0.15s; }
-    .project-row:hover { border-color:#27ae60;background:#f0fff4; }
-    .proj-name { font-weight:700;font-size:14px;color:#2c3e50; }
-    .proj-addr { font-size:12px;color:#7f8c8d;margin-top:2px; }
-    .proj-date { font-size:11px;color:#95a5a6;white-space:nowrap;margin-left:12px; }
-    .drive-status { font-size:11px;padding:3px 8px;border-radius:12px;font-weight:600; }
-    .drive-status.ok { background:rgba(46,204,113,0.2);color:#27ae60; }
-    .drive-status.err { background:rgba(231,76,60,0.2);color:#e74c3c; }
-    .drive-status.loading { background:rgba(52,152,219,0.2);color:#3498db; }
-    #toast { position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#27ae60;color:white;padding:12px 24px;border-radius:8px;font-weight:700;font-size:14px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.2);display:none; }
-    @media print {
-      @page { size: letter; margin: 0.5in; }
-      .left-panel { display: none !important; }
-      .main-grid { grid-template-columns: 1fr !important; display: block !important; }
-      button { display: none !important; }
-      .footer { display: none !important; }
-      body { background: white !important; font-size: 11pt; line-height: 1.4; color: #000000 !important; }
-      * { max-height: none !important; overflow: visible !important; color: #000000 !important; }
-      .container { max-width: 100% !important; padding: 0 !important; margin: 0 !important; width: 100% !important; }
-      .right-panel { max-height: none !important; overflow: visible !important; height: auto !important; display: block !important; }
-      div { overflow: visible !important; height: auto !important; max-height: none !important; }
-      #summaryContent { display: block !important; overflow: visible !important; height: auto !important; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#27ae60">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>WS Field Survey</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{--g1:#27ae60;--g2:#2ecc71;--ink:#2c3e50;--mut:#7f8c8d;--line:#e0e0e0;--bg:#f5f5f5;--warn:#f39c12;--bad:#e74c3c;--blue:#3498db}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:16px;line-height:1.35}
+[hidden]{display:none!important}
+button{font:inherit;cursor:pointer;border:none;border-radius:10px;min-height:48px;padding:0 16px;font-weight:700}
+input,select,textarea{font:inherit;width:100%;min-height:48px;padding:10px 12px;border:2px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--g1)}
+textarea{min-height:84px;resize:vertical}
+label{display:block;font-size:13px;font-weight:600;color:var(--mut);margin:12px 0 4px}
+.screen{max-width:760px;margin:0 auto;min-height:100%;background:#fff;box-shadow:0 0 20px rgba(0,0,0,.06);padding-bottom:96px}
+.hdr{background:linear-gradient(90deg,var(--g2),var(--g1));color:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20}
+.hdr h1{font-size:19px;line-height:1.15;flex:1}
+.hdr small{display:block;font-weight:400;font-size:12px;opacity:.92}
+.hdr img{height:42px;width:auto}
+.hdr .ib{background:rgba(255,255,255,.2);color:#fff;min-width:48px;padding:0 12px;font-size:20px}
+.pad{padding:16px}
+.btn{background:linear-gradient(90deg,var(--g1),var(--g2));color:#fff;box-shadow:0 2px 8px rgba(39,174,96,.3)}
+.btn.sec{background:#fff;color:var(--g1);border:2px solid var(--g1);box-shadow:none}
+.btn.gray{background:#ecf0f1;color:var(--ink);box-shadow:none}
+.btn.bad{background:var(--bad);color:#fff;box-shadow:none}
+.btn.blue{background:linear-gradient(90deg,#2980b9,var(--blue));color:#fff}
+.btn.orange{background:linear-gradient(90deg,#e67e22,#f39c12);color:#fff}
+.btn.big{min-height:60px;font-size:17px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+h2.sec{font-size:13px;letter-spacing:1px;text-transform:uppercase;color:var(--g1);margin:22px 0 10px}
+.card{border:2px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;display:flex;gap:12px;align-items:center;background:#fff;cursor:pointer}
+.card:active{background:#f0fff4;border-color:var(--g1)}
+.card .th{width:64px;height:64px;border-radius:8px;background:#ecf0f1 center/cover no-repeat;flex:none;display:flex;align-items:center;justify-content:center;font-size:28px}
+.card .tx{flex:1;min-width:0}
+.card .nm{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .sub{font-size:13px;color:var(--mut)}
+.badge{display:inline-block;font-size:11px;font-weight:700;border-radius:20px;padding:2px 8px;margin-left:4px;vertical-align:middle}
+.badge.ok{background:#e8f5e9;color:#1e8449}
+.badge.est{background:#fff3e0;color:#b9770e}
+.badge.sync{background:#e3f2fd;color:#1f78b4}
+.badge.dirty{background:#fdecea;color:#c0392b}
+.strip{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px}
+.strip .ph{flex:none;width:110px}
+.strip .ph .im{width:110px;height:84px;border-radius:8px;background:#ecf0f1 center/cover;border:2px solid var(--line)}
+.strip .ph span{display:block;font-size:11px;color:var(--mut);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.empty{color:var(--mut);text-align:center;padding:22px 8px;font-size:14px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid var(--line);padding:10px 12px calc(10px + env(safe-area-inset-bottom));z-index:30}
+.bar .in{max-width:760px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.bar button{font-size:13px;padding:0 6px;min-height:52px}
+#toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%);background:#2c3e50;color:#fff;padding:10px 18px;border-radius:10px;font-weight:600;font-size:14px;z-index:9999;display:none;max-width:90%;text-align:center}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:1000;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:#fff;width:100%;max-width:640px;max-height:92vh;overflow-y:auto;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom))}
+.sheet.wide{max-width:760px}
+.sheet h3{font-size:18px;margin-bottom:6px}
+.btnrow{display:flex;gap:10px;margin-top:16px}
+.btnrow button{flex:1}
+.chips{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.chip{min-height:64px;padding:6px 4px;border:2px solid var(--line);background:#fff;color:var(--ink);font-size:12px;font-weight:700;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;line-height:1.15}
+.chip .ic{font-size:22px}
+.chip.on{border-color:var(--g1);background:#e8f5e9}
+.hint{font-size:12px;color:var(--mut);margin-top:4px}
+.warnbox{background:#fff3e0;border:2px solid var(--warn);border-radius:10px;padding:10px;font-size:13px;margin-top:10px}
+.chk{display:flex;gap:10px;align-items:center;padding:12px;border:2px solid var(--line);border-radius:10px;margin-top:10px;font-size:14px;font-weight:600;color:var(--ink)}
+.chk input{width:24px;height:24px;min-height:0;flex:none}
+.qrow{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}
+.unit{padding-bottom:14px;font-weight:700;color:var(--mut)}
+/* editor */
+#screenEditor{position:fixed;inset:0;background:#1b1b1b;z-index:500;display:flex;flex-direction:column;color:#fff}
+#edTop{display:flex;align-items:center;gap:8px;padding:6px 8px;background:#222;min-height:54px}
+#edTop button{min-height:42px;background:#3a3a3a;color:#fff;padding:0 12px;font-size:15px}
+#edTop #edTitle{flex:1;text-align:center;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+#edWrap{flex:1;position:relative;overflow:hidden;touch-action:none;background:#000}
+#edCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
+#edHint{position:absolute;left:8px;right:8px;top:8px;background:rgba(0,0,0,.72);padding:8px 10px;border-radius:10px;font-size:13px;pointer-events:none}
+#edZoom{position:absolute;right:8px;top:64px;display:flex;flex-direction:column;gap:8px}
+#edZoom button{width:44px;min-height:44px;padding:0;background:rgba(0,0,0,.65);color:#fff;font-size:20px}
+#edAct{position:absolute;left:8px;right:8px;bottom:10px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+#edAct button{min-height:48px;padding:0 18px;font-size:15px;box-shadow:0 2px 10px rgba(0,0,0,.4)}
+#edTools{display:flex;gap:6px;overflow-x:auto;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:#222}
+#edTools button{flex:none;min-width:64px;min-height:58px;padding:4px 8px;background:#3a3a3a;color:#fff;font-size:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+#edTools button .ic{font-size:21px;line-height:1}
+#edTools button.on{background:var(--g1)}
+#edColors{display:flex;gap:8px;align-items:center;padding:4px 10px;background:#222}
+#edColors i{width:28px;height:28px;border-radius:50%;border:3px solid #444;display:block}
+#edColors i.on{border-color:#fff}
+/* summary */
+.rep h1{font-size:22px}
+.rep table{width:100%;border-collapse:collapse;margin:8px 0;font-size:14px}
+.rep th,.rep td{border-bottom:1px solid var(--line);padding:6px 4px;text-align:left;vertical-align:top}
+.rep th{font-size:12px;color:var(--mut);text-transform:uppercase}
+.rep .pg{break-inside:avoid;margin:12px 0}
+.rep .pg img{width:100%;border-radius:8px;border:1px solid var(--line)}
+.rep .foot{margin-top:24px;padding-top:10px;border-top:2px solid var(--g1);font-size:12px;color:var(--mut);text-align:center}
+.int{background:#f0f8ff;border:2px solid var(--blue);border-radius:10px;padding:12px;margin:14px 0;font-size:14px}
+@media print{
+  @page{size:letter;margin:.5in}
+  body{background:#fff}
+  body>*:not(#screenSummary){display:none!important}
+  #screenSummary{display:block!important;box-shadow:none;max-width:none;padding:0}
+  .no-print,.hdr,.bar{display:none!important}
+  .pad{padding:0}
+}
+</style>
 </head>
 <body>
 <div id="toast"></div>
-<div class="container">
-  <div class="header">
-    <div style="display:flex;align-items:center;gap:20px;justify-content:center;">
-      <img src="https://static.wixstatic.com/media/99a075_f0b64d954a90417ba2ac87c06f85804a~mv2.png" alt="WS Lawn Care Services" style="height:80px;width:auto;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.2));">
-      <div><h1 style="margin-bottom:8px;">Landscaping Cost Estimator</h1><p style="margin:0;">Professional project estimation & job costing</p></div>
-    </div>
+
+<!-- HOME -->
+<div id="screenHome" class="screen">
+  <div class="hdr">
+    <img src="https://static.wixstatic.com/media/99a075_f0b64d954a90417ba2ac87c06f85804a~mv2.png" alt="" onerror="this.remove()">
+    <h1>WS Field Survey<small>Photos · measurements · scope of work</small></h1>
+    <button class="ib" id="btnSettings" aria-label="Settings">⚙</button>
   </div>
-  <div class="main-grid">
-    <div class="left-panel">
-      <div class="section">
-        <h2>📋 Project Details</h2>
-        <input type="text" id="projectName" placeholder="Project Name">
-        <input type="text" id="propertyAddress" placeholder="Property Address">
-        <input type="text" id="projectType" placeholder="Project Type">
-      </div>
-      <div class="section">
-        <h2>📦 Material Selection</h2>
-        <select id="materialCategory">
-          <option value="mulch">Mulch</option>
-          <option value="rock">Decorative Rock</option>
-          <option value="dirt">Dirt/Soil</option>
-          <option value="sod">Sod</option>
-          <option value="none">None (Skip Material)</option>
-        </select>
-        <select id="materialType"></select>
-        <div id="materialCostDisplay" style="background:linear-gradient(135deg,#27ae60 0%,#229954 100%);padding:16px;border-radius:8px;margin-top:12px;display:none;">
-          <div style="color:rgba(255,255,255,0.9);font-size:11px;font-weight:600;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Material Cost</div>
-          <div id="materialCostAmount" style="color:white;font-size:28px;font-weight:700;margin-bottom:4px;">$0.00</div>
-          <div id="materialCostDetails" style="color:rgba(255,255,255,0.85);font-size:12px;"></div>
-        </div>
-        <div class="notes-section" style="margin-top:12px;">
-          <div style="font-size:12px;font-weight:700;color:#3498db;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">📝 Material Notes</div>
-          <input type="text" id="materialAreaLabel" placeholder="Area label (e.g. Side of Pool, Back of Shed, Front Beds)" style="margin-bottom:8px;border-color:#b0d4f1;font-size:13px;">
-        </div>
-        <button class="send-to-breakdown-btn" onclick="sendMaterialToBreakdown()">➕ Add to Cost Breakdown</button>
-        <div style="font-size:11px;color:#7f8c8d;margin-top:6px;text-align:center;">Add this material to the estimate, then select another material type above</div>
-      </div>
-      <div class="section"><h2>📐 Dimensions</h2><div id="dimensionsContainer"></div></div>
-      <div class="section">
-        <h2>🧱 Additional Materials & Add-ons</h2>
-        <div style="border:2px solid #27ae60;border-radius:8px;padding:16px;background:#f8fdf9;">
-          <div style="font-size:12px;font-weight:700;color:#27ae60;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">📦 Additional Materials <span style="font-weight:400;text-transform:none;opacity:0.8;">(10% markup applied)</span></div>
-          <div id="additionalMaterialsContainer"></div>
-          <button onclick="addMaterialRow()" style="width:100%;padding:10px;background:#27ae60;color:white;border:none;border-radius:6px;cursor:pointer;margin-top:8px;">➕ Add Material Row</button>
-          <div style="margin-top:18px;padding-top:16px;border-top:2px dashed #b7dfc5;">
-            <div style="font-size:12px;font-weight:700;color:#27ae60;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">➕ Add-ons</div>
-            <label class="checkbox-label" id="geoTextileLabel"><input type="checkbox" id="includeGeoTextile"><span>Geo Textile Fabric ($1.20/ft)</span></label>
-            <input type="number" id="geoTextileLinearFt" placeholder="Linear feet" style="display:none;">
-            <label class="checkbox-label" id="edgingLabel"><input type="checkbox" id="includeEdging"><span>Composite Edging ($3.00/ft)</span></label>
-            <input type="number" id="edgingLinearFt" placeholder="Linear feet" style="display:none;">
-          </div>
-        </div>
-      </div>
-      <div class="section">
-        <h2>🚜 Equipment Rental</h2>
-        <p style="font-size:13px;color:#7f8c8d;margin-bottom:12px;">Select equipment for this project</p>
-        <div id="equipmentRentalList"></div>
-        <button onclick="addEquipmentRental()" style="width:100%;padding:12px;background:#3498db;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:600;margin-top:8px;">➕ Add Equipment</button>
-      </div>
-      <div class="section">
-        <h2>🔧 Additional Equipment</h2>
-        <div id="equipmentContainer"></div>
-        <button onclick="addEquipmentRow()" style="width:100%;padding:10px;background:#27ae60;color:white;border:none;border-radius:6px;cursor:pointer;margin-top:8px;">➕ Add Equipment Row</button>
-      </div>
-      <div class="section">
-        <h2>💵 Labor & Additional Costs</h2>
-        <div class="grid-2">
-          <div><label>Labor Hours</label><input type="number" id="laborHours" placeholder="0"></div>
-          <div><label>Rate ($/hr)</label><input type="number" id="laborRate" value="158"></div>
-        </div>
-        <div class="grid-2">
-          <div><label>Delivery Fee</label><input type="number" id="deliveryFee" placeholder="0"></div>
-          <div><label>Haul Away</label><input type="number" id="haulAway" placeholder="0"></div>
-        </div>
-        <div><label>Markup (%)</label><input type="number" id="markupPercent" value="0"></div>
-        <div style="margin-top:24px;padding-top:24px;border-top:2px solid #e0e0e0;">
-          <label style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-            <span style="font-weight:700;color:#27ae60;">🎯 Target Profit Margin</span>
-            <span id="profitMarginDisplay" style="font-size:20px;font-weight:700;color:#27ae60;">40%</span>
-          </label>
-          <input type="range" id="profitMarginSlider" min="0" max="100" value="40" step="1" style="width:100%;height:8px;border-radius:4px;background:linear-gradient(90deg,#e74c3c 0%,#f39c12 25%,#27ae60 40%,#2ecc71 100%);cursor:pointer;-webkit-appearance:none;appearance:none;">
-          <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:11px;color:#7f8c8d;"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
-          <div style="margin-top:12px;padding:12px;background:#e8f5e9;border-radius:6px;font-size:12px;color:#2c3e50;">💡 <strong>Tip:</strong> 40% is your target. The calculation automatically accounts for 3% CC fees.</div>
-        </div>
-      </div>
-      <div class="section">
-        <h2>📋 Project Notes</h2>
-        <div style="background:#fff9e6;border:2px solid #f39c12;border-radius:8px;padding:16px;">
-          <div style="font-size:12px;color:#7f8c8d;margin-bottom:12px;line-height:1.5;">Use this section to capture important project details for your records and order planning.</div>
-          <div style="margin-bottom:12px;"><label style="font-weight:700;color:#e67e22;font-size:13px;">📦 Order Notes</label><textarea id="orderNotes" placeholder="e.g. Order 5 cu yds brown mulch, 3 pallets Floratam sod (400 sq ft/pallet), delivery by Tuesday..."></textarea></div>
-          <div style="margin-bottom:12px;"><label style="font-weight:700;color:#3498db;font-size:13px;">🚜 Equipment Notes</label><textarea id="equipmentNotes" placeholder="e.g. Rent mini skid steer full day, need sod cutter 4 hours, call Sun Belt at 7am day before..."></textarea></div>
-          <div><label style="font-weight:700;color:#27ae60;font-size:13px;">📐 Measurements & Site Notes</label><textarea id="siteNotes" placeholder="e.g. Back beds are 3 areas: 15x8, 20x6, 12x5. Gate is 36 inches wide. Park trailer on street..."></textarea></div>
-          <div style="margin-top:16px;padding-top:16px;border-top:2px dashed #f0c674;">
-            <label style="font-weight:700;color:#8e44ad;font-size:13px;">✉️ Send Order Details to Project Manager</label>
-            <input type="email" multiple id="pmEmail" placeholder="Email(s), separate multiple with commas" style="margin-bottom:8px;border-color:#d5b8e6;font-size:13px;">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-              <button onclick="emailProjectManager('gmail')" style="padding:12px;background:linear-gradient(90deg,#8e44ad 0%,#9b59b6 100%);font-size:12px;letter-spacing:0;text-transform:none;">✉️ Email via Gmail</button>
-              <button onclick="emailProjectManager('mailto')" style="padding:12px;background:#7f8c8d;font-size:12px;letter-spacing:0;text-transform:none;box-shadow:none;">📧 Default Mail App</button>
-            </div>
-            <div style="font-size:11px;color:#7f8c8d;margin-top:8px;line-height:1.5;">Opens a ready-to-send email with the material order totals, area breakdown, equipment and all three notes. Prices are left out. Separate multiple addresses with commas. Emails are remembered on this device.</div>
-          </div>
-        </div>
-      </div>
+  <div class="pad">
+    <button class="btn big" id="btnNewJob" style="width:100%">＋ New Job / Site Walk</button>
+    <div class="row2" style="margin-top:10px">
+      <button class="btn sec" id="btnOpenDrive">☁ Open from Drive</button>
+      <button class="btn sec" id="btnInstall" hidden>⬇ Install App</button>
     </div>
-
-    <div class="right-panel">
-      <!-- PROJECT MANAGEMENT — DRIVE -->
-      <div style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:16px;border-radius:8px;margin-bottom:24px;color:white;">
-        <h3 style="margin:0 0 10px 0;font-size:16px;display:flex;align-items:center;gap:8px;">
-          ☁️ Project Management
-          <span id="driveStatusBadge" class="drive-status loading" style="margin-left:auto;">Connecting...</span>
-        </h3>
-        <!-- Collapsible URL config — hidden once connected -->
-        <div id="urlConfigPanel" style="margin-bottom:10px;">
-          <div style="font-size:11px;opacity:0.85;margin-bottom:5px;">Apps Script Web App URL (one-time setup):</div>
-          <input type="text" id="appsScriptUrl" placeholder="Paste your deployed Web App URL here..." style="font-size:12px;padding:8px;margin-bottom:5px;border-color:#9b8ec4;background:rgba(255,255,255,0.15);color:white;">
-          <div style="font-size:11px;opacity:0.85;margin:6px 0 5px;">Shared key (only if you set SHARED_KEY in the script; otherwise leave blank):</div>
-          <input type="password" id="sharedKeyInput" placeholder="Optional shared key" style="font-size:12px;padding:8px;margin-bottom:5px;border-color:#9b8ec4;background:rgba(255,255,255,0.15);color:white;">
-          <button onclick="saveScriptUrl()" style="padding:8px;font-size:12px;background:rgba(255,255,255,0.2);color:white;border:1px solid rgba(255,255,255,0.5);border-radius:6px;width:100%;letter-spacing:0;">💾 Save URL & Connect</button>
-        </div>
-        <!-- Shown only when connected — small gear link to re-open URL config -->
-        <div id="urlConfigToggle" style="display:none;margin-bottom:10px;text-align:right;">
-          <span onclick="toggleUrlConfig()" style="font-size:11px;opacity:0.7;cursor:pointer;text-decoration:underline;text-underline-offset:2px;">⚙ Change connection URL</span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
-          <button onclick="saveProject()" style="padding:10px;background:white;color:#667eea;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:13px;letter-spacing:0;text-transform:none;">💾 Save to Drive</button>
-          <button onclick="openLoadModal()" style="padding:10px;background:rgba(255,255,255,0.2);color:white;border:2px solid white;border-radius:6px;font-weight:600;cursor:pointer;font-size:13px;letter-spacing:0;text-transform:none;">📂 Load Project</button>
-        </div>
-        <button onclick="openSurveyModal()" style="width:100%;padding:10px;margin-bottom:8px;background:linear-gradient(90deg,#f39c12 0%,#e67e22 100%);color:white;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px;letter-spacing:0;text-transform:none;">📥 Import Site Survey (from Field Survey app)</button>
-        <div id="surveyLinkBox" style="display:none;font-size:11px;background:rgba(255,255,255,0.18);border-radius:6px;padding:8px;margin-bottom:8px;line-height:1.5;"></div>
-        <button onclick="newEstimate()" style="width:100%;padding:10px;background:linear-gradient(90deg,#e74c3c 0%,#c0392b 100%);color:white;border:none;border-radius:6px;font-weight:600;cursor:pointer;font-size:13px;letter-spacing:0;text-transform:none;">🆕 New Estimate (Clear All)</button>
-        <div style="font-size:11px;margin-top:10px;opacity:0.9;line-height:1.5;">💡 Projects saved to shared Google Drive — any staff member can load, update, and save.</div>
-      </div>
-
-      <h2>📊 Estimate Summary</h2>
-      <div id="summaryContent"></div>
-
-      <div style="margin-top:32px;padding-top:32px;border-top:3px solid #e0e0e0;">
-        <button id="toggleActualCosts" onclick="toggleActualCostsSection()" style="width:100%;padding:16px;background:linear-gradient(90deg,#9b59b6 0%,#8e44ad 100%);color:white;border:none;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;margin-bottom:16px;">📈 Track Actual Costs (Budget vs Actual)</button>
-        <div id="actualCostsSection" style="display:none;">
-          <div style="background:#f8f9fa;border:2px solid #e0e0e0;border-radius:8px;padding:20px;margin-bottom:16px;">
-            <h3 style="margin:0 0 16px 0;color:#2c3e50;font-size:16px;">💰 Enter Actual Costs</h3>
-            <div style="margin-bottom:12px;"><label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;">Materials (Actual)</label><input type="number" id="actualMaterials" placeholder="0.00" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:6px;font-family:inherit;" oninput="updateActualComparison()"></div>
-            <div style="margin-top:16px;padding-top:16px;border-top:2px solid #e0e0e0;">
-              <label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;color:#27ae60;">💵 Total Price Charged to Customer</label>
-              <input type="number" id="totalPriceCharged" placeholder="0.00" style="width:100%;padding:12px;border:2px solid #27ae60;border-radius:6px;font-family:inherit;font-weight:600;font-size:16px;" oninput="updateActualComparison()">
-              <div style="font-size:11px;color:#7f8c8d;margin-top:4px;">Enter the final amount the customer paid</div>
-            </div>
-            <div style="margin-bottom:12px;margin-top:12px;"><label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;">Labor (Actual)</label><input type="number" id="actualLabor" placeholder="0.00" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:6px;font-family:inherit;" oninput="updateActualComparison()"></div>
-            <div style="margin-bottom:12px;"><label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;">Equipment (Actual)</label><input type="number" id="actualEquipment" placeholder="0.00" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:6px;font-family:inherit;" oninput="updateActualComparison()"></div>
-            <div style="margin-bottom:12px;"><label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;">Other Costs (Actual)</label><input type="number" id="actualOther" placeholder="0.00" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:6px;font-family:inherit;" oninput="updateActualComparison()"></div>
-          </div>
-          <div style="background:#e8f5e9;border:2px solid #27ae60;border-radius:8px;padding:20px;margin-bottom:16px;">
-            <h3 style="margin:0 0 16px 0;color:#27ae60;font-size:16px;">⏱️ Time Tracking & Efficiency</h3>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
-              <div><label style="display:block;margin-bottom:4px;font-size:12px;font-weight:600;color:#2c3e50;">Budget Hours</label><input type="number" id="budgetHours" placeholder="0" step="0.5" style="width:100%;padding:8px;border:2px solid #27ae60;border-radius:6px;font-family:inherit;text-align:center;font-weight:600;" oninput="updateTimeTracking()" readonly><div style="font-size:10px;color:#7f8c8d;margin-top:4px;text-align:center;">From estimate</div></div>
-              <div><label style="display:block;margin-bottom:4px;font-size:12px;font-weight:600;color:#2c3e50;">Actual Hours</label><input type="number" id="actualHours" placeholder="0" step="0.5" style="width:100%;padding:8px;border:2px solid #3498db;border-radius:6px;font-family:inherit;text-align:center;font-weight:600;" oninput="updateTimeTracking()"><div style="font-size:10px;color:#7f8c8d;margin-top:4px;text-align:center;">Hours worked</div></div>
-            </div>
-            <div id="timeTrackingDisplay" style="display:none;"></div>
-          </div>
-          <div style="background:#fff9e6;border:2px solid #f39c12;border-radius:8px;padding:20px;margin-bottom:16px;">
-            <h3 style="margin:0 0 16px 0;color:#f39c12;font-size:16px;display:flex;align-items:center;gap:8px;">📝 Project Summary Notes <span style="font-size:10px;padding:3px 8px;background:rgba(243,156,18,0.2);border-radius:12px;font-weight:normal;">Optional</span></h3>
-            <div style="margin-bottom:16px;"><label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:#2c3e50;">✅ What Went Well</label><textarea id="notesWentWell" placeholder="Example: Crew arrived on time, equipment worked perfectly..." style="width:100%;min-height:70px;padding:10px;border:2px solid #27ae60;border-radius:6px;font-family:inherit;font-size:13px;resize:vertical;"></textarea></div>
-            <div style="margin-bottom:16px;"><label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:#2c3e50;">⚠️ Challenges / Issues</label><textarea id="notesChallenges" placeholder="Example: Unexpected underground utilities, equipment breakdown..." style="width:100%;min-height:70px;padding:10px;border:2px solid #e74c3c;border-radius:6px;font-family:inherit;font-size:13px;resize:vertical;"></textarea></div>
-            <div><label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:#2c3e50;">🎯 Action Steps for Future Jobs</label><textarea id="notesActionSteps" placeholder="Example: Add 2 hours buffer for similar properties..." style="width:100%;min-height:70px;padding:10px;border:2px solid #3498db;border-radius:6px;font-family:inherit;font-size:13px;resize:vertical;"></textarea></div>
-          </div>
-          <div id="comparisonDisplay" style="display:none;"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="footer">Professional landscaping estimator • Projects saved to Google Drive • WS Lawn Care Services LLC</div>
-</div>
-
-<!-- Load Modal -->
-<div id="loadModal" class="modal-overlay" style="display:none;" onclick="closeModalOnOverlay(event)">
-  <div class="modal-box">
-    <h3>📂 Load Project from Drive</h3>
-    <div id="modalStatus" style="font-size:13px;color:#7f8c8d;margin-bottom:12px;"></div>
-    <div id="projectListContainer"></div>
-    <div style="margin-top:16px;text-align:right;">
-      <button onclick="closeLoadModal()" style="width:auto;padding:10px 20px;background:#7f8c8d;font-size:13px;letter-spacing:0;text-transform:none;">✕ Close</button>
-    </div>
+    <h2 class="sec">Jobs on this device</h2>
+    <div id="jobList"></div>
+    <p class="hint" style="margin-top:14px">Jobs are saved on this device first, so they keep working with no signal. Tap “Save to Drive” inside a job when you have service.</p>
   </div>
 </div>
 
-<div id="surveyModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeSurveyModal()">
-  <div class="modal-box">
-    <h3>📥 Import Site Survey</h3>
-    <div id="surveyModalStatus" style="font-size:13px;color:#7f8c8d;margin-bottom:12px;"></div>
-    <div id="surveyListContainer"></div>
-    <button onclick="closeSurveyModal()" style="margin-top:12px;background:#95a5a6;box-shadow:none;">Close</button>
+<!-- JOB -->
+<div id="screenJob" class="screen" hidden>
+  <div class="hdr">
+    <button class="ib" id="btnJobBack" aria-label="Back">‹</button>
+    <h1 id="jobTitle">Job<small id="jobSub"></small></h1>
+    <button class="ib" id="btnJobMenu" aria-label="Menu">⋯</button>
+  </div>
+  <div class="pad">
+    <div class="row2">
+      <button class="btn big" id="btnTakePhoto">📷 Take Photo</button>
+      <button class="btn big sec" id="btnPickPhoto">🖼 Choose Photo</button>
+    </div>
+    <button class="btn gray" id="btnAddManual" style="width:100%;margin-top:10px">✏️ Add item without photo (type in measurements)</button>
+    <input type="file" id="fileCam" accept="image/*" capture="environment" hidden>
+    <input type="file" id="filePick" accept="image/*" multiple hidden>
+
+    <h2 class="sec">Scope items <span id="itemCount"></span></h2>
+    <div id="itemList"></div>
+
+    <h2 class="sec">Photos</h2>
+    <div class="strip" id="photoStrip"></div>
+
+    <h2 class="sec">Customer & property</h2>
+    <label for="fCustomer">Customer name</label>
+    <input id="fCustomer" placeholder="e.g. John Smith" autocomplete="off">
+    <label for="fAddress">Property address</label>
+    <input id="fAddress" placeholder="123 Main St, Titusville FL" autocomplete="off">
+    <label for="fType">Project type</label>
+    <input id="fType" placeholder="e.g. Mulch refresh + hedge trim" autocomplete="off">
+    <label for="fCrew">Crew member</label>
+    <input id="fCrew" placeholder="Your name" autocomplete="off">
+    <label for="fNotes">Site notes (gate width, parking, pets, access…)</label>
+    <textarea id="fNotes" placeholder="Anything the estimator or crew should know"></textarea>
+  </div>
+  <div class="bar"><div class="in">
+    <button class="btn sec" id="btnSummary">📄 Summary</button>
+    <button class="btn blue" id="btnSync">☁ Save to Drive</button>
+    <button class="btn orange" id="btnToEstimator">➜ Estimator</button>
+  </div></div>
+</div>
+
+<!-- SUMMARY / REPORT -->
+<div id="screenSummary" class="screen rep" hidden>
+  <div class="hdr no-print">
+    <button class="ib" id="btnSumBack" aria-label="Back">‹</button>
+    <h1>Summary<small>Customer-ready report</small></h1>
+    <button class="ib" id="btnPrint" aria-label="Print">🖨</button>
+  </div>
+  <div class="pad" id="sumBody"></div>
+</div>
+
+<!-- PHOTO EDITOR -->
+<div id="screenEditor" hidden>
+  <div id="edTop">
+    <button id="edDone">✔ Done</button>
+    <div id="edTitle">Photo</div>
+    <button id="edUndo">↩</button>
+    <button id="edMenu">⋯</button>
+  </div>
+  <div id="edWrap">
+    <canvas id="edCanvas"></canvas>
+    <div id="edHint"></div>
+    <div id="edZoom"><button id="zIn">＋</button><button id="zOut">－</button><button id="zFit">⤢</button></div>
+    <div id="edAct"></div>
+  </div>
+  <div id="edColors"></div>
+  <div id="edTools"></div>
+</div>
+
+<!-- ITEM SHEET -->
+<div id="sheetItem" class="overlay" hidden>
+  <div class="sheet">
+    <h3 id="itTitle">Scope item</h3>
+    <div class="hint" id="itFrom"></div>
+    <label>Type of work</label>
+    <div class="chips" id="itChips"></div>
+    <label for="itName">Area / zone name</label>
+    <input id="itName" placeholder="e.g. Front bed, Side of pool, Back hedge" autocomplete="off">
+    <div id="itMatWrap"><label for="itMat">Material</label><select id="itMat"></select></div>
+    <div id="itMeasureWrap" hidden><label for="itMeasure">Measured as</label>
+      <select id="itMeasure"><option value="area">Area (sq ft)</option><option value="length">Length (lin ft)</option><option value="count">Count (each)</option></select></div>
+    <div class="qrow"><div><label for="itValue" id="itValueLbl">Quantity</label><input id="itValue" type="number" inputmode="decimal" step="any" placeholder="0"></div><div class="unit" id="itUnit">sq ft</div></div>
+    <div class="hint" id="itCalcHint"></div>
+    <div id="itDepthWrap"><label for="itDepth">Depth (inches)</label><input id="itDepth" type="number" inputmode="decimal" step="any"><div class="hint" id="itCy"></div></div>
+    <div id="itHeightWrap"><label for="itHeight">Hedge height (ft)</label><input id="itHeight" type="number" inputmode="decimal" step="any" placeholder="e.g. 4"></div>
+    <label for="itNotes">Notes</label>
+    <textarea id="itNotes" placeholder="Details for the estimate or crew…"></textarea>
+    <label class="chk"><input type="checkbox" id="itVerified"> Verified on site (tape / wheel / laser)</label>
+    <label class="chk" id="itEdgeWrap"><input type="checkbox" id="itEdge"> <span id="itEdgeTx">Also add edging along the outside</span></label>
+    <div class="btnrow">
+      <button class="btn gray" id="itCancel">Cancel</button>
+      <button class="btn bad" id="itDelete" hidden>Delete</button>
+      <button class="btn" id="itSave">Save item</button>
+    </div>
   </div>
 </div>
 
 <script>
-// ============================================================
-// APPS SCRIPT URL — configured once, stored in localStorage
-// ============================================================
-var APPS_SCRIPT_URL = localStorage.getItem('ws_apps_script_url') || '';
-var SHARED_KEY = localStorage.getItem('ws_shared_key') || '';
-
-function saveScriptUrl() {
-  var url = document.getElementById('appsScriptUrl').value.trim();
-  if (!url) { alert('Please paste your Apps Script Web App URL.'); return; }
-  APPS_SCRIPT_URL = url;
-  localStorage.setItem('ws_apps_script_url', url);
-  SHARED_KEY = (document.getElementById('sharedKeyInput').value || '').trim();
-  localStorage.setItem('ws_shared_key', SHARED_KEY);
-  checkDriveConnection();
+'use strict';
+/* ============================================================
+   WS Field Survey — core: utils, services, storage, API
+   ============================================================ */
+const $ = (s, el) => (el || document).querySelector(s);
+const $$ = (s, el) => Array.from((el || document).querySelectorAll(s));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = (v, d) => Number(v || 0).toLocaleString('en-US', { maximumFractionDigits: d == null ? 0 : d });
+const ls = {
+  get(k, def) { try { const v = localStorage.getItem(k); return v == null ? def : v; } catch (e) { return def; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+};
+let toastTimer;
+function toast(msg, ms) {
+  const t = $('#toast'); t.textContent = msg; t.style.display = 'block';
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.style.display = 'none'; }, ms || 2600);
 }
 
-function checkDriveConnection() {
-  if (!APPS_SCRIPT_URL) { setBadge('Not configured', 'err'); return; }
-  setBadge('Connecting...', 'loading');
-  fetchFromDrive('list').then(r => {
-    if (r && r.success) setBadge('✓ Drive Connected', 'ok');
-    else setBadge('Connection Error', 'err');
-  }).catch(() => setBadge('Connection Error', 'err'));
+/* ---------- Service templates ----------
+   IMPORTANT: material names must match the estimator's MATERIALS list exactly. */
+const MULCH_MATS = ['Pine Bark', 'Brown Mulch', 'Red Mulch', 'Chocolate Mulch'];
+const ROCK_MATS = ['2" Granite', '3/4" Brown Pea Stone', '1.5" Brown River Rock', '1-3" Brown River Rock', 'Red Lava Rock'];
+const DIRT_MATS = ['Fill Dirt/Top Soil'];
+const SOD_MATS = ['Argentine Bahia', 'St. Augustine Floratam', 'St. Augustine Pro Vista', 'St. Augustine Citra Blue', 'Icon Zoysia', 'Seville St. Augustine (Shade Tolerant)', 'Bimini Bermuda'];
+const SERVICES = {
+  mulch:   { label: 'Mulch',            icon: '🪵', color: '#8d5524', measure: 'area',   cat: 'mulch', mats: MULCH_MATS, depth: 3 },
+  rock:    { label: 'Rock / Stone',     icon: '🪨', color: '#7f8c8d', measure: 'area',   cat: 'rock',  mats: ROCK_MATS,  depth: 2 },
+  dirt:    { label: 'Fill Dirt / Soil', icon: '🟤', color: '#a0522d', measure: 'area',   cat: 'dirt',  mats: DIRT_MATS,  depth: 2 },
+  sod:     { label: 'Sod',              icon: '🌱', color: '#27ae60', measure: 'area',   cat: 'sod',   mats: SOD_MATS },
+  edging:  { label: 'Edging',           icon: '➖', color: '#e67e22', measure: 'length', addon: 'edging' },
+  fabric:  { label: 'Weed Fabric',      icon: '🧵', color: '#8e44ad', measure: 'length', addon: 'geoTextile' },
+  hedge:   { label: 'Hedge / Shrub Trim', icon: '🌳', color: '#16a085', measure: 'length', height: true },
+  plants:  { label: 'Plants / Trees',   icon: '🪴', color: '#e91e63', measure: 'count' },
+  removal: { label: 'Removal / Haul-off', icon: '🚛', color: '#c0392b', measure: 'area' },
+  other:   { label: 'Other Scope',      icon: '📝', color: '#2980b9', measure: 'any' }
+};
+const MEASURE_UNIT = { area: 'sq ft', length: 'lin ft', count: 'ea' };
+const MEASURE_LABEL = { area: 'Area', length: 'Length', count: 'Count' };
+const ANNOT_COLORS = ['#e74c3c', '#f1c40f', '#ffffff', '#3498db', '#111111'];
+
+function itemMeasure(it) { const s = SERVICES[it.service]; return s.measure === 'any' ? (it.measure || 'area') : s.measure; }
+function qtyText(it) {
+  const m = itemMeasure(it), v = it.value || 0;
+  return m === 'area' ? fmt(v, 0) + ' sq ft' : m === 'length' ? fmt(v, 1) + ' lin ft' : fmt(v, 0) + ' ea';
 }
+function cuYds(it) { return (it.service && SERVICES[it.service].depth != null && itemMeasure(it) === 'area') ? ((it.value || 0) * (it.depthIn || 0) / 12 / 27) : 0; }
+const roundUpTenth = v => Math.ceil(v * 10 - 1e-9) / 10;
 
-function setBadge(text, type) {
-  var b = document.getElementById('driveStatusBadge');
-  if (!b) return;
-  b.textContent = text;
-  b.className = 'drive-status ' + type;
-  var panel = document.getElementById('urlConfigPanel');
-  var toggle = document.getElementById('urlConfigToggle');
-  if (type === 'ok') {
-    if (panel) panel.style.display = 'none';
-    if (toggle) toggle.style.display = 'block';
-  }
-}
-
-function toggleUrlConfig() {
-  var panel = document.getElementById('urlConfigPanel');
-  var toggle = document.getElementById('urlConfigToggle');
-  if (!panel || !toggle) return;
-  var opening = panel.style.display === 'none';
-  panel.style.display = opening ? 'block' : 'none';
-  toggle.innerHTML = opening
-    ? '<span onclick="toggleUrlConfig()" style="font-size:11px;opacity:0.7;cursor:pointer;text-decoration:underline;text-underline-offset:2px;">▲ Hide connection settings</span>'
-    : '<span onclick="toggleUrlConfig()" style="font-size:11px;opacity:0.7;cursor:pointer;text-decoration:underline;text-underline-offset:2px;">⚙ Change connection URL</span>';
-}
-
-function fetchFromDrive(action, params) {
-  if (!APPS_SCRIPT_URL) return Promise.reject('No URL configured');
-  var url = APPS_SCRIPT_URL + '?action=' + action + (SHARED_KEY ? '&key=' + encodeURIComponent(SHARED_KEY) : '');
-  if (params) Object.keys(params).forEach(k => url += '&' + k + '=' + encodeURIComponent(params[k]));
-  return fetch(url).then(r => r.json());
-}
-
-function postToDrive(action, body) {
-  if (!APPS_SCRIPT_URL) return Promise.reject('No URL configured');
-  var payload = Object.assign({ action: action, key: SHARED_KEY }, body);
-  return fetch(APPS_SCRIPT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(payload)
-  }).then(r => r.json());
-}
-
-// ============================================================
-// DATA
-// ============================================================
-let equipmentRows = [];
-let additionalMaterialRows = [];
-let completedMaterials = [];
-let currentFileId = null;
-let surveyRef = null; // { folderId, folderUrl, customer, importedAt } — link back to the Field Survey photos
-
-const MATERIALS = {
-  mulch: [
-    { name: 'Pine Bark', pricePerYard: 34, pricePerHalf: 17 },
-    { name: 'Brown Mulch', pricePerYard: 34, pricePerHalf: 17 },
-    { name: 'Red Mulch', pricePerYard: 34, pricePerHalf: 17 },
-    { name: 'Chocolate Mulch', pricePerYard: 34, pricePerHalf: 17 }
-  ],
-  rock: [
-    { name: '2\" Granite', pricePerYard: 180, pricePerHalf: 90 },
-    { name: '3/4\" Brown Pea Stone', pricePerYard: 200, pricePerHalf: 100 },
-    { name: '1.5\" Brown River Rock', pricePerYard: 220, pricePerHalf: 110 },
-    { name: '1-3\" Brown River Rock', pricePerYard: 230, pricePerHalf: 115 },
-    { name: 'Red Lava Rock', pricePerYard: 230, pricePerHalf: 115 }
-  ],
-  dirt: [{ name: 'Fill Dirt/Top Soil', pricePerYard: 40, pricePerHalf: 20 }],
-  sod: [
-    { name: 'Argentine Bahia', pricePerPallet: 200, pricePerSqFt: 0.50 },
-    { name: 'St. Augustine Floratam', pricePerPallet: 299, pricePerSqFt: 0.7475 },
-    { name: 'St. Augustine Pro Vista', pricePerPallet: 299, pricePerSqFt: 0.7475 },
-    { name: 'St. Augustine Citra Blue', pricePerPallet: 319, pricePerSqFt: 0.7975 },
-    { name: 'Icon Zoysia', pricePerPallet: 299, pricePerSqFt: 0.7475 },
-    { name: 'Seville St. Augustine (Shade Tolerant)', pricePerPallet: 299, pricePerSqFt: 0.7475 },
-    { name: 'Bimini Bermuda', pricePerPallet: 195, pricePerSqFt: 0.4875 }
-  ]
+/* ---------- Settings ---------- */
+const Settings = {
+  get url() { return ls.get('ws_apps_script_url', ''); }, set url(v) { ls.set('ws_apps_script_url', v.trim()); },
+  get key() { return ls.get('ws_shared_key', ''); }, set key(v) { ls.set('ws_shared_key', v.trim()); },
+  get estimator() { return ls.get('ws_estimator_url', ''); }, set estimator(v) { ls.set('ws_estimator_url', v.trim()); },
+  get crew() { return ls.get('ws_crew_name', ''); }, set crew(v) { ls.set('ws_crew_name', v.trim()); },
+  get rates() { try { return JSON.parse(ls.get('ws_rates', '{}')) || {}; } catch (e) { return {}; } },
+  set rates(v) { ls.set('ws_rates', JSON.stringify(v)); }
 };
 
-// SOD PRICING (running total per sod type across all areas)
-// Whole pallets (400 sq ft each) + the leftover sold by the piece (16"x24" = 2.66 sq ft, $3 each).
-// If the leftover is 200 sq ft or more, the customer pays for another full pallet instead.
-const SOD_PIECE = { price: 3, sqFt: 2.66, maxSqFt: 200, palletSqFt: 400 };
+/* ---------- Storage (IndexedDB with in-memory fallback) ---------- */
+const DB = {
+  db: null, mem: { jobs: new Map(), photos: new Map() },
+  open() {
+    return new Promise(res => {
+      try {
+        const r = indexedDB.open('wsfs', 1);
+        r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('jobs', { keyPath: 'id' }); d.createObjectStore('photos', { keyPath: 'id' }); };
+        r.onsuccess = () => { this.db = r.result; res(); };
+        r.onerror = () => res();
+        r.onblocked = () => res();
+      } catch (e) { res(); }
+    });
+  },
+  _tx(store, mode, fn) {
+    return new Promise((res, rej) => {
+      const t = this.db.transaction(store, mode); const rq = fn(t.objectStore(store));
+      t.oncomplete = () => res(rq ? rq.result : undefined); t.onerror = () => rej(t.error); t.onabort = () => rej(t.error);
+    });
+  },
+  put(store, v) { return this.db ? this._tx(store, 'readwrite', s => s.put(v)) : Promise.resolve(this.mem[store].set(v.id, v)); },
+  get(store, k) { return this.db ? this._tx(store, 'readonly', s => s.get(k)) : Promise.resolve(this.mem[store].get(k)); },
+  del(store, k) { return this.db ? this._tx(store, 'readwrite', s => s.delete(k)) : Promise.resolve(this.mem[store].delete(k)); },
+  all(store) { return this.db ? this._tx(store, 'readonly', s => s.getAll()) : Promise.resolve(Array.from(this.mem[store].values())); }
+};
 
-function sodSplit(totalSq) {
-  if (!(totalSq > 0)) return { pallets: 0, pieces: 0 };
-  let pallets = Math.floor(totalSq / SOD_PIECE.palletSqFt + 1e-9);
-  const rem = totalSq - pallets * SOD_PIECE.palletSqFt;
-  let pieces = 0;
-  if (rem > 1e-9) {
-    if (rem < SOD_PIECE.maxSqFt) pieces = Math.ceil(rem / SOD_PIECE.sqFt - 1e-9);
-    else pallets += 1;
+/* ---------- Apps Script API ---------- */
+const API = {
+  ready() { return !!Settings.url; },
+  async get(action, params) {
+    if (!Settings.url) throw new Error('Apps Script URL not set (⚙ Settings).');
+    const u = new URL(Settings.url); u.searchParams.set('action', action);
+    if (Settings.key) u.searchParams.set('key', Settings.key);
+    Object.keys(params || {}).forEach(k => u.searchParams.set(k, params[k]));
+    const r = await fetch(u.toString()); const j = await r.json();
+    if (!j.success) throw new Error(j.error || 'Request failed');
+    return j;
+  },
+  async post(action, body) {
+    if (!Settings.url) throw new Error('Apps Script URL not set (⚙ Settings).');
+    const r = await fetch(Settings.url, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(Object.assign({ action, key: Settings.key }, body)) });
+    const j = await r.json();
+    if (!j.success) throw new Error(j.error || 'Request failed');
+    return j;
   }
-  return { pallets, pieces };
-}
+};
 
-function sodSplitText(s) {
-  const parts = [];
-  if (s.pallets > 0) parts.push(`${s.pallets} pallet${s.pallets === 1 ? '' : 's'}`);
-  if (s.pieces > 0) parts.push(`${s.pieces} piece${s.pieces === 1 ? '' : 's'}`);
-  return parts.join(' + ') || '0';
-}
+const blobToDataUrl = b => new Promise((res, rej) => { const f = new FileReader(); f.onload = () => res(f.result); f.onerror = rej; f.readAsDataURL(b); });
+const dataUrlToBlob = d => { const [h, b] = d.split(','); const mime = /data:([^;]+)/.exec(h)[1]; const bin = atob(b); const a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new Blob([a], { type: mime }); };
 
-function sodCostForTotal(totalSq, material) {
-  const s = sodSplit(totalSq);
-  return s.pallets * (material.pricePerPallet || 0) + s.pieces * SOD_PIECE.price;
-}
-
-function getSodPricing(sqFt, material) {
-  const s = sodSplit(sqFt);
-  return { pallets: s.pallets, pieces: s.pieces, cost: sodCostForTotal(sqFt, material),
-    details: `${sqFt.toFixed(0)} sq ft`, short: `${sodSplitText(s)} (${sqFt.toFixed(0)} sq ft)` };
-}
-
-// Re-prices every sod entry from the running total of its sod type (saved areas + the area being entered).
-// Each area's cost is its share (by sq ft) of the combined cost. Returns the current area's cost and running total.
-function allocateSodCosts(curName, curSq) {
-  const names = new Set(completedMaterials.filter(m => m.category === 'sod').map(m => m.materialName));
-  if (curName && curSq > 0) names.add(curName);
-  let curCost = 0, curTotal = 0;
-  names.forEach(name => {
-    const mat = MATERIALS.sod.find(m => m.name === name);
-    if (!mat) return;
-    const entries = completedMaterials.filter(m => m.category === 'sod' && m.materialName === name);
-    const curShare = name === curName ? curSq : 0;
-    const total = entries.reduce((s, m) => s + getMaterialQty(m).sq, 0) + curShare;
-    const groupCost = sodCostForTotal(total, mat);
-    entries.forEach(m => { m.cost = total > 0 ? groupCost * getMaterialQty(m).sq / total : 0; });
-    if (name === curName) { curCost = total > 0 ? groupCost * curShare / total : 0; curTotal = total; }
+/* ---------- Dialog helper ---------- */
+function dialog(o) {
+  return new Promise(resolve => {
+    const ov = document.createElement('div'); ov.className = 'overlay';
+    ov.innerHTML = '<div class="sheet' + (o.wide ? ' wide' : '') + '"><h3></h3><div class="dlg"></div><div class="btnrow"></div></div>';
+    $('h3', ov).textContent = o.title || '';
+    const body = $('.dlg', ov); if (typeof o.body === 'string') body.innerHTML = o.body; else if (o.body) body.appendChild(o.body);
+    const close = v => { ov.remove(); resolve(v); };
+    const row = $('.btnrow', ov);
+    (o.buttons || [{ label: 'OK', value: true, cls: '' }]).forEach(b => {
+      const bt = document.createElement('button'); bt.className = 'btn ' + (b.cls || ''); bt.textContent = b.label;
+      bt.onclick = () => { if (b.action) { const r = b.action(ov, close); if (r === undefined) return; close(r); } else close(b.value); };
+      row.appendChild(bt);
+    });
+    if (!(o.buttons || [1]).length) row.remove();
+    document.body.appendChild(ov); window.__lastDlg = ov;
+    if (o.onOpen) o.onOpen(ov, close);
   });
-  return { curCost, curTotal };
+}
+const confirmDlg = (msg, ok, cls) => dialog({ title: 'Please confirm', body: '<p>' + esc(msg) + '</p>', buttons: [{ label: 'Cancel', value: false, cls: 'gray' }, { label: ok || 'OK', value: true, cls: cls || '' }] });
+function askText(title, placeholder, def, multi) {
+  return dialog({
+    title, body: multi ? '<textarea id="askIn"></textarea>' : '<input id="askIn" autocomplete="off">',
+    onOpen: ov => { const i = $('#askIn', ov); i.placeholder = placeholder || ''; i.value = def || ''; setTimeout(() => i.focus(), 50); i.addEventListener('keydown', e => { if (e.key === 'Enter' && !multi) $('.btnrow .btn:last-child', ov).click(); }); },
+    buttons: [{ label: 'Cancel', value: null, cls: 'gray' }, { label: 'OK', action: ov => $('#askIn', ov).value.trim() }]
+  });
 }
 
-const ADDONS = {
-  geoTextile: { name: 'Geo Textile Fabric', pricePerLinearFt: 1.20 },
-  edging: { name: 'Composite Edging', pricePerLinearFt: 3.00 }
-};
+/* ---------- Length parsing (feet) ---------- */
+function parseLenFt(str) {
+  const s = String(str || '').trim().toLowerCase().replace(/[”″]/g, '"').replace(/[’′]/g, "'");
+  if (!s) return NaN;
+  let m = s.match(/^(\d+(?:\.\d+)?)\s*(?:'|ft|feet|foot)\s*(\d+(?:\.\d+)?)?\s*(?:"|in|inch|inches)?$/);
+  if (m) return +m[1] + (m[2] ? +m[2] / 12 : 0);
+  m = s.match(/^(\d+(?:\.\d+)?)\s*(?:"|in|inch|inches)$/); if (m) return +m[1] / 12;
+  m = s.match(/^(\d+(?:\.\d+)?)\s*(?:m|meter|meters|metre|metres)$/); if (m) return +m[1] * 3.28084;
+  m = s.match(/^(\d+(?:\.\d+)?)\s*(?:yd|yds|yard|yards)$/); if (m) return +m[1] * 3;
+  m = s.match(/^(\d+(?:\.\d+)?)$/); if (m) return +m[1];
+  return NaN;
+}
 
-const EQUIPMENT_RENTAL = [
-  { name: 'Stump Grinder 13 HP', fourHourRate: 132, dailyRate: 188, weekRate: 752, fourWeekRate: 2256 },
-  { name: '1-Ton Mini Excavator', fourHourRate: 262, dailyRate: 349, weekRate: 1047, fourWeekRate: 2618 },
-  { name: '1.5-2 Ton Mini Excavator', fourHourRate: 277, dailyRate: 369, weekRate: 1107, fourWeekRate: 2768 },
-  { name: '700-1,200 lb Tracked Skid Steer', fourHourRate: 292, dailyRate: 389, weekRate: 1167, fourWeekRate: 2918 },
-  { name: 'Skid Steer Tracked (ROC 1400-1900 lbs)', fourHourRate: 329, dailyRate: 439, weekRate: 1229, fourWeekRate: 3073 },
-  { name: 'Mini Skid Steer (1182lb/500lb capacity)', fourHourRate: 247, dailyRate: 329, weekRate: 987, fourWeekRate: 2468 },
-  { name: 'Mini Skid Steer (4420lb/860lb capacity)', fourHourRate: 262, dailyRate: 349, weekRate: 1047, fourWeekRate: 2618 },
-  { name: 'Compact Stump Grinder', fourHourRate: 107, dailyRate: 153, weekRate: 612, fourWeekRate: 1836 },
-  { name: 'Lawn Roller', fourHourRate: 19, dailyRate: 27, weekRate: 108, fourWeekRate: 324 },
-  { name: 'Sod Cutter (18 width, 20 cpm)', fourHourRate: 90, dailyRate: 129, weekRate: 516, fourWeekRate: 1548 },
-  { name: 'PRO Sod Cutter', fourHourRate: 104, dailyRate: 149, weekRate: 596, fourWeekRate: 1788 }
+/* ---------- Image helpers ---------- */
+async function processImageFile(file, maxDim) {
+  maxDim = maxDim || 1600;
+  let bmp;
+  try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+  catch (e) {
+    bmp = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = URL.createObjectURL(file); });
+  }
+  const bw = bmp.width || bmp.naturalWidth, bh = bmp.height || bmp.naturalHeight;
+  const sc = Math.min(1, maxDim / Math.max(bw, bh));
+  const w = Math.round(bw * sc), h = Math.round(bh * sc);
+  const c = document.createElement('canvas'); c.width = w; c.height = h; c.getContext('2d').drawImage(bmp, 0, 0, w, h);
+  const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.82));
+  return { blob, w, h };
+}
+const urlCache = new Map();
+function photoUrl(photoId, kind, blob) {
+  const k = photoId + ':' + kind;
+  if (blob) { if (urlCache.has(k)) URL.revokeObjectURL(urlCache.get(k)); urlCache.set(k, URL.createObjectURL(blob)); }
+  return urlCache.get(k);
+}
+async function ensurePhotoUrl(photoId, kind) {
+  let u = photoUrl(photoId, kind);
+  if (u) return u;
+  const rec = await DB.get('photos', photoId);
+  if (rec && rec[kind]) u = photoUrl(photoId, kind, rec[kind]);
+  return u || '';
+}
+/* ============================================================
+   Photo editor: calibrate, measure, annotate
+   ============================================================ */
+let JOB = null; // current survey object (set by UI)
+
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+function polyLen(pts, closed) { let l = 0; for (let i = 1; i < pts.length; i++) l += dist(pts[i - 1], pts[i]); if (closed && pts.length > 2) l += dist(pts[pts.length - 1], pts[0]); return l; }
+function polyArea(pts) { let a = 0; for (let i = 0; i < pts.length; i++) { const p = pts[i], q = pts[(i + 1) % pts.length]; a += p[0] * q[1] - q[0] * p[1]; } return Math.abs(a) / 2; }
+function centroid(pts) { let x = 0, y = 0; pts.forEach(p => { x += p[0]; y += p[1]; }); return [x / pts.length, y / pts.length]; }
+function pointOnPoly(pts, frac) { const total = polyLen(pts); let t = total * frac; for (let i = 1; i < pts.length; i++) { const d = dist(pts[i - 1], pts[i]); if (t <= d || i === pts.length - 1) { const k = d ? Math.min(1, t / d) : 0; return [pts[i - 1][0] + (pts[i][0] - pts[i - 1][0]) * k, pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * k]; } t -= d; } return pts[0]; }
+function segDist(p, a, b) { const dx = b[0] - a[0], dy = b[1] - a[1]; const l2 = dx * dx + dy * dy; let t = l2 ? ((p[0] - a[0]) * dx + (p[1] - a[1]) * dy) / l2 : 0; t = Math.max(0, Math.min(1, t)); return Math.hypot(p[0] - (a[0] + t * dx), p[1] - (a[1] + t * dy)); }
+function inPoly(p, pts) { let c = false; for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) { if (((pts[i][1] > p[1]) !== (pts[j][1] > p[1])) && (p[0] < (pts[j][0] - pts[i][0]) * (p[1] - pts[i][1]) / (pts[j][1] - pts[i][1]) + pts[i][0])) c = !c; } return c; }
+
+function shapeMeasureKind(s) { return s.type === 'line' ? 'length' : s.type === 'area' ? 'area' : s.type === 'count' ? 'count' : null; }
+function shapeValue(photo, s) {
+  const k = shapeMeasureKind(s); if (!k) return null;
+  if (k === 'count') return s.pts.length;
+  if (!photo.calibration) return null;
+  const px = photo.calibration.pxPerFt;
+  return k === 'length' ? polyLen(s.pts) / px : polyArea(s.pts) / (px * px);
+}
+function shapePerimeterFt(photo, s) { return (photo.calibration && s.type === 'area') ? polyLen(s.pts, true) / photo.calibration.pxPerFt : null; }
+const roundForMeasure = (k, v) => k === 'length' ? Math.round(v * 10) / 10 : Math.round(v);
+
+function refreshItemFromShape(photo, s) {
+  if (!s.itemId || !JOB) return;
+  const it = JOB.items.find(i => i.id === s.itemId);
+  if (!it || it.override || it.verified) return;
+  const v = shapeValue(photo, s);
+  if (v != null) it.value = roundForMeasure(shapeMeasureKind(s), v);
+}
+
+/* ---------- drawing (shared by editor + export) ---------- */
+function drawLabel(ctx, text, x, y, u, color) {
+  ctx.font = 'bold ' + (14 * u) + 'px system-ui,Arial,sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round'; ctx.lineWidth = 5 * u; ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.strokeText(text, x, y);
+  ctx.fillStyle = color || '#111'; ctx.fillText(text, x, y);
+}
+function darken(hex) { return hex === '#ffffff' || hex === '#f1c40f' ? '#222' : hex; }
+function shapeLabel(photo, s) {
+  const it = s.itemId && JOB ? JOB.items.find(i => i.id === s.itemId) : null;
+  if (s.type === 'text') return s.text || '';
+  if (s.type === 'cal') return photo.calibration ? 'Ref ' + fmt(photo.calibration.realFt, 2) + ' ft' : '';
+  if (it) return it.name + ' · ' + qtyText(it);
+  const v = shapeValue(photo, s), k = shapeMeasureKind(s);
+  if (v == null) return k === 'count' ? '' : '';
+  return k === 'area' ? fmt(v, 0) + ' sq ft' : k === 'length' ? fmt(v, 1) + ' ft' : (fmt(v, 0) + ' ea');
+}
+function shapeColor(s) {
+  const it = s.itemId && JOB ? JOB.items.find(i => i.id === s.itemId) : null;
+  if (it) return SERVICES[it.service].color;
+  if (s.type === 'cal') return '#00bcd4';
+  if (s.type === 'line' || s.type === 'area' || s.type === 'count') return s.color || '#f1c40f';
+  return s.color || '#e74c3c';
+}
+function drawShapes(ctx, photo, tf, u, o) {
+  o = o || {};
+  const all = (photo.shapes || []).concat(o.draft ? [o.draft] : []);
+  all.forEach(s => {
+    const col = shapeColor(s), pts = s.pts.map(tf), sel = o.selId && s.id === o.selId;
+    ctx.save(); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    const stroke = (w) => { ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = (w + 3) * u; ctx.stroke(); ctx.strokeStyle = col; ctx.lineWidth = w * u; ctx.stroke(); };
+    const path = (close) => { ctx.beginPath(); pts.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); if (close) ctx.closePath(); };
+    if (s.type === 'area' && pts.length > 1) {
+      path(pts.length > 2 && !s.draft); if (pts.length > 2) { ctx.fillStyle = col + '40'; ctx.fill(); }
+      stroke(sel ? 5 : 3.5);
+    } else if ((s.type === 'line' || s.type === 'free') && pts.length > 1) {
+      path(false); stroke(sel ? 5 : (s.type === 'free' ? 4 : 3.5));
+    } else if (s.type === 'cal' && pts.length > 1) {
+      ctx.setLineDash([8 * u, 6 * u]); path(false); stroke(3); ctx.setLineDash([]);
+    } else if (s.type === 'arrow' && pts.length > 1) {
+      const a = pts[0], b = pts[1], ang = Math.atan2(b[1] - a[1], b[0] - a[0]), hl = 18 * u;
+      path(false); stroke(sel ? 6 : 4.5);
+      ctx.beginPath(); ctx.moveTo(b[0], b[1]); ctx.lineTo(b[0] - hl * Math.cos(ang - .45), b[1] - hl * Math.sin(ang - .45)); ctx.moveTo(b[0], b[1]); ctx.lineTo(b[0] - hl * Math.cos(ang + .45), b[1] - hl * Math.sin(ang + .45)); stroke(sel ? 6 : 4.5);
+    }
+    if (s.type === 'count') {
+      pts.forEach((p, i) => { ctx.beginPath(); ctx.arc(p[0], p[1], 12 * u, 0, 7); ctx.fillStyle = col; ctx.fill(); ctx.lineWidth = 3 * u; ctx.strokeStyle = '#fff'; ctx.stroke(); ctx.fillStyle = '#fff'; ctx.font = 'bold ' + (12 * u) + 'px system-ui,Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(i + 1), p[0], p[1] + .5 * u); });
+    } else if (s.type !== 'text' && s.type !== 'free' && s.type !== 'arrow') {
+      pts.forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], (sel ? 8 : 5.5) * u, 0, 7); ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 2.5 * u; ctx.strokeStyle = col; ctx.stroke(); });
+    }
+    if (sel && (s.type === 'arrow' || s.type === 'free')) pts.filter((p, i) => s.type === 'arrow' || i % 6 === 0).forEach(p => { ctx.beginPath(); ctx.arc(p[0], p[1], 7 * u, 0, 7); ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = col; ctx.lineWidth = 2.5 * u; ctx.stroke(); });
+    // labels
+    if (pts.length) {
+      const lbl = shapeLabel(photo, s);
+      if (lbl) {
+        let pos;
+        if (s.type === 'area' && pts.length > 2) pos = centroid(pts);
+        else if (s.type === 'text') pos = pts[0];
+        else if (s.type === 'count') pos = [pts[0][0], pts[0][1] - 24 * u];
+        else if (pts.length > 1) { pos = pointOnPoly(pts, .5); pos = [pos[0], pos[1] - 16 * u]; }
+        else pos = [pts[0][0], pts[0][1] - 16 * u];
+        drawLabel(ctx, lbl, pos[0], pos[1], u * (s.type === 'text' ? 1.15 : 1), s.type === 'text' ? darken(col) : '#1b1b1b');
+      }
+    }
+    ctx.restore();
+  });
+}
+
+/* Flatten the photo + annotations at full resolution (JPEG blob) */
+async function renderAnnotated(photo, srcBlob) {
+  const bmp = await createImageBitmap(srcBlob);
+  const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+  const ctx = c.getContext('2d'); ctx.drawImage(bmp, 0, 0);
+  drawShapes(ctx, photo, p => p, Math.max(1, bmp.width / 450));
+  return new Promise(r => c.toBlob(r, 'image/jpeg', 0.85));
+}
+
+/* ---------- the editor ---------- */
+const TOOLS = [
+  { id: 'select', ic: '👆', t: 'Select', hint: 'Tap a shape to select it. Drag a white dot to fix a point. Drag empty space to move; pinch or scroll to zoom.' },
+  { id: 'cal', ic: '📐', t: 'Calibrate', hint: 'Tap the two ends of something you know the length of (tape, 4-ft level, a paver). Then enter its real length.' },
+  { id: 'line', ic: '📏', t: 'Length', hint: 'Tap along a hedge, edge or fence line. Tap ✔ Finish when done.' },
+  { id: 'area', ic: '⬠', t: 'Area', hint: 'Tap each corner of the bed or lawn. Tap the first dot or ✔ Close shape to finish.' },
+  { id: 'count', ic: '🔢', t: 'Count', hint: 'Tap each plant, tree or item. Tap ✔ Finish when done.' },
+  { id: 'arrow', ic: '➚', t: 'Arrow', hint: 'Tap the tail, then the point.' },
+  { id: 'text', ic: '🅣', t: 'Text', hint: 'Tap where the note should go.' },
+  { id: 'free', ic: '✎', t: 'Draw', hint: 'Drag one finger to draw. Use two fingers to move the picture.' }
 ];
+const Ed = {
+  photo: null, img: null, srcBlob: null, cv: null, ctx: null, v: { s: 1, tx: 0, ty: 0 }, tool: 'select', draft: null, sel: null,
+  ptrs: new Map(), hist: [], color: ANNOT_COLORS[0], drag: null, gesture: null, moved: false, raf: 0, dirty: false, onClose: null,
 
-let equipmentRentalSelections = [];
-let equipmentRentalIdCounter = 0;
-
-const materialCategory = document.getElementById('materialCategory');
-const materialType = document.getElementById('materialType');
-const dimensionsContainer = document.getElementById('dimensionsContainer');
-const includeGeoTextile = document.getElementById('includeGeoTextile');
-const geoTextileLinearFt = document.getElementById('geoTextileLinearFt');
-const includeEdging = document.getElementById('includeEdging');
-const edgingLinearFt = document.getElementById('edgingLinearFt');
-const summaryContent = document.getElementById('summaryContent');
-
-function init() {
-  var savedUrl = localStorage.getItem('ws_apps_script_url') || '';
-  if (savedUrl) { document.getElementById('appsScriptUrl').value = savedUrl; APPS_SCRIPT_URL = savedUrl; }
-  var sk = document.getElementById('sharedKeyInput'); if (sk) sk.value = SHARED_KEY;
-  checkDriveConnection();
-  try { const pm = localStorage.getItem('ws_pm_email'); if (pm) document.getElementById('pmEmail').value = pm; } catch(err) {}
-
-  updateMaterialOptions();
-  updateDimensionsInputs();
-
-  includeGeoTextile.addEventListener('change', e => { geoTextileLinearFt.style.display = e.target.checked ? 'block' : 'none'; document.getElementById('geoTextileLabel').classList.toggle('active', e.target.checked); calculate(); });
-  includeEdging.addEventListener('change', e => { edgingLinearFt.style.display = e.target.checked ? 'block' : 'none'; document.getElementById('edgingLabel').classList.toggle('active', e.target.checked); calculate(); });
-
-  const pms = document.getElementById('profitMarginSlider');
-  const pmd = document.getElementById('profitMarginDisplay');
-  if (pms && pmd) pms.addEventListener('input', e => { pmd.textContent = e.target.value + '%'; calculate(); });
-
-  materialCategory.addEventListener('change', () => { updateMaterialOptions(); updateDimensionsInputs(); calculate(); });
-  materialType.addEventListener('change', () => calculate());
-
-  document.querySelectorAll('input, select, textarea').forEach(el => el.addEventListener('input', () => calculate()));
-  const ah = document.getElementById('actualHours');
-  if (ah) ah.addEventListener('input', calculateLaborFromHours);
-
-  calculate();
-
-  // Deep link from the Field Survey app: estimator/?survey=<driveFolderId>
-  try {
-    var sid = new URLSearchParams(location.search).get('survey');
-    if (sid) {
-      history.replaceState(null, '', location.pathname);
-      if (APPS_SCRIPT_URL) importSurvey(sid);
-      else alert('Enter your Apps Script URL under Project Management first, then open the survey link again.');
+  init() {
+    this.cv = $('#edCanvas'); this.ctx = this.cv.getContext('2d');
+    const tb = $('#edTools'); tb.innerHTML = '';
+    TOOLS.forEach(t => { const b = document.createElement('button'); b.dataset.tool = t.id; b.innerHTML = '<span class="ic">' + t.ic + '</span>' + t.t; b.onclick = () => this.setTool(t.id); tb.appendChild(b); });
+    const cl = $('#edColors'); cl.innerHTML = '<span style="font-size:12px;color:#aaa">Color</span>';
+    ANNOT_COLORS.forEach(c => { const i = document.createElement('i'); i.style.background = c; i.onclick = () => this.setColor(c); i.dataset.c = c; cl.appendChild(i); });
+    const cv = this.cv;
+    cv.addEventListener('pointerdown', e => this.down(e)); cv.addEventListener('pointermove', e => this.move(e));
+    cv.addEventListener('pointerup', e => this.up(e)); cv.addEventListener('pointercancel', e => this.up(e));
+    cv.addEventListener('wheel', e => { e.preventDefault(); const r = cv.getBoundingClientRect(); this.zoomAt(e.clientX - r.left, e.clientY - r.top, e.deltaY < 0 ? 1.18 : 1 / 1.18); }, { passive: false });
+    $('#zIn').onclick = () => this.zoomAt(this.cv.clientWidth / 2, this.cv.clientHeight / 2, 1.4);
+    $('#zOut').onclick = () => this.zoomAt(this.cv.clientWidth / 2, this.cv.clientHeight / 2, 1 / 1.4);
+    $('#zFit').onclick = () => { this.fit(); this.draw(); };
+    $('#edUndo').onclick = () => this.undo();
+    $('#edDone').onclick = () => this.close();
+    $('#edMenu').onclick = () => this.menu();
+    window.addEventListener('resize', () => { if (this.photo) { this.resize(); this.draw(); } });
+    this.setColor(this.color);
+  },
+  async open(photoId, onClose) {
+    const photo = JOB.photos.find(p => p.id === photoId); if (!photo) return;
+    const rec = await DB.get('photos', photoId); if (!rec || !rec.orig) { toast('Photo file missing on this device'); return; }
+    this.photo = photo; this.srcBlob = rec.orig; this.img = await createImageBitmap(rec.orig);
+    this.onClose = onClose; this.draft = null; this.sel = null; this.hist = []; this.dirty = false; this.tool = 'select';
+    photo.shapes = photo.shapes || [];
+    $('#screenEditor').hidden = false; $('#edTitle').textContent = photo.caption || 'Photo';
+    this.resize(); this.fit(); this.setTool(photo.calibration || !photo.shapes.length ? (photo.calibration ? 'select' : 'cal') : 'select'); this.draw();
+    if (!ls.get('ws_flat_tip')) { ls.set('ws_flat_tip', '1'); setTimeout(() => toast('Tip: only measure things on the same flat surface as your reference. Photo measurements are estimates.', 5200), 600); }
+  },
+  async close() {
+    if (this.draft && this.draft.pts.length) { const ok = await confirmDlg('Discard the shape you are drawing?', 'Discard', 'bad'); if (!ok) return; }
+    this.draft = null;
+    const p = this.photo;
+    try {
+      const ann = await renderAnnotated(p, this.srcBlob);
+      const rec = await DB.get('photos', p.id); rec.ann = ann; await DB.put('photos', rec); photoUrl(p.id, 'ann', ann);
+      if (this.dirty) p.annDirty = true;
+    } catch (e) { console.error(e); }
+    $('#screenEditor').hidden = true; this.photo = null; this.img = null;
+    if (this.onClose) this.onClose(this.dirty);
+  },
+  resize() { const w = this.cv.clientWidth, h = this.cv.clientHeight, d = window.devicePixelRatio || 1; this.cv.width = Math.round(w * d); this.cv.height = Math.round(h * d); },
+  fit() { const W = this.cv.clientWidth, H = this.cv.clientHeight, iw = this.img.width, ih = this.img.height; const s = Math.min(W / iw, H / ih) * .98; this.v = { s, tx: (W - iw * s) / 2, ty: (H - ih * s) / 2 }; },
+  tf(p) { return [p[0] * this.v.s + this.v.tx, p[1] * this.v.s + this.v.ty]; },
+  inv(x, y) { return [(x - this.v.tx) / this.v.s, (y - this.v.ty) / this.v.s]; },
+  zoomAt(x, y, k) { const ns = Math.max(this.fitScale() * .5, Math.min(this.v.s * k, 12)), r = ns / this.v.s; this.v.tx = x - (x - this.v.tx) * r; this.v.ty = y - (y - this.v.ty) * r; this.v.s = ns; this.draw(); },
+  fitScale() { return Math.min(this.cv.clientWidth / this.img.width, this.cv.clientHeight / this.img.height); },
+  draw() { if (this.raf) return; this.raf = requestAnimationFrame(() => { this.raf = 0; this._draw(); }); },
+  _draw() {
+    if (!this.img) return; const d = window.devicePixelRatio || 1, c = this.ctx;
+    c.setTransform(d, 0, 0, d, 0, 0); c.fillStyle = '#000'; c.fillRect(0, 0, this.cv.clientWidth, this.cv.clientHeight);
+    c.drawImage(this.img, this.v.tx, this.v.ty, this.img.width * this.v.s, this.img.height * this.v.s);
+    drawShapes(c, this.photo, p => this.tf(p), 1, { selId: this.sel, draft: this.draft });
+    this.renderActions();
+  },
+  setColor(c) { this.color = c; $$('#edColors i').forEach(i => i.classList.toggle('on', i.dataset.c === c)); if (this.sel) { const s = this.shapeById(this.sel); if (s && !s.itemId && ['arrow', 'text', 'free'].includes(s.type)) { this.pushHist(); s.color = c; this.dirty = true; this.draw(); } } },
+  setTool(id) {
+    if ((id === 'line' || id === 'area') && !this.photo.calibration) { toast('Calibrate first: mark something with a known length.', 3200); id = 'cal'; }
+    if (this.draft && this.draft.pts.length && this.draft.type !== id) this.draft = null;
+    this.tool = id; if (id !== 'select') this.sel = null;
+    $$('#edTools button').forEach(b => b.classList.toggle('on', b.dataset.tool === id));
+    $('#edHint').textContent = TOOLS.find(t => t.id === id).hint;
+    $('#edColors').style.display = ['arrow', 'text', 'free', 'select'].includes(id) ? 'flex' : 'none';
+    this.draw();
+  },
+  shapeById(id) { return this.photo.shapes.find(s => s.id === id); },
+  pushHist() { this.hist.push(JSON.stringify({ shapes: this.photo.shapes, cal: this.photo.calibration })); if (this.hist.length > 40) this.hist.shift(); },
+  undo() {
+    if (this.draft && this.draft.pts.length) { this.draft.pts.pop(); if (!this.draft.pts.length) this.draft = null; this.draw(); return; }
+    const h = this.hist.pop(); if (!h) { toast('Nothing to undo'); return; }
+    const o = JSON.parse(h); this.photo.shapes = o.shapes; this.photo.calibration = o.cal; this.sel = null; this.dirty = true; this.draw();
+  },
+  /* ---- pointer handling ---- */
+  pos(e) { const r = this.cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; },
+  down(e) {
+    this.cv.setPointerCapture(e.pointerId); const p = this.pos(e);
+    this.ptrs.set(e.pointerId, { x: p[0], y: p[1], sx: p[0], sy: p[1] });
+    if (this.ptrs.size === 2) { this.startPinch(); this.drag = null; if (this.freeDraft) { this.freeDraft = null; this.draft = null; } return; }
+    this.moved = false; this.gesture = false;
+    const ip = this.inv(p[0], p[1]);
+    if (this.tool === 'free') { this.freeDraft = true; this.draft = { id: uid(), type: 'free', pts: [ip], color: this.color, draft: true }; this.draw(); return; }
+    if (this.tool === 'select') {
+      const vh = this.vertexHit(p); if (vh) { this.pushHist(); this.drag = vh; }
     }
-  } catch (e) {}
-}
-
-function calculateLaborFromHours() {
-  const actualHours = parseFloat(document.getElementById('actualHours').value) || 0;
-  const laborRate = parseFloat(document.getElementById('laborRate').value) || 158;
-  const alf = document.getElementById('actualLabor');
-  if (alf) { alf.value = actualHours > 0 ? (actualHours * laborRate).toFixed(2) : ''; updateActualComparison(); }
-}
-
-function updateMaterialOptions() {
-  const cat = materialCategory.value;
-  if (cat === 'none') { materialType.innerHTML = '<option value="">No material selected</option>'; return; }
-  materialType.innerHTML = MATERIALS[cat].map(m => {
-    const price = cat === 'sod' ? `$${m.pricePerSqFt.toFixed(2)}/sq ft` : `$${m.pricePerYard}/yard`;
-    return `<option value="${m.name.replace(/"/g, '&quot;')}">${m.name} - ${price}</option>`;
-  }).join('');
-}
-
-function updateDimensionsInputs() {
-  const cat = materialCategory.value;
-  if (cat === 'none') {
-    dimensionsContainer.innerHTML = '<p style="color:#7f8c8d;font-size:13px;text-align:center;padding:20px;">No material selected. Choose a material category or proceed with labor/equipment only.</p>';
-  } else if (cat === 'sod') {
-    dimensionsContainer.innerHTML = `<div class="grid-2"><div><label>Length (ft)</label><input type="number" id="length" placeholder="0"></div><div><label>Width (ft)</label><input type="number" id="width" placeholder="0"></div></div>`;
-  } else {
-    dimensionsContainer.innerHTML = `<div class="grid-2"><div><label>Length (ft)</label><input type="number" id="length" placeholder="0"></div><div><label>Width (ft)</label><input type="number" id="width" placeholder="0"></div></div><label>Depth (inches)</label><input type="number" id="depth" value="1">`;
-  }
-  dimensionsContainer.querySelectorAll('input').forEach(el => el.addEventListener('input', () => calculate()));
-}
-
-function formatCurrency(v) { return new Intl.NumberFormat('en-US', { style:'currency', currency:'USD', minimumFractionDigits:2 }).format(v || 0); }
-
-function sendMaterialToBreakdown() {
-  const cat = materialCategory.value;
-  if (!cat || cat === 'none') { alert('Please select a material category first.'); return; }
-  const sel = materialType.value;
-  const name = sel.replace(/&quot;/g, '"');
-  const material = MATERIALS[cat]?.find(m => m.name === name);
-  if (!material) { alert('Please select a material type.'); return; }
-  let cost = 0, details = '', orderInfo = '', qCy = 0, qSq = 0, qPieces = 0;
-  if (cat === 'sod') {
-    const l = parseFloat(document.getElementById('length')?.value) || 0, w = parseFloat(document.getElementById('width')?.value) || 0;
-    const sqFt = l * w;
-    if (sqFt <= 0) { alert('Please enter dimensions.'); return; }
-    const sodInfo = getSodPricing(sqFt, material);
-    cost = sodInfo.cost; qSq = sqFt;
-    details = sodInfo.details; orderInfo = '';
-  } else {
-    const l = parseFloat(document.getElementById('length')?.value) || 0, w = parseFloat(document.getElementById('width')?.value) || 0, d = parseFloat(document.getElementById('depth')?.value) || 1;
-    if (l <= 0 || w <= 0) { alert('Please enter dimensions.'); return; }
-    const cy = (l * w * d) / 12 / 27;
-    cost = cy * material.pricePerYard; qCy = cy; qSq = l * w;
-    details = `${l}' × ${w}' × ${d}" = ${cy.toFixed(2)} cu yds`;
-    orderInfo = `Order: ${(Math.ceil(cy * 10) / 10).toFixed(1)} cu yds (rounded up)`;
-  }
-  const areaLabel = document.getElementById('materialAreaLabel')?.value?.trim() || '';
-  const notes = document.getElementById('materialNotes')?.value || '';
-  const entryId = `mat_${Date.now()}_${Math.random().toString(36).substr(2,6)}`;
-  completedMaterials.push({ entryId, category: cat, materialName: name, areaLabel, cost, details, orderInfo, notes, cy: qCy, sqFt: qSq, pieces: qPieces });
-  ['materialAreaLabel','materialNotes','length','width'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
-  const de = document.getElementById('depth'); if(de) de.value = '1';
-  const mcd = document.getElementById('materialCostDisplay'); if(mcd) mcd.style.display = 'none';
-  calculate();
-  const btn = document.querySelector('.send-to-breakdown-btn');
-  const lbl = areaLabel ? ` — ${areaLabel}` : '';
-  btn.textContent = `✓ ${name}${lbl} Added!`;
-  btn.style.background = 'linear-gradient(90deg,#27ae60 0%,#2ecc71 100%)';
-  setTimeout(() => { btn.textContent = '➕ Add to Cost Breakdown'; btn.style.background = ''; btn.className = 'send-to-breakdown-btn'; }, 2500);
-}
-
-function removeCompletedMaterial(entryId) {
-  const entry = completedMaterials.find(m => m.entryId === entryId);
-  const label = entry ? (entry.areaLabel ? `${entry.materialName} (${entry.areaLabel})` : entry.materialName) : 'this material';
-  if (!confirm(`Remove ${label} from this estimate?`)) return;
-  completedMaterials = completedMaterials.filter(m => m.entryId !== entryId);
-  calculate();
-}
-
-function addEquipmentRental() {
-  const id = equipmentRentalIdCounter++;
-  const container = document.getElementById('equipmentRentalList');
-  const div = document.createElement('div');
-  div.id = `equipment-rental-${id}`;
-  div.style.cssText = 'background:#f8f9fa;border:2px solid #3498db;border-radius:8px;padding:16px;margin-bottom:12px;position:relative;';
-  div.innerHTML = `
-    <button onclick="removeEquipmentRental(${id})" style="position:absolute;top:8px;right:8px;background:#e74c3c;color:white;border:none;border-radius:4px;width:24px;height:24px;cursor:pointer;font-size:16px;line-height:1;padding:0;">×</button>
-    <div style="margin-bottom:12px;"><label style="display:block;margin-bottom:4px;font-weight:600;font-size:13px;">Equipment</label>
-    <select id="equipment-rental-type-${id}" onchange="updateEquipmentRentalCost(${id})" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:6px;font-family:inherit;">
-      <option value="">Select Equipment</option>
-      ${EQUIPMENT_RENTAL.map(eq => `<option value="${eq.name}">${eq.name} - $${eq.dailyRate}/day</option>`).join('')}
-    </select></div>
-    <div style="margin-bottom:12px;"><label style="display:block;margin-bottom:4px;font-weight:600;font-size:13px;">Duration</label>
-    <select id="equipment-rental-duration-${id}" onchange="updateEquipmentRentalCost(${id})" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:6px;font-family:inherit;">
-      <option value="4hour">4 Hours</option><option value="full" selected>Full Day</option><option value="week">Week</option><option value="4week">4 Weeks</option>
-    </select></div>
-    <div style="background:white;padding:12px;border-radius:6px;border:2px solid #3498db;">
-      <div style="font-size:12px;color:#7f8c8d;margin-bottom:4px;">Rental Cost (with tax & insurance)</div>
-      <div id="equipment-rental-cost-${id}" style="font-size:20px;font-weight:700;color:#3498db;">$0.00</div>
-      <div id="equipment-rental-details-${id}" style="font-size:11px;color:#7f8c8d;margin-top:4px;"></div>
-    </div>`;
-  container.appendChild(div);
-  equipmentRentalSelections.push({ id, name: '', duration: 'full', cost: 0 });
-  updateEquipmentRentalCost(id);
-}
-
-function removeEquipmentRental(id) {
-  const el = document.getElementById(`equipment-rental-${id}`); if(el) el.remove();
-  equipmentRentalSelections = equipmentRentalSelections.filter(e => e.id !== id);
-  calculate();
-}
-
-function updateEquipmentRentalCost(id) {
-  const equipName = document.getElementById(`equipment-rental-type-${id}`).value;
-  const duration = document.getElementById(`equipment-rental-duration-${id}`).value;
-  if (!equipName) {
-    document.getElementById(`equipment-rental-cost-${id}`).textContent = '$0.00';
-    document.getElementById(`equipment-rental-details-${id}`).textContent = '';
-    const sel = equipmentRentalSelections.find(e => e.id === id);
-    if (sel) { sel.name = ''; sel.cost = 0; }
-    calculate(); return;
-  }
-  const equipment = EQUIPMENT_RENTAL.find(e => e.name === equipName);
-  if (!equipment) return;
-  let baseCost = 0, details = '';
-  if (duration === '4hour') { baseCost = equipment.fourHourRate; details = '4 hour rental'; }
-  else if (duration === 'full') { baseCost = equipment.dailyRate; details = 'Full day rental'; }
-  else if (duration === 'week') { baseCost = equipment.weekRate; details = 'Week rental'; }
-  else if (duration === '4week') { baseCost = equipment.fourWeekRate; details = '4 weeks rental'; }
-  const insurance = baseCost * 0.15;
-  const salesTax = (baseCost + insurance) * 0.07;
-  const total = baseCost + insurance + salesTax;
-  document.getElementById(`equipment-rental-cost-${id}`).textContent = formatCurrency(total);
-  document.getElementById(`equipment-rental-details-${id}`).textContent = `${details} | Base: ${formatCurrency(baseCost)} + Insurance (15%): ${formatCurrency(insurance)} + Tax (7%): ${formatCurrency(salesTax)}`;
-  const sel = equipmentRentalSelections.find(e => e.id === id);
-  if (sel) { sel.name = equipName; sel.duration = duration; sel.baseCost = baseCost; sel.insurance = insurance; sel.salesTax = salesTax; sel.cost = total; sel.details = details; }
-  calculate();
-}
-
-function addMaterialRow() {
-  const container = document.getElementById('additionalMaterialsContainer');
-  const id = Date.now() + Math.random();
-  const div = document.createElement('div');
-  div.id = `addmat-${id}`;
-  div.style.cssText = 'display:grid;grid-template-columns:2fr 1fr auto;gap:8px;margin-bottom:8px;';
-  div.innerHTML = `
-    <input type="text" placeholder="Material description" class="addmat-desc" data-rowid="${id}" style="padding:10px;border:2px solid #e0e0e0;border-radius:6px;font-family:inherit;">
-    <input type="number" placeholder="Cost" class="addmat-cost" data-rowid="${id}" style="padding:10px;border:2px solid #e0e0e0;border-radius:6px;font-family:inherit;">
-    <button onclick="removeMaterialRow('${id}')" style="padding:10px;background:#e74c3c;color:white;border:none;border-radius:6px;cursor:pointer;">✕</button>`;
-  container.appendChild(div);
-  additionalMaterialRows.push({ id: String(id), description: '', cost: 0 });
-  div.querySelector('.addmat-desc').addEventListener('input', e => { const r = additionalMaterialRows.find(r => r.id === String(id)); if(r) r.description = e.target.value; calculate(); });
-  div.querySelector('.addmat-cost').addEventListener('input', e => { const r = additionalMaterialRows.find(r => r.id === String(id)); if(r) r.cost = parseFloat(e.target.value)||0; calculate(); });
-}
-
-function removeMaterialRow(id) {
-  const el = document.getElementById(`addmat-${id}`); if(el) el.remove();
-  additionalMaterialRows = additionalMaterialRows.filter(r => String(r.id) !== String(id));
-  calculate();
-}
-
-function addEquipmentRow() {
-  const container = document.getElementById('equipmentContainer');
-  const id = Date.now() + Math.random();
-  const div = document.createElement('div');
-  div.id = `equipment-${id}`;
-  div.style.cssText = 'display:grid;grid-template-columns:2fr 1fr auto;gap:8px;margin-bottom:8px;';
-  div.innerHTML = `
-    <input type="text" id="equipment-desc-${id}" placeholder="Equipment description" style="padding:10px;border:2px solid #e0e0e0;border-radius:6px;font-family:inherit;">
-    <input type="number" id="equipment-cost-${id}" placeholder="Cost" style="padding:10px;border:2px solid #e0e0e0;border-radius:6px;font-family:inherit;">
-    <button onclick="removeEquipmentRow('${id}')" style="padding:10px;background:#e74c3c;color:white;border:none;border-radius:6px;cursor:pointer;">✕</button>`;
-  container.appendChild(div);
-  equipmentRows.push({ id, description: '', cost: 0 });
-  document.getElementById(`equipment-desc-${id}`).addEventListener('input', e => { const r = equipmentRows.find(r => r.id == id); if(r) r.description = e.target.value; calculate(); });
-  document.getElementById(`equipment-cost-${id}`).addEventListener('input', e => { const r = equipmentRows.find(r => r.id == id); if(r) r.cost = parseFloat(e.target.value)||0; calculate(); });
-}
-
-function removeEquipmentRow(id) {
-  const el = document.getElementById(`equipment-${id}`); if(el) el.remove();
-  equipmentRows = equipmentRows.filter(r => r.id != id);
-  calculate();
-}
-
-function calculate() {
-  const cat = materialCategory.value;
-  // Sod: price from the running total across all areas of the same sod type
-  let sodAlloc = { curCost: 0, curTotal: 0 };
-  {
-    const sn = cat === 'sod' ? materialType.value.replace(/&quot;/g, '"') : '';
-    const sl = cat === 'sod' ? (parseFloat(document.getElementById('length')?.value) || 0) : 0;
-    const sw = cat === 'sod' ? (parseFloat(document.getElementById('width')?.value) || 0) : 0;
-    sodAlloc = allocateSodCosts(sn, sl * sw);
-  }
-  if (cat === 'none') {
-    const mcd = document.getElementById('materialCostDisplay'); if(mcd) mcd.style.display = 'none';
-    calculateTotalsAndDisplay(0, { category:'none', materialName:'None', cubicYards:0, cubicFeet:0, totalSqFt:0, totalLinearFt:0 }, completedMaterials.reduce((s,m) => s+m.cost, 0));
-    return;
-  }
-  const selName = materialType.value.replace(/&quot;/g, '"');
-  const material = MATERIALS[cat]?.find(m => m.name === selName);
-  if (!material) return;
-  let cost = 0, cy = 0, cf = 0, sqFt = 0, linFt = 0, sodInfo = null;
-  if (cat === 'sod') {
-    const l = parseFloat(document.getElementById('length')?.value)||0, w = parseFloat(document.getElementById('width')?.value)||0;
-    sqFt = l * w; sodInfo = getSodPricing(sodAlloc.curTotal, material); cost = sodAlloc.curCost;
-  } else {
-    const l = parseFloat(document.getElementById('length')?.value)||0, w = parseFloat(document.getElementById('width')?.value)||0, d = parseFloat(document.getElementById('depth')?.value)||1;
-    sqFt = l * w; linFt = l; cf = (l*w*d)/12; cy = cf/27; cost = cy * material.pricePerYard;
-  }
-  const mcd = document.getElementById('materialCostDisplay'), mca = document.getElementById('materialCostAmount'), mcdet = document.getElementById('materialCostDetails');
-  if (cost > 0 && mcd && mca && mcdet) {
-    mcd.style.display = 'block'; mca.textContent = formatCurrency(cost);
-    mcdet.textContent = cat === 'sod' ? (sodAlloc.curTotal > sqFt + 0.5 ? `${sqFt.toFixed(0)} sq ft • running total ${sodInfo.short}` : sodInfo.short) : `${sqFt.toFixed(0)} sq ft × ${document.getElementById('depth')?.value||1}" depth = ${cy.toFixed(2)} yards`;
-  } else if (mcd) { mcd.style.display = 'none'; }
-  calculateTotalsAndDisplay(cost, { category:cat, materialName:selName, cubicYards:cy, cubicFeet:cf, totalSqFt:sqFt, totalLinearFt:linFt }, completedMaterials.reduce((s,m) => s+m.cost, 0));
-}
-
-function calculateTotalsAndDisplay(curCost, curData, completedCost) {
-  const geoFt = parseFloat(geoTextileLinearFt.value)||0, edgFt = parseFloat(edgingLinearFt.value)||0;
-  const geoCost = includeGeoTextile.checked ? geoFt * ADDONS.geoTextile.pricePerLinearFt : 0;
-  const edgCost = includeEdging.checked ? edgFt * ADDONS.edging.pricePerLinearFt : 0;
-  const addOnsCost = geoCost + edgCost;
-  const laborHours = parseFloat(document.getElementById('laborHours').value)||0;
-  const laborRate = parseFloat(document.getElementById('laborRate').value)||0;
-  const laborCost = laborHours * laborRate;
-  const eqCost = equipmentRows.reduce((s,r) => s+(r.cost||0), 0);
-  const erCost = equipmentRentalSelections.reduce((s,r) => s+(r.cost||0), 0);
-  const totalEqCost = eqCost + erCost;
-  const validAddMat = [];
-  additionalMaterialRows.forEach(row => {
-    const de = document.querySelector(`.addmat-desc[data-rowid="${row.id}"]`);
-    const ce = document.querySelector(`.addmat-cost[data-rowid="${row.id}"]`);
-    if (de && ce) { const desc = de.value.trim(), cost = parseFloat(ce.value)||0; if(desc && cost>0) validAddMat.push({description:desc,cost}); }
-  });
-  const addMatBase = validAddMat.reduce((s,m) => s+m.cost, 0);
-  const addMatMarkup = addMatBase * 0.10;
-  const addMatCost = addMatBase + addMatMarkup;
-  const delivery = parseFloat(document.getElementById('deliveryFee').value)||0;
-  const haul = parseFloat(document.getElementById('haulAway').value)||0;
-  const subtotal = curCost + completedCost + addMatCost + addOnsCost + laborCost + totalEqCost + delivery + haul;
-  const markupAmt = subtotal * ((parseFloat(document.getElementById('markupPercent').value)||0)/100);
-  const totalWM = subtotal + markupAmt;
-  const bh = document.getElementById('budgetHours'); if(bh && laborHours>0) bh.value = laborHours;
-  const targetPct = parseFloat(document.getElementById('profitMarginSlider')?.value)||40;
-  const targetM = targetPct/100, ccRate = 0.03;
-  const recPrice = totalWM / (1 - targetM - ccRate);
-  const ccFee = recPrice * ccRate;
-  const profit = recPrice - totalWM - ccFee;
-  const profitMargin = (profit / recPrice) * 100;
-
-  displaySummary({
-    projectName: document.getElementById('projectName')?.value||'',
-    propertyAddress: document.getElementById('propertyAddress')?.value||'',
-    projectType: document.getElementById('projectType')?.value||'',
-    materialCost: curCost, completedMaterials, completedMaterialsCost: completedCost,
-    additionalMaterialsBase: addMatBase, additionalMaterialsMarkup: addMatMarkup, additionalMaterialsCost: addMatCost,
-    additionalMaterials: validAddMat, addOnsCost, geoTextileCost: geoCost, edgingCost: edgCost,
-    geoTextileLinearFt: geoFt, edgingLinearFt: edgFt,
-    laborCost, laborHours,
-    equipmentCost: eqCost, equipmentRows: equipmentRows.filter(r=>r.description&&r.description.trim()).map(r=>({description:r.description,cost:r.cost})),
-    equipmentRentalCost: erCost, equipmentRentalSelections: equipmentRentalSelections.filter(r=>r.name&&r.cost>0),
-    totalEquipmentCost: totalEqCost, deliveryFee: delivery, haulAway: haul,
-    subtotal, markupAmount: markupAmt, totalWithMarkup: totalWM,
-    targetProfit: profit, ccFee, recommendedPrice: recPrice, profitMargin, targetMarginPercent: targetPct,
-    cubicYards: curData.cubicYards, cubicFeet: curData.cubicFeet, totalSqFt: curData.totalSqFt, totalLinearFt: curData.totalLinearFt,
-    category: curData.category, materialName: curData.materialName,
-    orderNotes: document.getElementById('orderNotes')?.value||'',
-    equipmentNotes: document.getElementById('equipmentNotes')?.value||'',
-    siteNotes: document.getElementById('siteNotes')?.value||''
-  });
-}
-
-function getMaterialQty(m) {
-  let cy = m.cy, sq = m.sqFt;
-  if (m.category !== 'sod' && cy === undefined) { const x = /=\s*([\d.]+)\s*cu yds/.exec(m.details || ''); cy = x ? parseFloat(x[1]) : 0; }
-  if (m.category === 'sod' && sq === undefined) { const x = /^([\d.,]+)\s*sq ft/.exec(m.details || ''); sq = x ? parseFloat(x[1].replace(/,/g, '')) : 0; }
-  return { cy: cy || 0, sq: sq || 0, pieces: m.pieces || 0 };
-}
-
-// Groups every selected material by category (mulch, rock, dirt, sod) for ordering
-const ORDER_CATS = [['mulch','Mulch','🪵'],['rock','Decorative Rock','🪨'],['dirt','Dirt / Soil','🟤'],['sod','Sod','🌱']];
-const roundUpTenth = v => (Math.ceil(v * 10 - 1e-9) / 10).toFixed(1);
-
-// Sod quantity text: whole pallets plus leftover pieces
-function sodQtyText(sqft, pallets, pieces, sep) {
-  return `${sqft.toFixed(0)} sq ft${sep}${sodSplitText({ pallets, pieces })}`;
-}
-
-function groupMaterials(e) {
-  const items = [];
-  (e.completedMaterials || []).forEach(m => { const q = getMaterialQty(m); items.push({ category: m.category, name: m.materialName, area: m.areaLabel || '', cost: m.cost || 0, cy: q.cy, sq: q.sq }); });
-  const hasCurrent = !!(e.category && e.category !== 'none' && e.materialCost > 0);
-  if (hasCurrent) items.push({ category: e.category, name: e.materialName, area: (document.getElementById('materialAreaLabel')?.value || '').trim(), cost: e.materialCost, cy: e.category === 'sod' ? 0 : (e.cubicYards || 0), sq: e.category === 'sod' ? (e.totalSqFt || 0) : 0 });
-  const addOns = [];
-  if (e.geoTextileCost > 0) addOns.push(['Geo Textile Fabric', `${e.geoTextileLinearFt} linear ft`, '🧵']);
-  if (e.edgingCost > 0) addOns.push(['Composite Edging', `${e.edgingLinearFt} linear ft`, '🔲']);
-  const groups = [];
-  ORDER_CATS.forEach(([key, label, icon]) => {
-    const list = items.filter(i => i.category === key);
-    if (!list.length) return;
-    const byName = new Map();
-    list.forEach(i => { const g = byName.get(i.name) || { name: i.name, cost: 0, cy: 0, sq: 0 }; g.cost += i.cost; g.cy += i.cy; g.sq += i.sq; byName.set(i.name, g); });
-    const isSod = key === 'sod';
-    const rows = [...byName.values()].map(g => ({ ...g, ...(isSod ? sodSplit(g.sq) : { pallets: 0, pieces: 0 }) }));
-    groups.push({ key, label, icon, isSod, rows,
-      totCost: rows.reduce((t, r) => t + r.cost, 0), totCy: rows.reduce((t, r) => t + r.cy, 0),
-      totSq: rows.reduce((t, r) => t + r.sq, 0), totPallets: isSod ? rows.reduce((t, r) => t + r.pallets, 0) : 0, totPieces: rows.reduce((t, r) => t + r.pieces, 0) });
-  });
-  return { items, groups, addOns, hasCurrent };
-}
-
-// Running order totals grouped by material category for easier ordering
-function buildOrderSummary(e) {
-  const { groups, addOns, hasCurrent } = groupMaterials(e);
-  if (!groups.length && !addOns.length) return '';
-  let html = '<div class="info-box"><h3>🛒 Material Order Summary</h3>';
-  groups.forEach(g => {
-    const rows = g.rows.map(r => {
-      const qty = g.isSod ? sodQtyText(r.sq, r.pallets, r.pieces, ' • ') : `${r.cy.toFixed(2)} cu yd (order ${roundUpTenth(r.cy)})`;
-      return `<div style="display:flex;justify-content:space-between;font-size:12px;color:#2c3e50;margin-bottom:4px;"><span>• ${r.name}: ${qty}</span><span>${formatCurrency(r.cost)}</span></div>`;
-    }).join('');
-    const totalLine = g.isSod ? `${g.totSq.toFixed(0)} sq ft • ${[g.totPallets > 0 ? g.totPallets + ' pallet' + (g.totPallets === 1 ? '' : 's') : '', g.totPieces > 0 ? g.totPieces + ' piece' + (g.totPieces === 1 ? '' : 's') : ''].filter(Boolean).join(' + ')} total` : `${g.totCy.toFixed(2)} cu yd → order ${roundUpTenth(g.totCy)} cu yd`;
-    html += `<div style="border-left:4px solid #27ae60;background:#fff;padding:10px 14px;margin-bottom:10px;border-radius:4px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><div style="font-size:13px;font-weight:700;color:#2c3e50;">${g.icon} ${g.label} Total</div><div style="font-size:15px;font-weight:700;color:#27ae60;">${formatCurrency(g.totCost)}</div></div>
-      ${rows}
-      <div style="border-top:1px solid #e0e0e0;margin-top:6px;padding-top:6px;font-size:12px;font-weight:700;color:#27ae60;">${totalLine}</div>
-    </div>`;
-  });
-  if (addOns.length) html += `<div style="font-size:12px;color:#2c3e50;padding:0 4px;">${addOns.map(a => `<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>${a[2]} ${a[0]}</span><span style="font-weight:600;">${a[1]}</span></div>`).join('')}</div>`;
-  if (hasCurrent) html += '<div style="font-size:10px;color:#7f8c8d;margin-top:6px;">Includes the material currently being configured (not yet added).</div>';
-  return html + '</div>';
-}
-
-// Plain-text ordering email (quantities only, no prices)
-function buildOrderEmail() {
-  const e = window.lastSummaryData || {};
-  const { items, groups, addOns } = groupMaterials(e);
-  const name = (e.projectName || '').trim(), addr = (e.propertyAddress || '').trim();
-  const subject = 'Material Order' + (name ? ' - ' + name : '') + (addr ? ' - ' + addr : '');
-  const L = [];
-  L.push('Hi,', '', 'Please see the ordering details for this project below.', '');
-  L.push('PROJECT: ' + (name || '(not entered)'));
-  if (addr) L.push('ADDRESS: ' + addr);
-  if (e.projectType) L.push('TYPE: ' + e.projectType);
-  if (groups.length || addOns.length) {
-    L.push('', 'MATERIAL ORDER (TOTALS)');
-    groups.forEach(g => {
-      L.push(g.label + ': ' + (g.isSod ? `${g.totSq.toFixed(0)} sq ft = ${[g.totPallets > 0 ? g.totPallets + ' pallet' + (g.totPallets === 1 ? '' : 's') : '', g.totPieces > 0 ? g.totPieces + ' piece' + (g.totPieces === 1 ? '' : 's') : ''].filter(Boolean).join(' + ')}` : `${g.totCy.toFixed(2)} cu yd (order ${roundUpTenth(g.totCy)})`));
-      g.rows.forEach(r => L.push('   - ' + r.name + ': ' + (g.isSod ? sodQtyText(r.sq, r.pallets, r.pieces, ' = ') : `${r.cy.toFixed(2)} cu yd (order ${roundUpTenth(r.cy)})`)));
+  },
+  startPinch() {
+    const a = Array.from(this.ptrs.values()); this.pinch = { d: Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y), cx: (a[0].x + a[1].x) / 2, cy: (a[0].y + a[1].y) / 2 }; this.gesture = true;
+  },
+  move(e) {
+    const q = this.ptrs.get(e.pointerId); if (!q) return; const p = this.pos(e); const dx = p[0] - q.x, dy = p[1] - q.y; q.x = p[0]; q.y = p[1];
+    if (this.ptrs.size === 2 && this.pinch) {
+      const a = Array.from(this.ptrs.values()), d = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y), cx = (a[0].x + a[1].x) / 2, cy = (a[0].y + a[1].y) / 2;
+      const k = d / (this.pinch.d || d), ns = Math.max(this.fitScale() * .5, Math.min(this.v.s * k, 12)), r = ns / this.v.s;
+      this.v.tx = cx - (this.pinch.cx - this.v.tx) * r + 0; this.v.ty = cy - (this.pinch.cy - this.v.ty) * r + 0; this.v.s = ns;
+      this.pinch = { d, cx, cy }; this.moved = true; this.draw(); return;
+    }
+    if (Math.hypot(p[0] - q.sx, p[1] - q.sy) > 9) this.moved = true;
+    if (this.freeDraft && this.draft) { this.draft.pts.push(this.inv(p[0], p[1])); this.draw(); return; }
+    if (this.drag) { const s = this.shapeById(this.drag.id); if (s) { s.pts[this.drag.i] = this.inv(p[0], p[1]); this.dirty = true; this.draw(); } return; }
+    if (this.moved && this.ptrs.size === 1) { this.v.tx += dx; this.v.ty += dy; this.draw(); }
+  },
+  up(e) {
+    const q = this.ptrs.get(e.pointerId); this.ptrs.delete(e.pointerId);
+    if (this.gesture) { if (this.ptrs.size === 0) { this.gesture = false; this.pinch = null; } return; }
+    if (this.freeDraft) { this.freeDraft = null; const d = this.draft; this.draft = null; if (d && d.pts.length > 2) { this.pushHist(); d.draft = false; this.photo.shapes.push(d); this.dirty = true; } this.draw(); return; }
+    if (this.drag) { const s = this.shapeById(this.drag.id); this.drag = null; if (s) { refreshItemFromShape(this.photo, s); } this.draw(); App.itemsChanged(); return; }
+    if (!q || this.moved) return;
+    this.tap(q.sx, q.sy);
+  },
+  tap(x, y) {
+    const ip = this.inv(x, y), t = this.tool;
+    if (t === 'select') { const h = this.hitShape([x, y]); this.sel = h ? h.id : null; this.draw(); return; }
+    if (t === 'text') { askText('Add note', 'Type a short note…', '').then(txt => { if (!txt) return; this.pushHist(); this.photo.shapes.push({ id: uid(), type: 'text', pts: [ip], text: txt, color: this.color }); this.dirty = true; this.draw(); }); return; }
+    if (t === 'arrow') { if (!this.draft) this.draft = { id: uid(), type: 'arrow', pts: [ip], color: this.color, draft: true }; else { this.draft.pts.push(ip); const s = this.draft; this.draft = null; this.pushHist(); s.draft = false; this.photo.shapes.push(s); this.dirty = true; } this.draw(); return; }
+    if (!this.draft) this.draft = { id: uid(), type: t, pts: [], color: '#f1c40f', draft: true };
+    if (t === 'area' && this.draft.pts.length >= 3 && dist(this.tf(this.draft.pts[0]), [x, y]) < 24) { this.finishDraft(); return; }
+    this.draft.pts.push(ip);
+    if (t === 'cal' && this.draft.pts.length === 2) { this.finishDraft(); return; }
+    this.draw();
+  },
+  renderActions() {
+    const a = $('#edAct'); const d = this.draft; let h = '';
+    if (d && ['line', 'area', 'count'].includes(d.type)) {
+      const need = d.type === 'area' ? 3 : d.type === 'line' ? 2 : 1;
+      if (d.pts.length >= need) h += '<button class="btn" data-a="fin">✔ ' + (d.type === 'area' ? 'Close shape' : 'Finish') + '</button>';
+      if (d.pts.length) h += '<button class="btn gray" data-a="undo">↩ Remove last point</button>';
+    }
+    if (this.tool === 'select' && this.sel) {
+      const s = this.shapeById(this.sel);
+      if (s) {
+        const k = shapeMeasureKind(s);
+        if (s.itemId) h += '<button class="btn" data-a="edit">✏️ Edit item</button>';
+        else if (k && (k === 'count' || this.photo.calibration)) h += '<button class="btn" data-a="item">＋ Save as item</button>';
+        if (s.type === 'text') h += '<button class="btn gray" data-a="edittext">Edit text</button>';
+        h += '<button class="btn bad" data-a="del">🗑 Delete</button>';
+      }
+    }
+    if (a.dataset.h === h) return; a.dataset.h = h; a.innerHTML = h;
+    $$('button', a).forEach(b => b.onclick = () => this.action(b.dataset.a));
+  },
+  async action(act) {
+    if (act === 'fin') return this.finishDraft();
+    if (act === 'undo') return this.undo();
+    const s = this.sel && this.shapeById(this.sel);
+    if (act === 'del' && s) {
+      if (s.itemId) { const ok = await confirmDlg('This shape is linked to a scope item. Delete the shape AND the item?', 'Delete both', 'bad'); if (!ok) return; JOB.items = JOB.items.filter(i => i.id !== s.itemId); }
+      this.pushHist(); this.photo.shapes = this.photo.shapes.filter(x => x.id !== s.id); this.sel = null; this.dirty = true; this.draw(); App.itemsChanged();
+    } else if ((act === 'edit' || act === 'item') && s) {
+      this.openItemFor(s);
+    } else if (act === 'edittext' && s) {
+      const t = await askText('Edit note', '', s.text); if (t) { this.pushHist(); s.text = t; this.dirty = true; this.draw(); }
+    }
+  },
+  async finishDraft() {
+    const d = this.draft; if (!d) return; this.draft = null; d.draft = false;
+    if (d.type === 'cal') {
+      const px = dist(d.pts[0], d.pts[1]);
+      const txt = await askText('How long is that line in real life?', 'e.g. 4 ft, 36 in, 3\'6", 1.2 m', '');
+      if (!txt) { this.draw(); return; }
+      const ft = parseLenFt(txt); if (!(ft > 0)) { toast('Could not read that length. Try “4 ft” or “36 in”.'); this.draw(); return; }
+      this.pushHist();
+      this.photo.shapes = this.photo.shapes.filter(s => s.type !== 'cal'); this.photo.shapes.push(d);
+      this.photo.calibration = { pxPerFt: px / ft, realFt: ft };
+      this.photo.shapes.forEach(s => refreshItemFromShape(this.photo, s));
+      this.dirty = true; App.itemsChanged(); this.setTool('area'); toast('Calibrated. Now outline the area or measure a length.', 3200); return;
+    }
+    this.pushHist(); this.photo.shapes.push(d); this.dirty = true; this.sel = d.id; this.draw();
+    this.openItemFor(d);
+  },
+  async openItemFor(shape) {
+    const it = shape.itemId ? JOB.items.find(i => i.id === shape.itemId) : null;
+    const res = await App.openItemSheet({ item: it, shape, photo: this.photo });
+    if (res === 'deleted') { this.photo.shapes = this.photo.shapes.filter(s => s.id !== shape.id); this.sel = null; }
+    this.dirty = true; this.setTool('select'); this.sel = res === 'deleted' ? null : shape.id; this.draw(); App.itemsChanged();
+  },
+  /* ---- hit testing (screen coords) ---- */
+  vertexHit(p) {
+    const list = this.photo.shapes.slice().reverse(); const sel = this.sel ? this.shapeById(this.sel) : null; const order = sel ? [sel].concat(list) : list;
+    for (const s of order) { if (s.type === 'text') continue; if (s.type === 'free') continue; for (let i = 0; i < s.pts.length; i++) { if (dist(this.tf(s.pts[i]), p) < 22) return { id: s.id, i }; } }
+    return null;
+  },
+  hitShape(p) {
+    const list = this.photo.shapes.slice().reverse();
+    for (const s of list) {
+      const pts = s.pts.map(q => this.tf(q));
+      if (s.type === 'count') { if (pts.some(q => dist(q, p) < 20)) return s; }
+      else if (s.type === 'text') { if (Math.abs(p[0] - pts[0][0]) < Math.max(30, (s.text || '').length * 5.5) && Math.abs(p[1] - pts[0][1]) < 16) return s; }
+      else if (s.type === 'area') { if (inPoly(p, pts)) return s; for (let i = 0; i < pts.length; i++) if (segDist(p, pts[i], pts[(i + 1) % pts.length]) < 14) return s; }
+      else { for (let i = 1; i < pts.length; i++) if (segDist(p, pts[i - 1], pts[i]) < 14) return s; }
+    }
+    return null;
+  },
+  async menu() {
+    const choice = await dialog({
+      title: 'Photo options', body: '<div style="display:grid;gap:10px"><button class="btn gray" data-v="cap">✏️ Edit caption</button><button class="btn gray" data-v="cal">📐 Recalibrate</button><button class="btn gray" data-v="clr">🧹 Clear all annotations</button><button class="btn bad" data-v="del">🗑 Delete this photo</button></div>',
+      buttons: [{ label: 'Close', value: null, cls: 'gray' }],
+      onOpen: (ov, close) => $$('[data-v]', ov).forEach(b => b.onclick = () => close(b.dataset.v))
     });
-    addOns.forEach(a => L.push(a[0] + ': ' + a[1]));
+    if (choice === 'cap') { const t = await askText('Photo caption', 'e.g. Front bed, west side', this.photo.caption || ''); if (t != null) { this.photo.caption = t; $('#edTitle').textContent = t || 'Photo'; this.dirty = true; } }
+    else if (choice === 'cal') { this.setTool('cal'); }
+    else if (choice === 'clr') { if (await confirmDlg('Remove every shape on this photo? Linked scope items will stay but lose their outline.', 'Clear', 'bad')) { this.pushHist(); this.photo.shapes.forEach(s => { }); this.photo.shapes = []; this.photo.calibration = null; this.dirty = true; this.sel = null; this.draw(); } }
+    else if (choice === 'del') { if (await confirmDlg('Delete this photo and its annotations?', 'Delete', 'bad')) { const id = this.photo.id; this.photo.shapes = []; this.draft = null; this.photo = null; this.img = null; $('#screenEditor').hidden = true; await App.deletePhoto(id); } }
   }
-  if (items.some(i => i.area)) {
-    L.push('', 'BREAKDOWN BY AREA');
-    items.forEach(i => L.push('   - ' + (i.area || '(no label)') + ': ' + i.name + ', ' + (i.category === 'sod' ? `${i.sq.toFixed(0)} sq ft` : `${i.cy.toFixed(2)} cu yd`)));
-  }
-  const addMats = (e.additionalMaterials || []).map(m => '   - ' + m.description);
-  if (addMats.length) L.push('', 'ADDITIONAL MATERIALS', ...addMats);
-  const eq = [...(e.equipmentRentalSelections || []).map(r => '   - ' + r.name + ' (' + (r.details || r.duration) + ')'), ...(e.equipmentRows || []).map(r => '   - ' + r.description)];
-  if (eq.length) L.push('', 'EQUIPMENT', ...eq);
-  if ((e.orderNotes || '').trim()) L.push('', 'ORDER NOTES:', e.orderNotes.trim());
-  if ((e.equipmentNotes || '').trim()) L.push('', 'EQUIPMENT NOTES:', e.equipmentNotes.trim());
-  if ((e.siteNotes || '').trim()) L.push('', 'SITE & MEASUREMENTS:', e.siteNotes.trim());
-  L.push('', 'Thank you,', 'WS Lawn Care Services LLC');
-  return { subject, body: L.join('\n') };
+};
+/* ============================================================
+   App: screens, jobs, items, summary, Drive sync
+   ============================================================ */
+const nowIso = () => new Date().toISOString();
+const fmtDate = iso => { try { return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); } catch (e) { return ''; } };
+function newSurvey() {
+  return { schema: 'ws-survey-v1', id: uid(), createdAt: nowIso(), updatedAt: nowIso(), crew: Settings.crew, job: { customerName: '', propertyAddress: '', projectType: '' }, siteNotes: '', items: [], photos: [], sync: { folderId: '', folderUrl: '', dirty: true, lastSyncedAt: '' } };
+}
+function laborSuggestion() {
+  const rates = Settings.rates, lines = []; let hours = 0;
+  Object.keys(SERVICES).forEach(k => {
+    const r = parseFloat(rates[k]); if (!(r > 0)) return;
+    const its = JOB.items.filter(i => i.service === k); if (!its.length) return;
+    const qty = its.reduce((s, i) => s + (+i.value || 0), 0), h = qty / r; lines.push({ service: k, qty, rate: r, hours: h }); hours += h;
+  });
+  return { hours: Math.round(hours * 4) / 4, lines };
+}
+function serviceTotals() {
+  const out = [];
+  Object.keys(SERVICES).forEach(k => {
+    const its = JOB.items.filter(i => i.service === k); if (!its.length) return;
+    const m = k === 'other' ? null : SERVICES[k].measure;
+    const qty = its.reduce((s, i) => s + (+i.value || 0), 0);
+    const cy = its.reduce((s, i) => s + cuYds(i), 0);
+    out.push({ service: k, count: its.length, qty, measure: m || itemMeasure(its[0]), cy });
+  });
+  return out;
+}
+function exportSurvey() {
+  const s = JSON.parse(JSON.stringify(JOB)); delete s.sync;
+  s.labor = laborSuggestion(); s.totals = serviceTotals(); s.drive = { folderId: JOB.sync.folderId || '' };
+  s.items.forEach(i => { i.cuYds = Math.round(cuYds(i) * 100) / 100; });
+  return s;
 }
 
-function emailProjectManager(mode) {
-  const raw = (document.getElementById('pmEmail')?.value || '').trim();
-  const list = raw.split(/[,;\s]+/).filter(Boolean);
-  const bad = list.filter(a => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(a));
-  if (!list.length || bad.length) { alert(bad.length ? 'This email address looks invalid: ' + bad[0] : 'Please enter at least one email address first.'); return; }
-  try { localStorage.setItem('ws_pm_email', list.join(', ')); } catch(err) {}
-  const to = list.join(',');
-  const { subject, body } = buildOrderEmail();
-  const enc = encodeURIComponent;
-  const make = b => mode === 'mailto'
-    ? `mailto:${list.map(enc).join(',')}?subject=${enc(subject)}&body=${enc(b)}`
-    : `https://mail.google.com/mail/?view=cm&fs=1&to=${enc(to)}&su=${enc(subject)}&body=${enc(b)}`;
-  let url = make(body);
-  if (url.length > 7000) {
-    // Too long for a link: copy the full text and let the user paste it
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(body).catch(() => {});
-    url = make('(The order details are too long to pre-fill. They were copied to your clipboard. Paste them here.)');
-    alert('The order details are long, so they were copied to your clipboard. Paste them into the email body.');
-  }
-  const a = document.createElement('a');
-  a.href = url; a.target = '_blank'; a.rel = 'noopener';
-  document.body.appendChild(a); a.click(); a.remove();
-}
-
-function matIcon(cat) { return cat==='mulch'?'🪵':cat==='rock'?'🪨':cat==='dirt'?'🟤':cat==='sod'?'🌱':'📦'; }
-
-function displaySummary(e) {
-  const tg = e.targetMarginPercent||40, meetsGoal = e.profitMargin >= (tg-0.5);
-  const sd = document.getElementById('summaryContent');
-  window.lastSummaryData = e;
-  sd.setAttribute('data-materials', (e.materialCost||0)+(e.completedMaterialsCost||0)+(e.additionalMaterialsCost||0));
-  sd.setAttribute('data-labor', e.laborCost||0);
-  sd.setAttribute('data-equipment', e.totalEquipmentCost||0);
-  sd.setAttribute('data-other', (e.deliveryFee||0)+(e.haulAway||0)+(e.addOnsCost||0));
-
-  summaryContent.innerHTML = `
-    <div class="info-box"><h3>📏 Measurements</h3>
-      ${e.category!=='sod'?`<div class="info-row"><span>Area:</span><span>${(e.totalSqFt||0).toFixed(2)} sq ft</span></div><div class="info-row"><span>Volume:</span><span>${(e.cubicYards||0).toFixed(2)} cu yd</span></div><div class="info-row"><span>Cubic Feet:</span><span>${(e.cubicFeet||0).toFixed(2)} cu ft</span></div>`
-      :`<div class="info-row"><span>Area:</span><span>${(e.totalSqFt||0).toFixed(2)} sq ft</span></div>`}
-    </div>
-    ${buildOrderSummary(e)}
-    <div class="info-box"><h3>💰 Cost Breakdown</h3>
-      ${(e.projectName||e.propertyAddress||e.projectType)?`
-        <div style="background:#fff;border:2px solid #3498db;border-radius:8px;padding:16px;margin-bottom:16px;">
-          <div style="font-weight:700;font-size:14px;color:#2c3e50;margin-bottom:12px;border-bottom:2px solid #3498db;padding-bottom:8px;">📋 Project Information</div>
-          ${e.projectName?`<div style="margin-bottom:8px;"><span style="color:#7f8c8d;font-size:12px;font-weight:600;">Project:</span><span style="color:#2c3e50;font-size:13px;font-weight:600;margin-left:8px;">${e.projectName}</span></div>`:''}
-          ${e.propertyAddress?`<div style="margin-bottom:8px;"><span style="color:#7f8c8d;font-size:12px;font-weight:600;">Address:</span><span style="color:#2c3e50;font-size:13px;margin-left:8px;">${e.propertyAddress}</span></div>`:''}
-          ${e.projectType?`<div><span style="color:#7f8c8d;font-size:12px;font-weight:600;">Type:</span><span style="color:#2c3e50;font-size:13px;margin-left:8px;">${e.projectType}</span></div>`:''}
-        </div>`:''}
-      ${e.completedMaterials&&e.completedMaterials.length>0?e.completedMaterials.map(mat=>`
-        <div style="border-left:4px solid #3498db;background:#f8f9fa;padding:12px 16px;margin-bottom:8px;border-radius:4px;position:relative;">
-          <button onclick="removeCompletedMaterial('${mat.entryId}')" style="position:absolute;top:8px;right:8px;background:#e74c3c;color:white;border:none;border-radius:4px;width:24px;height:24px;cursor:pointer;font-size:16px;line-height:1;padding:0;display:flex;align-items:center;justify-content:center;">×</button>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;padding-right:32px;">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:18px;">${matIcon(mat.category)}</span>
-              <div>
-                <div style="font-size:13px;font-weight:700;color:#2c3e50;">${mat.materialName}${mat.areaLabel?`<span style="font-size:11px;background:#3498db;color:white;padding:2px 7px;border-radius:10px;margin-left:6px;font-weight:600;">${mat.areaLabel}</span>`:''}</div>
-                <div style="font-size:11px;color:#7f8c8d;">${mat.details}</div>
-                <div style="font-size:11px;color:#3498db;font-weight:600;">${mat.orderInfo||''}</div>
-                ${mat.notes?`<div style="font-size:11px;color:#e67e22;margin-top:2px;font-style:italic;">📝 ${mat.notes}</div>`:''}
-              </div>
-            </div>
-            <div style="font-size:18px;font-weight:700;color:#2c3e50;">${formatCurrency(mat.cost)}</div>
-          </div>
-        </div>`).join(''):''}
-      ${e.category!=='none'&&e.materialCost>0?`
-        <div style="border-left:4px solid #27ae60;background:#f8f9fa;padding:12px 16px;margin-bottom:8px;border-radius:4px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span style="font-size:18px;">${matIcon(e.category)}</span>
-              <div>
-                <div style="font-size:13px;font-weight:700;color:#2c3e50;">${e.materialName||'Primary Material'} <span style="font-size:10px;background:#27ae60;color:white;padding:2px 6px;border-radius:4px;margin-left:4px;">CURRENT</span></div>
-                <div style="font-size:11px;color:#7f8c8d;">${e.category==='sod'?`${(e.totalSqFt||0).toFixed(0)} sq ft`:`${(e.totalSqFt||0).toFixed(0)} sq ft × depth = ${(e.cubicYards||0).toFixed(2)} yds`}</div>
-              </div>
-            </div>
-            <div style="font-size:18px;font-weight:700;color:#27ae60;">${formatCurrency(e.materialCost)}</div>
-          </div>
-        </div>`:''}
-      ${e.additionalMaterialsCost>0?`
-        ${e.additionalMaterials&&e.additionalMaterials.length>0?`<div style="margin-bottom:8px;">${e.additionalMaterials.map(m=>`<div style="display:flex;justify-content:space-between;font-size:13px;color:#2c3e50;margin-bottom:4px;"><span>• ${m.description}</span><span>${formatCurrency(m.cost)}</span></div>`).join('')}</div>`:''}
-        <div class="info-row" style="margin-left:16px;font-size:12px;opacity:0.8;"><span>Materials Subtotal:</span><span>${formatCurrency(e.additionalMaterialsBase)}</span></div>
-        <div class="info-row" style="margin-left:16px;font-size:12px;opacity:0.8;"><span>10% Markup:</span><span>${formatCurrency(e.additionalMaterialsMarkup)}</span></div>
-        <div class="info-row"><span>Additional Materials Total:</span><span>${formatCurrency(e.additionalMaterialsCost)}</span></div>`:''}
-      ${e.addOnsCost>0?`${e.geoTextileCost>0?`<div class="info-row"><span>🧵 Geo Textile Fabric (${e.geoTextileLinearFt} linear ft):</span><span>${formatCurrency(e.geoTextileCost)}</span></div>`:''}${e.edgingCost>0?`<div class="info-row"><span>🔲 Composite Edging (${e.edgingLinearFt} linear ft):</span><span>${formatCurrency(e.edgingCost)}</span></div>`:''}`:''}
-      ${e.laborCost>0?`<div class="info-row"><span>Labor${e.laborHours>0?` (${e.laborHours} ${e.laborHours===1?'hour':'hours'})`:''}:</span><span>${formatCurrency(e.laborCost)}</span></div>`:''}
-      ${e.equipmentCost>0||e.equipmentRentalCost>0?`
-        ${e.equipmentCost>0?`<div class="info-row"><span>Equipment:</span><span>${formatCurrency(e.equipmentCost)}</span></div>${e.equipmentRows&&e.equipmentRows.length>0?`<div style="margin-left:16px;margin-bottom:8px;">${e.equipmentRows.map(eq=>`<div style="display:flex;justify-content:space-between;font-size:12px;color:#7f8c8d;margin-bottom:4px;"><span>• ${eq.description}</span><span>${formatCurrency(eq.cost)}</span></div>`).join('')}</div>`:''}`:''}
-        ${e.equipmentRentalCost>0?`<div class="info-row"><span>Equipment Rental:</span><span>${formatCurrency(e.equipmentRentalCost)}</span></div>${e.equipmentRentalSelections&&e.equipmentRentalSelections.length>0?`<div style="margin-left:16px;margin-bottom:8px;">${e.equipmentRentalSelections.map(eq=>`<div style="display:flex;justify-content:space-between;font-size:12px;color:#7f8c8d;margin-bottom:4px;"><span>• ${eq.name} (${eq.details||eq.duration})</span><span>${formatCurrency(eq.cost)}</span></div>`).join('')}</div>`:''}`:''}`:''} 
-      ${e.deliveryFee>0?`<div class="info-row"><span>Delivery:</span><span>${formatCurrency(e.deliveryFee)}</span></div>`:''}
-      ${e.haulAway>0?`<div class="info-row"><span>Haul Away:</span><span>${formatCurrency(e.haulAway)}</span></div>`:''}
-      <div class="info-row divider" style="font-weight:700;"><span>Subtotal:</span><span>${formatCurrency(e.subtotal)}</span></div>
-      ${e.markupAmount>0?`<div class="info-row"><span>Markup:</span><span>${formatCurrency(e.markupAmount)}</span></div>`:''}
-      <div class="info-row" style="font-weight:700;margin-top:8px;"><span>Total with Markup:</span><span>${formatCurrency(e.totalWithMarkup)}</span></div>
-    </div>
-    ${(e.orderNotes||e.equipmentNotes||e.siteNotes)?`
-      <div style="background:#fff9e6;border:2px solid #f39c12;border-radius:8px;padding:16px;margin-bottom:20px;">
-        <div style="font-weight:700;font-size:14px;color:#e67e22;margin-bottom:12px;">📋 Project Notes</div>
-        ${e.orderNotes?`<div style="margin-bottom:12px;"><div style="font-size:12px;font-weight:700;color:#e67e22;margin-bottom:4px;">📦 ORDER NOTES</div><div style="font-size:13px;color:#2c3e50;background:white;padding:10px;border-radius:6px;line-height:1.5;white-space:pre-wrap;">${e.orderNotes}</div></div>`:''}
-        ${e.equipmentNotes?`<div style="margin-bottom:12px;"><div style="font-size:12px;font-weight:700;color:#3498db;margin-bottom:4px;">🚜 EQUIPMENT NOTES</div><div style="font-size:13px;color:#2c3e50;background:white;padding:10px;border-radius:6px;line-height:1.5;white-space:pre-wrap;">${e.equipmentNotes}</div></div>`:''}
-        ${e.siteNotes?`<div><div style="font-size:12px;font-weight:700;color:#27ae60;margin-bottom:4px;">📐 SITE & MEASUREMENTS</div><div style="font-size:13px;color:#2c3e50;background:white;padding:10px;border-radius:6px;line-height:1.5;white-space:pre-wrap;">${e.siteNotes}</div></div>`:''}
-      </div>`:''}
-    <div class="price-box ${meetsGoal?'success':'warning'}">
-      <h3>🎯 Pricing Recommendation</h3>
-      <div class="big-price">${formatCurrency(e.recommendedPrice)}</div>
-      <div style="font-size:13px;margin-bottom:12px;"><div style="opacity:0.8;margin-bottom:4px;">+ 3% CC Fee: ${formatCurrency(e.ccFee)}</div></div>
-      <div style="font-size:13px;opacity:0.9;margin-bottom:12px;">Target profit margin: ${e.profitMargin.toFixed(1)}%</div>
-      <div class="status-badge">${meetsGoal?`✓ This project meets the ${tg}% profit margin goal`:`⚠ This project is below the ${tg}% profit margin goal`}</div>
-      <div style="font-size:12px;opacity:0.7;">Expected profit: ${formatCurrency(e.targetProfit)}</div>
-    </div>
-    <button onclick="window.print()" style="background:linear-gradient(90deg,#3498db 0%,#2980b9 100%);border:none;">🖨️ Print / Save as PDF</button>
-  `;
-}
-
-// ============================================================
-// SAVE / LOAD — Google Drive
-// ============================================================
-async function saveProject() {
-  if (!APPS_SCRIPT_URL) { alert('Please configure your Apps Script URL first.'); return; }
-  const pname = document.getElementById('projectName')?.value?.trim();
-  if (!pname) { alert('Please enter a Project Name before saving.'); return; }
-  const data = captureProjectData();
-  setBadge('Saving...', 'loading');
-  try {
-    if (currentFileId) {
-      const choice = confirm('This project is already saved on Drive.\n\nOK = Update existing file\nCancel = Save as a new file');
-      if (choice) {
-        const r = await postToDrive('overwrite', { fileId: currentFileId, data });
-        if (r.success) { setBadge('✓ Drive Connected', 'ok'); showToast('✓ Project updated on Drive!'); }
-        else throw new Error(r.error||'Save failed');
-        return;
-      }
-    }
-    const result = await postToDrive('save', { data });
-    if (result.success) {
-      currentFileId = result.fileId;
-      setBadge('✓ Drive Connected', 'ok');
-      showToast('✓ Project saved to Drive!');
-    } else if (result.conflict) {
-      const addr = document.getElementById('propertyAddress')?.value?.trim()||'';
-      const ow = confirm(`A project named "${pname}" at "${addr}" already exists on Drive.\n\nOK = Overwrite it\nCancel = Do not save`);
-      if (ow) {
-        const r2 = await postToDrive('overwrite', { fileId: result.fileId, data });
-        if (r2.success) { currentFileId = result.fileId; setBadge('✓ Drive Connected', 'ok'); showToast('✓ Project updated on Drive!'); }
-        else throw new Error(r2.error||'Overwrite failed');
-      }
-    } else throw new Error(result.error||'Save failed');
-  } catch(err) { setBadge('Save Error', 'err'); alert('Error saving to Drive: ' + err.message); }
-}
-
-async function openLoadModal() {
-  if (!APPS_SCRIPT_URL) { alert('Please configure your Apps Script URL first.'); return; }
-  document.getElementById('loadModal').style.display = 'flex';
-  document.getElementById('modalStatus').textContent = 'Loading projects from Drive...';
-  document.getElementById('projectListContainer').innerHTML = '';
-  try {
-    const result = await fetchFromDrive('list');
-    if (!result.success) throw new Error(result.error||'Failed to list projects');
-    const projects = result.projects||[];
-    const ms = document.getElementById('modalStatus');
-    const plc = document.getElementById('projectListContainer');
-    if (projects.length === 0) { ms.textContent = 'No saved projects found on Drive.'; return; }
-    ms.textContent = `${projects.length} project${projects.length!==1?'s':''} found — click to load:`;
-    plc.innerHTML = projects.map(p => {
-      const d = new Date(p.lastModified).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-      const safeName = (p.projectName||'').replace(/'/g,'&#39;');
-      return `
-        <div class="project-row" onclick="loadProjectFromDrive('${p.fileId}')">
-          <div>
-            <div class="proj-name">📋 ${p.projectName||'Unnamed'}</div>
-            <div class="proj-addr">${p.propertyAddress||'No address'}</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <div class="proj-date">${d}</div>
-            <button onclick="event.stopPropagation();deleteProjectFromDrive('${p.fileId}','${safeName}')"
-              style="width:auto;padding:4px 8px;background:#e74c3c;color:white;border:none;border-radius:4px;font-size:11px;cursor:pointer;letter-spacing:0;text-transform:none;box-shadow:none;">🗑 Delete</button>
-          </div>
-        </div>`;
-    }).join('');
-  } catch(err) { document.getElementById('modalStatus').textContent = 'Error: ' + err.message; }
-}
-
-async function loadProjectFromDrive(fileId) {
-  try {
-    document.getElementById('modalStatus').textContent = 'Loading...';
-    const result = await fetchFromDrive('load', { fileId });
-    if (!result.success) throw new Error(result.error||'Load failed');
-    closeLoadModal();
-    restoreProjectData(result.data);
-    currentFileId = fileId;
-    showToast('✓ Project loaded from Drive!');
-  } catch(err) { alert('Error loading project: ' + err.message); }
-}
-
-async function deleteProjectFromDrive(fileId, name) {
-  if (!confirm(`Delete "${name}" from Drive? This cannot be undone.`)) return;
-  try {
-    const result = await postToDrive('delete', { fileId });
-    if (result.success) { showToast('Project deleted from Drive.'); openLoadModal(); }
-    else throw new Error(result.error);
-  } catch(err) { alert('Error deleting: ' + err.message); }
-}
-
-function closeLoadModal() { document.getElementById('loadModal').style.display = 'none'; }
-function closeModalOnOverlay(e) { if(e.target === document.getElementById('loadModal')) closeLoadModal(); }
-
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.style.display = 'block';
-  clearTimeout(t._timer);
-  t._timer = setTimeout(() => { t.style.display = 'none'; }, 3000);
-}
-
-// ============================================================
-// SITE SURVEY IMPORT  (from the WS Field Survey app)
-// ============================================================
-function renderSurveyLink() {
-  var box = document.getElementById('surveyLinkBox'); if (!box) return;
-  if (surveyRef && surveyRef.folderUrl) {
-    box.style.display = 'block';
-    box.innerHTML = '📎 Linked survey: <b>' + String(surveyRef.customer || 'survey').replace(/</g, '&lt;') + '</b> — <a href="' + surveyRef.folderUrl + '" target="_blank" rel="noopener" style="color:#fff;font-weight:700;">open photos in Drive ↗</a>';
-  } else { box.style.display = 'none'; box.innerHTML = ''; }
-}
-function closeSurveyModal() { document.getElementById('surveyModal').style.display = 'none'; }
-async function openSurveyModal() {
-  if (!APPS_SCRIPT_URL) { alert('Please configure your Apps Script URL first.'); return; }
-  document.getElementById('surveyModal').style.display = 'flex';
-  var st = document.getElementById('surveyModalStatus'), lc = document.getElementById('surveyListContainer');
-  st.textContent = 'Loading surveys from Drive...'; lc.innerHTML = '';
-  try {
-    var r = await fetchFromDrive('listSurveys');
-    if (!r.success) throw new Error(r.error || 'Failed to list surveys');
-    var list = r.surveys || [];
-    if (!list.length) { st.textContent = 'No site surveys found on Drive yet.'; return; }
-    st.textContent = list.length + ' survey' + (list.length !== 1 ? 's' : '') + ' — click to import:';
-    lc.innerHTML = list.map(function (s) {
-      var d = new Date(s.lastModified).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-      var nm = String(s.customerName || 'Unnamed').replace(/</g, '&lt;'), ad = String(s.propertyAddress || 'No address').replace(/</g, '&lt;');
-      return '<div class="project-row" onclick="importSurvey(\'' + s.folderId + '\')"><div><div class="proj-name">🏡 ' + nm + '</div><div class="proj-addr">' + ad + ' · ' + s.itemCount + ' items · ' + s.photoCount + ' photos</div></div><div class="proj-date">' + d + '</div></div>';
-    }).join('');
-  } catch (err) { st.textContent = 'Error: ' + err.message; }
-}
-async function importSurvey(folderId) {
-  try {
-    var st = document.getElementById('surveyModalStatus'); if (st) st.textContent = 'Importing...';
-    var r = await fetchFromDrive('loadSurvey', { folderId: folderId });
-    if (!r.success) throw new Error(r.error || 'Load failed');
-    closeSurveyModal();
-    applySurvey(r.survey, folderId, r.folderUrl);
-  } catch (err) { closeSurveyModal(); alert('Error importing survey: ' + err.message); }
-}
-function applySurvey(s, folderId, folderUrl) {
-  if (!s || !Array.isArray(s.items)) { alert('That survey file looks empty or damaged.'); return; }
-  var hasData = completedMaterials.length > 0 || (document.getElementById('siteNotes').value || '').trim() || (document.getElementById('projectName').value || '').trim();
-  if (surveyRef && surveyRef.folderId === folderId && !confirm('This survey was already imported into this estimate. Import it again? (Materials will be added twice.)')) return;
-  if (hasData && !(surveyRef && surveyRef.folderId === folderId) && !confirm('This estimate already has data.\n\nOK = ADD the survey items to it\nCancel = stop (use New Estimate first for a clean start)')) return;
-  var J = s.job || {};
-  var setIfBlank = function (id, v) { var el = document.getElementById(id); if (el && v && !el.value.trim()) el.value = v; };
-  setIfBlank('projectName', J.customerName); setIfBlank('propertyAddress', J.propertyAddress); setIfBlank('projectType', J.projectType);
-  var matCount = 0, warnCount = 0, edgingFt = 0, fabricFt = 0, notes = [];
-  s.items.forEach(function (it) {
-    var q = parseFloat(it.value) || 0; if (!(q > 0)) return;
-    var tag = it.verified ? '' : (it.method === 'photo' ? ' (≈ photo estimate)' : ' (unverified)');
-    var catMap = { mulch: 'mulch', rock: 'rock', dirt: 'dirt', sod: 'sod' };
-    var cat = catMap[it.service];
-    if (cat) {
-      var list = MATERIALS[cat], mat = list.find(function (m) { return m.name === it.material; }), warn = '';
-      if (!mat) { mat = list[0]; warn = '⚠ Material not chosen in survey — verify. '; warnCount++; }
-      var cost = 0, cy = 0, details = '', orderInfo = '';
-      if (cat === 'sod') { var si = getSodPricing(q, mat); cost = si.cost; details = si.details; }
-      else { var d = parseFloat(it.depthIn) || 1; cy = q * d / 12 / 27; cost = cy * mat.pricePerYard; details = q.toFixed(0) + ' sq ft × ' + d + '" = ' + cy.toFixed(2) + ' cu yds'; orderInfo = 'Order: ' + (Math.ceil(cy * 10 - 1e-9) / 10).toFixed(1) + ' cu yds (rounded up)'; }
-      completedMaterials.push({ entryId: 'mat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), category: cat, materialName: mat.name, areaLabel: it.name || '', cost: cost, details: details, orderInfo: orderInfo, notes: (warn + (it.notes || '') + tag).trim(), cy: cy, sqFt: q, pieces: 0 });
-      matCount++;
-    } else if (it.service === 'edging') { edgingFt += q; }
-    else if (it.service === 'fabric') { fabricFt += q; }
+const App = {
+  screen: 'home', saveT: 0,
+  async init() {
+    await DB.open(); Ed.init();
+    $('#btnNewJob').onclick = () => this.newJob();
+    $('#btnSettings').onclick = () => this.settings();
+    $('#btnOpenDrive').onclick = () => this.openFromDrive();
+    $('#btnJobBack').onclick = () => this.goHome();
+    $('#btnJobMenu').onclick = () => this.jobMenu();
+    $('#btnTakePhoto').onclick = () => $('#fileCam').click();
+    $('#btnPickPhoto').onclick = () => $('#filePick').click();
+    $('#fileCam').onchange = e => this.addPhotos(e.target.files);
+    $('#filePick').onchange = e => this.addPhotos(e.target.files);
+    $('#btnAddManual').onclick = async () => { const r = await this.openItemSheet({}); this.itemsChanged(); };
+    $('#btnSummary').onclick = () => this.showSummary();
+    $('#btnSumBack').onclick = () => this.showScreen('job');
+    $('#btnPrint').onclick = () => window.print();
+    $('#btnSync').onclick = () => this.sync();
+    $('#btnToEstimator').onclick = () => this.toEstimator();
+    [['fCustomer', 'customerName'], ['fAddress', 'propertyAddress'], ['fType', 'projectType']].forEach(([id, k]) => $('#' + id).addEventListener('input', e => { JOB.job[k] = e.target.value; this.touch(); this.renderJobHead(); }));
+    $('#fCrew').addEventListener('input', e => { JOB.crew = e.target.value; Settings.crew = e.target.value; this.touch(); });
+    $('#fNotes').addEventListener('input', e => { JOB.siteNotes = e.target.value; this.touch(); });
+    let deferred; window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; $('#btnInstall').hidden = false; });
+    $('#btnInstall').onclick = async () => { if (deferred) { deferred.prompt(); deferred = null; $('#btnInstall').hidden = true; } };
+    window.addEventListener('keydown', e => { if (!$('#screenEditor').hidden && (e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); Ed.undo(); } });
+    if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
+    await this.renderHome(); this.showScreen('home');
+    if (!Settings.url) setTimeout(() => toast('Tap ⚙ to set your Apps Script URL before saving to Drive', 4200), 800);
+  },
+  showScreen(n) {
+    this.screen = n;
+    ['Home', 'Job', 'Summary'].forEach(s => $('#screen' + s).hidden = s.toLowerCase() !== n);
+    window.scrollTo(0, 0);
+  },
+  /* ---- home ---- */
+  async renderHome() {
+    const jobs = (await DB.all('jobs')).sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+    const box = $('#jobList');
+    if (!jobs.length) { box.innerHTML = '<div class="empty">No jobs yet. Tap “New Job / Site Walk” to start.</div>'; return; }
+    box.innerHTML = jobs.map(j => '<div class="card" data-id="' + j.id + '"><div class="th">🏡</div><div class="tx"><div class="nm">' + esc(j.job.customerName || 'Unnamed job') + '</div><div class="sub">' + esc(j.job.propertyAddress || 'No address') + '</div><div class="sub">' + j.items.length + ' items · ' + j.photos.length + ' photos · ' + fmtDate(j.updatedAt) + (j.sync && j.sync.dirty ? '<span class="badge dirty">not saved to Drive</span>' : '<span class="badge sync">☁ saved</span>') + '</div></div></div>').join('');
+    $$('.card', box).forEach(c => c.onclick = () => this.openJob(c.dataset.id));
+  },
+  async newJob() { JOB = newSurvey(); await DB.put('jobs', JOB); this.enterJob(); setTimeout(() => $('#fCustomer').focus(), 100); },
+  async openJob(id) { JOB = await DB.get('jobs', id); if (!JOB) return; this.enterJob(); },
+  enterJob() {
+    $('#fCustomer').value = JOB.job.customerName; $('#fAddress').value = JOB.job.propertyAddress; $('#fType').value = JOB.job.projectType; $('#fCrew').value = JOB.crew || Settings.crew; $('#fNotes').value = JOB.siteNotes || '';
+    this.showScreen('job'); this.renderJob();
+  },
+  async goHome() { await this.flush(); JOB = null; await this.renderHome(); this.showScreen('home'); },
+  /* ---- job ---- */
+  touch() { JOB.sync.dirty = true; JOB.updatedAt = nowIso(); clearTimeout(this.saveT); this.saveT = setTimeout(() => this.flush(), 350); },
+  async flush() { clearTimeout(this.saveT); if (JOB) await DB.put('jobs', JOB); },
+  itemsChanged() { if (JOB) { this.touch(); if (this.screen === 'job') this.renderJob(); } },
+  renderJobHead() {
+    $('#jobTitle').firstChild.textContent = JOB.job.customerName || 'New job';
+    $('#jobSub').textContent = (JOB.job.propertyAddress || 'No address yet') + ' · ' + (JOB.sync.dirty ? 'not saved to Drive' : '☁ saved');
+  },
+  async renderJob() {
+    this.renderJobHead();
+    $('#itemCount').textContent = JOB.items.length ? '(' + JOB.items.length + ')' : '';
+    const box = $('#itemList');
+    if (!JOB.items.length) box.innerHTML = '<div class="empty">Take a photo, calibrate it, then outline beds and hedges to build the scope list.</div>';
     else {
-      var unit = it.measure === 'count' ? 'ea' : it.measure === 'length' ? 'lin ft' : 'sq ft';
-      var lbl = { hedge: 'Hedge/Shrub Trim', plants: 'Plants/Trees', removal: 'Removal/Haul-off', other: 'Other' }[it.service] || it.service;
-      notes.push('• ' + lbl + ' — ' + (it.name || '') + ': ' + q + ' ' + unit + (it.heightFt ? ', ' + it.heightFt + ' ft tall' : '') + (it.notes ? ' — ' + it.notes : '') + tag);
+      const cards = [];
+      for (const it of JOB.items) {
+        const s = SERVICES[it.service]; const u = it.photoId ? await ensurePhotoUrl(it.photoId, 'ann') : '';
+        const extra = [it.material, it.depthIn ? it.depthIn + '" deep' : '', it.heightFt ? it.heightFt + ' ft tall' : ''].filter(Boolean).join(' · ');
+        cards.push('<div class="card" data-id="' + it.id + '"><div class="th" style="' + (u ? 'background-image:url(' + u + ')' : 'background:' + s.color + '22') + '">' + (u ? '' : s.icon) + '</div><div class="tx"><div class="nm">' + esc(it.name) + '</div><div class="sub">' + s.icon + ' ' + esc(s.label) + ' — <b>' + qtyText(it) + '</b></div>' + (extra ? '<div class="sub">' + esc(extra) + '</div>' : '') + '<div class="sub">' + (it.verified ? '<span class="badge ok">✓ verified</span>' : it.method === 'photo' ? '<span class="badge est">≈ photo estimate</span>' : '<span class="badge est">typed in</span>') + '</div></div></div>');
+      }
+      box.innerHTML = cards.join('');
+      $$('.card', box).forEach(c => c.onclick = () => this.editItem(c.dataset.id));
     }
-  });
-  var addOn = function (cbId, ftId, lblId, add) {
-    if (!(add > 0)) return;
-    var cb = document.getElementById(cbId), ft = document.getElementById(ftId);
-    var cur = cb.checked ? (parseFloat(ft.value) || 0) : 0;
-    cb.checked = true; ft.style.display = 'block'; ft.value = (Math.round((cur + add) * 10) / 10);
-    document.getElementById(lblId).classList.add('active');
-  };
-  addOn('includeEdging', 'edgingLinearFt', 'edgingLabel', edgingFt);
-  addOn('includeGeoTextile', 'geoTextileLinearFt', 'geoTextileLabel', fabricFt);
-  var head = '— Site survey' + (s.crew ? ' by ' + s.crew : '') + (s.createdAt ? ' (' + new Date(s.createdAt).toLocaleDateString('en-US') + ')' : '') + ' —';
-  var lines = [head];
-  if (edgingFt > 0) lines.push('• Edging: ' + (Math.round(edgingFt * 10) / 10) + ' lin ft (added to Add-ons)');
-  if (fabricFt > 0) lines.push('• Weed fabric: ' + (Math.round(fabricFt * 10) / 10) + ' lin ft (added to Add-ons)');
-  lines = lines.concat(notes);
-  if (s.siteNotes) lines.push('Site notes: ' + s.siteNotes);
-  var lab = s.labor && parseFloat(s.labor.hours) > 0 ? parseFloat(s.labor.hours) : 0;
-  var lh = document.getElementById('laborHours');
-  if (lab > 0 && !(parseFloat(lh.value) > 0)) { lh.value = lab; lines.push('Labor hours (' + lab + ') were suggested from the survey production rates — verify.'); }
-  var sn = document.getElementById('siteNotes'); sn.value = (sn.value ? sn.value.trim() + '\n\n' : '') + lines.join('\n');
-  surveyRef = { folderId: folderId, folderUrl: folderUrl || '', customer: J.customerName || '', importedAt: new Date().toISOString() };
-  renderSurveyLink(); calculate();
-  var msg = '✓ Survey imported: ' + matCount + ' material area' + (matCount !== 1 ? 's' : '') + (edgingFt || fabricFt ? ' + add-ons' : '');
-  showToast(msg);
-  if (warnCount) alert(warnCount + ' item(s) had no material chosen in the survey. They were added with the first material in that category and flagged in the notes — please check them under Cost Breakdown.');
-}
-
-// ============================================================
-// CAPTURE / RESTORE
-// ============================================================
-function captureProjectData() {
-  additionalMaterialRows.forEach(row => {
-    const de = document.querySelector(`.addmat-desc[data-rowid="${row.id}"]`);
-    const ce = document.querySelector(`.addmat-cost[data-rowid="${row.id}"]`);
-    if(de) row.description = de.value; if(ce) row.cost = parseFloat(ce.value)||0;
-  });
-  const data = {
-    timestamp: new Date().toISOString(),
-    projectDetails: { projectName: document.getElementById('projectName')?.value||'', propertyAddress: document.getElementById('propertyAddress')?.value||'', projectType: document.getElementById('projectType')?.value||'' },
-    materials: { category: document.getElementById('materialCategory')?.value||'mulch', type: document.getElementById('materialType')?.value||'' },
-    dimensions: {},
-    addOns: { geoTextile: document.getElementById('includeGeoTextile')?.checked||false, geoTextileLinearFt: document.getElementById('geoTextileLinearFt')?.value||'', edging: document.getElementById('includeEdging')?.checked||false, edgingLinearFt: document.getElementById('edgingLinearFt')?.value||'' },
-    labor: { laborHours: document.getElementById('laborHours')?.value||'', laborRate: document.getElementById('laborRate')?.value||'158', deliveryFee: document.getElementById('deliveryFee')?.value||'', haulAway: document.getElementById('haulAway')?.value||'', markupPercent: document.getElementById('markupPercent')?.value||'0', profitMargin: document.getElementById('profitMarginSlider')?.value||'40' },
-    equipment: equipmentRows.map(r => ({ description: document.getElementById(`equipment-desc-${r.id}`)?.value||'', cost: parseFloat(document.getElementById(`equipment-cost-${r.id}`)?.value)||0 })).filter(e => e.description.trim()),
-    equipmentRental: equipmentRentalSelections.filter(r => r.name&&r.cost>0).map(r => ({ name:r.name, duration:r.duration, baseCost:r.baseCost, insurance:r.insurance, salesTax:r.salesTax, cost:r.cost, details:r.details })),
-    additionalMaterials: additionalMaterialRows.map(r => ({ id:r.id, description:r.description, cost:r.cost })).filter(m => m.description||m.cost),
-    actualCosts: { materials: document.getElementById('actualMaterials')?.value||'', labor: document.getElementById('actualLabor')?.value||'', equipment: document.getElementById('actualEquipment')?.value||'', other: document.getElementById('actualOther')?.value||'', totalPriceCharged: document.getElementById('totalPriceCharged')?.value||'' },
-    timeTracking: { budgetHours: document.getElementById('budgetHours')?.value||'', actualHours: document.getElementById('actualHours')?.value||'' },
-    projectNotes: { wentWell: document.getElementById('notesWentWell')?.value||'', challenges: document.getElementById('notesChallenges')?.value||'', actionSteps: document.getElementById('notesActionSteps')?.value||'' },
-    generalNotes: { orderNotes: document.getElementById('orderNotes')?.value||'', equipmentNotes: document.getElementById('equipmentNotes')?.value||'', siteNotes: document.getElementById('siteNotes')?.value||'', materialNotes: document.getElementById('materialNotes')?.value||'', materialAreaLabel: document.getElementById('materialAreaLabel')?.value||'' },
-    completedMaterials: completedMaterials||[],
-    survey: surveyRef
-  };
-  const dc = document.getElementById('dimensionsContainer');
-  if(dc) dc.querySelectorAll('input').forEach(input => { if(input.id) data.dimensions[input.id] = input.value; });
-  return data;
-}
-
-function restoreProjectData(data) {
-  if (!data) return;
-  if (data.projectDetails) {
-    ['projectName','propertyAddress','projectType'].forEach(id => { const el = document.getElementById(id); if(el) el.value = data.projectDetails[id]||''; });
-  }
-  if (data.materials) {
-    const mc = document.getElementById('materialCategory');
-    if (mc) { mc.value = data.materials.category||'mulch'; updateMaterialOptions(); updateDimensionsInputs(); }
-    setTimeout(() => {
-      const mt = document.getElementById('materialType'); if(mt) mt.value = data.materials.type||'';
-      if (data.dimensions) Object.keys(data.dimensions).forEach(k => { const el = document.getElementById(k); if(el) el.value = data.dimensions[k]; });
-    }, 100);
-  }
-  if (data.addOns) {
-    ['includeGeoTextile','includeEdging'].forEach(id => {
-      const key = id === 'includeGeoTextile' ? 'geoTextile' : 'edging';
-      const ftKey = id === 'includeGeoTextile' ? 'geoTextileLinearFt' : 'edgingLinearFt';
-      const cb = document.getElementById(id); const ftEl = document.getElementById(ftKey);
-      if (cb) { cb.checked = data.addOns[key]||false; if(ftEl) { ftEl.style.display = data.addOns[key]?'block':'none'; ftEl.value = data.addOns[ftKey]||''; } }
+    const st = $('#photoStrip');
+    if (!JOB.photos.length) st.innerHTML = '<div class="empty" style="width:100%">No photos yet.</div>';
+    else {
+      const parts = [];
+      for (const p of JOB.photos) { const u = await ensurePhotoUrl(p.id, 'ann'); parts.push('<div class="ph" data-id="' + p.id + '"><div class="im" style="background-image:url(' + u + ')"></div><span>' + esc(p.caption || 'Photo') + '</span></div>'); }
+      st.innerHTML = parts.join('');
+      $$('.ph', st).forEach(c => c.onclick = () => this.editPhoto(c.dataset.id));
+    }
+  },
+  editItem(id) {
+    const it = JOB.items.find(i => i.id === id); if (!it) return;
+    const photo = it.photoId ? JOB.photos.find(p => p.id === it.photoId) : null;
+    const shape = photo ? (photo.shapes || []).find(s => s.id === it.shapeId) : null;
+    this.openItemSheet({ item: it, shape, photo }).then(() => this.itemsChanged());
+  },
+  editPhoto(id) { Ed.open(id, dirty => { if (dirty) this.touch(); this.renderJob(); }); },
+  async addPhotos(files) {
+    if (!files || !files.length) return; let first = null;
+    for (const f of Array.from(files)) {
+      try {
+        const { blob, w, h } = await processImageFile(f); const id = uid();
+        const photo = { id, caption: '', takenAt: nowIso(), width: w, height: h, calibration: null, shapes: [], driveOrigId: '', driveAnnId: '', annDirty: true };
+        await DB.put('photos', { id, jobId: JOB.id, orig: blob, ann: blob }); photoUrl(id, 'ann', blob);
+        JOB.photos.push(photo); if (!first) first = id;
+      } catch (e) { console.error(e); toast('Could not read that photo'); }
+    }
+    $('#fileCam').value = ''; $('#filePick').value = '';
+    this.touch(); await this.renderJob();
+    if (first) this.editPhoto(first);
+  },
+  async deletePhoto(id) {
+    JOB.photos = JOB.photos.filter(p => p.id !== id);
+    JOB.items.forEach(i => { if (i.photoId === id) { i.photoId = ''; i.shapeId = ''; } });
+    ['ann', 'orig'].forEach(k => { const u = urlCache.get(id + ':' + k); if (u) { URL.revokeObjectURL(u); urlCache.delete(id + ':' + k); } });
+    await DB.del('photos', id); this.touch(); await this.renderJob();
+  },
+  async jobMenu() {
+    const v = await dialog({
+      title: 'Job options', body: '<div style="display:grid;gap:10px"><button class="btn gray" data-v="set">⚙ Settings (Drive URL, key, rates)</button><button class="btn gray" data-v="bk">⬇ Download backup file (.json)</button>' + (JOB.sync.folderUrl ? '<button class="btn gray" data-v="drive">📁 Open Drive folder</button>' : '') + '<button class="btn bad" data-v="del">🗑 Delete job from this device</button></div>',
+      buttons: [{ label: 'Close', value: null, cls: 'gray' }], onOpen: (ov, close) => $$('[data-v]', ov).forEach(b => b.onclick = () => close(b.dataset.v))
     });
-  }
-  if (data.labor) {
-    [['laborHours','laborHours'],['laborRate','laborRate'],['deliveryFee','deliveryFee'],['haulAway','haulAway'],['markupPercent','markupPercent']].forEach(([elId,key]) => { const el = document.getElementById(elId); if(el) el.value = data.labor[key]||''; });
-    if (document.getElementById('laborRate') && !data.labor.laborRate) document.getElementById('laborRate').value = '158';
-    const pms = document.getElementById('profitMarginSlider'); const pmd = document.getElementById('profitMarginDisplay');
-    if (pms) { pms.value = data.labor.profitMargin||'40'; if(pmd) pmd.textContent = (data.labor.profitMargin||'40')+'%'; }
-  }
-  if (data.equipment && data.equipment.length > 0) {
-    equipmentRows = []; document.getElementById('equipmentContainer').innerHTML = '';
-    data.equipment.forEach(eq => {
-      addEquipmentRow();
-      const lr = equipmentRows[equipmentRows.length-1];
-      setTimeout(() => {
-        const de = document.getElementById(`equipment-desc-${lr.id}`); const ce = document.getElementById(`equipment-cost-${lr.id}`);
-        if(de) { de.value = eq.description; lr.description = eq.description; }
-        if(ce) { ce.value = eq.cost; lr.cost = parseFloat(eq.cost)||0; }
-      }, 50);
+    if (v === 'set') this.settings();
+    else if (v === 'bk') { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(exportSurvey(), null, 2)], { type: 'application/json' })); a.download = (JOB.job.customerName || 'survey').replace(/[^\w\-]+/g, '_') + '.json'; a.click(); }
+    else if (v === 'drive') window.open(JOB.sync.folderUrl, '_blank');
+    else if (v === 'del') {
+      if (!(await confirmDlg('Delete this job from THIS device? Anything already saved to Drive stays there.', 'Delete', 'bad'))) return;
+      for (const p of JOB.photos) await DB.del('photos', p.id); await DB.del('jobs', JOB.id); JOB = null; await this.renderHome(); this.showScreen('home');
+    }
+  },
+  /* ---- item sheet ---- */
+  openItemSheet(o) {
+    return new Promise(resolve => {
+      const sh = $('#sheetItem'); const it = o.item || null, shape = o.shape || null, photo = o.photo || null;
+      const kind = shape ? shapeMeasureKind(shape) : (it && it.service !== 'other' ? SERVICES[it.service].measure : (it ? itemMeasure(it) : null));
+      const calc = shape ? shapeValue(photo, shape) : null;
+      const calcRounded = calc != null ? roundForMeasure(kind, calc) : null;
+      let service = it ? it.service : ls.get('ws_last_service', '');
+      const compatible = k => !kind || SERVICES[k].measure === kind || SERVICES[k].measure === 'any';
+      if (service && (!SERVICES[service] || !compatible(service))) service = '';
+      $('#itTitle').textContent = it ? 'Edit scope item' : 'New scope item';
+      $('#itFrom').textContent = shape ? (calc != null ? 'Measured from photo: ' + (kind === 'area' ? fmt(calc, 0) + ' sq ft' : kind === 'length' ? fmt(calc, 1) + ' ft' : fmt(calc, 0) + ' counted') + ' (≈ estimate — confirm with tape or wheel if the job is big).' : '') : 'Typed-in item (no photo measurement).';
+      const chips = $('#itChips'); chips.innerHTML = '';
+      Object.keys(SERVICES).filter(compatible).forEach(k => { const b = document.createElement('button'); b.className = 'chip'; b.dataset.k = k; b.innerHTML = '<span class="ic">' + SERVICES[k].icon + '</span>' + SERVICES[k].label; b.onclick = () => { service = k; ls.set('ws_last_service', k); refresh(true); }; chips.appendChild(b); });
+      $('#itName').value = it ? it.name : ''; $('#itNotes').value = it ? (it.notes || '') : ''; $('#itVerified').checked = it ? !!it.verified : false;
+      $('#itValue').value = it ? it.value : (calcRounded != null ? calcRounded : '');
+      $('#itDepth').value = it && it.depthIn ? it.depthIn : ''; $('#itHeight').value = it && it.heightFt ? it.heightFt : '';
+      $('#itMeasure').value = it ? itemMeasure(it) : (kind || 'area');
+      $('#itEdge').checked = false;
+      $('#itDelete').hidden = !it;
+      let curMat = it ? it.material : '';
+      const perim = shape && photo ? shapePerimeterFt(photo, shape) : null;
+      function refresh(userPicked) {
+        $$('.chip', chips).forEach(c => c.classList.toggle('on', c.dataset.k === service));
+        const s = service ? SERVICES[service] : null;
+        const mats = s && s.mats; $('#itMatWrap').hidden = !mats;
+        if (mats) { const sel = $('#itMat'); const keep = userPicked ? '' : curMat; sel.innerHTML = '<option value="">— decide at estimate —</option>' + mats.map(m => '<option>' + esc(m) + '</option>').join(''); sel.value = keep && mats.includes(keep) ? keep : ''; if (userPicked) curMat = ''; }
+        $('#itMeasureWrap').hidden = !(s && s.measure === 'any' && !shape);
+        const m = !s ? (kind || 'area') : s.measure === 'any' ? (shape ? kind : $('#itMeasure').value) : s.measure;
+        $('#itUnit').textContent = MEASURE_UNIT[m]; $('#itValueLbl').textContent = MEASURE_LABEL[m] + (shape ? ' (from photo — editable)' : '');
+        $('#itDepthWrap').hidden = !(s && s.depth != null);
+        if (s && s.depth != null && userPicked && !$('#itDepth').value) $('#itDepth').value = s.depth;
+        if (s && s.depth != null && !$('#itDepth').value) $('#itDepth').value = s.depth;
+        $('#itHeightWrap').hidden = !(s && s.height);
+        $('#itName').placeholder = s ? 'e.g. ' + (service === 'hedge' ? 'Back hedge' : service === 'plants' ? 'Front shrubs' : 'Front bed') : 'e.g. Front bed, Side of pool, Back hedge';
+        const showEdge = !it && perim && (service === 'mulch' || service === 'rock');
+        $('#itEdgeWrap').hidden = !showEdge; if (showEdge) $('#itEdgeTx').textContent = 'Also add edging along the outside (≈ ' + fmt(perim, 1) + ' lin ft)'; else $('#itEdge').checked = false;
+        const v = parseFloat($('#itValue').value) || 0, d = parseFloat($('#itDepth').value) || 0;
+        $('#itCy').textContent = (s && s.depth != null && v && d) ? '≈ ' + (v * d / 12 / 27).toFixed(2) + ' cu yd (order ' + roundUpTenth(v * d / 12 / 27).toFixed(1) + ')' : '';
+        $('#itCalcHint').textContent = (calcRounded != null && v && Math.abs(v - calcRounded) > 0.01) ? 'Edited from photo value (' + fmt(calcRounded, m === 'length' ? 1 : 0) + '). This item will no longer auto-update if you recalibrate.' : '';
+      }
+      $('#itMat').onchange = () => { curMat = $('#itMat').value; };
+      ['itValue', 'itDepth', 'itMeasure'].forEach(id => { $('#' + id).oninput = () => refresh(false); $('#' + id).onchange = () => refresh(false); });
+      $('#itCancel').onclick = () => done('cancel');
+      $('#itDelete').onclick = async () => { if (await confirmDlg('Delete this scope item?', 'Delete', 'bad')) { JOB.items = JOB.items.filter(i => i.id !== it.id); done('deleted'); } };
+      $('#itSave').onclick = () => {
+        if (!service) { toast('Pick the type of work first'); return; }
+        const s = SERVICES[service]; const m = s.measure === 'any' ? (shape ? kind : $('#itMeasure').value) : s.measure;
+        const val = parseFloat($('#itValue').value); if (!(val > 0)) { toast('Enter a quantity greater than 0'); return; }
+        const item = it || { id: uid(), createdAt: nowIso() };
+        Object.assign(item, {
+          name: $('#itName').value.trim() || s.label, service, measure: m, value: m === 'length' ? Math.round(val * 10) / 10 : Math.round(val * 100) / 100,
+          material: s.mats ? $('#itMat').value : '', depthIn: s.depth != null ? (parseFloat($('#itDepth').value) || s.depth) : 0, heightFt: s.height ? (parseFloat($('#itHeight').value) || 0) : 0,
+          notes: $('#itNotes').value.trim(), verified: $('#itVerified').checked, method: shape ? 'photo' : (item.method || 'manual'),
+          photoId: photo ? photo.id : (item.photoId || ''), shapeId: shape ? shape.id : (item.shapeId || '')
+        });
+        item.override = !!(calcRounded != null && Math.abs(item.value - calcRounded) > 0.01);
+        if (!it) JOB.items.push(item);
+        if (shape) shape.itemId = item.id;
+        if ($('#itEdge').checked && perim) JOB.items.push({ id: uid(), createdAt: nowIso(), name: item.name + ' edging', service: 'edging', measure: 'length', value: Math.round(perim * 10) / 10, material: '', depthIn: 0, heightFt: 0, notes: '', verified: false, method: 'photo', photoId: photo.id, shapeId: '', override: false });
+        done('saved');
+      };
+      function done(r) { sh.hidden = true; resolve(r); }
+      refresh(false); sh.hidden = false; sh.querySelector('.sheet').scrollTop = 0;
     });
-  }
-  if (data.equipmentRental && data.equipmentRental.length > 0) {
-    equipmentRentalSelections = []; equipmentRentalIdCounter = 0; document.getElementById('equipmentRentalList').innerHTML = '';
-    data.equipmentRental.forEach(rental => {
-      addEquipmentRental(); const id = equipmentRentalIdCounter-1;
-      setTimeout(() => {
-        const te = document.getElementById(`equipment-rental-type-${id}`); const de = document.getElementById(`equipment-rental-duration-${id}`);
-        if(te) te.value = rental.name; if(de) de.value = rental.duration;
-        updateEquipmentRentalCost(id);
-      }, 50);
+  },
+  /* ---- summary ---- */
+  async showSummary() {
+    const body = $('#sumBody'); const J = JOB.job; const T = serviceTotals(); const L = laborSuggestion();
+    const rows = JOB.items.map(i => '<tr><td><b>' + esc(i.name) + '</b></td><td>' + SERVICES[i.service].icon + ' ' + esc(SERVICES[i.service].label) + (i.material ? '<br><small>' + esc(i.material) + '</small>' : '') + '</td><td>' + qtyText(i) + (i.depthIn ? '<br><small>' + i.depthIn + '" deep ≈ ' + cuYds(i).toFixed(1) + ' cu yd</small>' : '') + (i.heightFt ? '<br><small>' + i.heightFt + ' ft tall</small>' : '') + '</td><td>' + esc(i.notes || '') + (i.verified ? '' : '<br><small style="color:#b9770e">approx.</small>') + '</td></tr>').join('');
+    const trows = T.map(t => '<tr><td>' + SERVICES[t.service].icon + ' ' + esc(SERVICES[t.service].label) + '</td><td>' + t.count + '</td><td>' + (t.measure === 'area' ? fmt(t.qty, 0) + ' sq ft' : t.measure === 'length' ? fmt(t.qty, 1) + ' lin ft' : fmt(t.qty, 0) + ' ea') + '</td><td>' + (t.cy ? t.cy.toFixed(1) + ' cu yd (order ' + roundUpTenth(t.cy).toFixed(1) + ')' : '') + '</td></tr>').join('');
+    const pics = [];
+    for (const p of JOB.photos) {
+      const u = await ensurePhotoUrl(p.id, 'ann'); const its = JOB.items.filter(i => i.photoId === p.id);
+      pics.push('<div class="pg"><img src="' + u + '" alt=""><div><b>' + esc(p.caption || '') + '</b>' + (its.length ? ' <small>' + its.map(i => esc(i.name)).join(', ') + '</small>' : '') + '</div></div>');
+    }
+    const internal = L.lines.length ? '<div class="int no-print"><b>Crew-only: suggested labor ≈ ' + fmt(L.hours, 2) + ' hrs</b> (from the production rates in ⚙ Settings)<br>' + L.lines.map(l => esc(SERVICES[l.service].label) + ': ' + fmt(l.qty, 1) + ' ÷ ' + l.rate + '/hr = ' + l.hours.toFixed(2) + ' h').join('<br>') + '<br><small>Not shown on the printed report. Sent to the estimator as a starting point.</small></div>' : '<div class="int no-print">Crew-only: set production rates in ⚙ Settings to get suggested labor hours here and in the estimator.</div>';
+    body.innerHTML = '<div style="display:flex;gap:14px;align-items:center"><img src="https://static.wixstatic.com/media/99a075_f0b64d954a90417ba2ac87c06f85804a~mv2.png" style="height:64px;width:auto" onerror="this.remove()" alt=""><div><h1>Site Survey &amp; Scope of Work</h1><div style="color:#7f8c8d;font-size:13px">WS Lawn Care Services, LLC · ' + fmtDate(JOB.createdAt) + '</div></div></div>'
+      + '<table style="margin-top:12px"><tr><th>Customer</th><td>' + esc(J.customerName) + '</td></tr><tr><th>Property</th><td>' + esc(J.propertyAddress) + '</td></tr><tr><th>Project</th><td>' + esc(J.projectType) + '</td></tr><tr><th>Surveyed by</th><td>' + esc(JOB.crew || '') + '</td></tr></table>'
+      + '<h2 class="sec">Scope of work</h2>' + (rows ? '<table><tr><th>Area</th><th>Work</th><th>Quantity</th><th>Notes</th></tr>' + rows + '</table>' : '<p class="empty">No scope items yet.</p>')
+      + (trows ? '<h2 class="sec">Totals</h2><table><tr><th>Work</th><th>Areas</th><th>Total</th><th>Material</th></tr>' + trows + '</table>' : '')
+      + internal
+      + (pics.length ? '<h2 class="sec">Site photos</h2>' + pics.join('') : '')
+      + (JOB.siteNotes ? '<h2 class="sec">Site notes</h2><p style="white-space:pre-wrap">' + esc(JOB.siteNotes) + '</p>' : '')
+      + '<p class="hint" style="margin-top:14px">Measurements taken from photos are approximate and are confirmed on site before work begins. Final pricing is provided in a separate estimate.</p>'
+      + '<div class="foot"><b>You Grow It, We Mow It!®</b><br>Commitment Without Compromise · Jesus First Before Profits<br>Call or text 321.209.0668 · support@wslawncareservicesllc.com</div>';
+    this.showScreen('summary');
+  },
+  /* ---- Drive ---- */
+  async sync() {
+    if (!JOB) return false;
+    if (!API.ready()) { toast('Set the Apps Script URL first'); this.settings(); return false; }
+    if (!navigator.onLine) { toast('No signal right now. Your job is safe on this device; try again when you have service.', 4200); return false; }
+    await this.flush();
+    const msg = document.createElement('p'); msg.textContent = 'Saving survey…';
+    dialog({ title: 'Saving to Drive', body: msg, buttons: [] }); const ov = window.__lastDlg;
+    const say = t => { msg.textContent = t; };
+    try {
+      let r = await API.post('saveSurvey', { survey: exportSurvey(), folderId: JOB.sync.folderId || '' });
+      JOB.sync.folderId = r.folderId; JOB.sync.folderUrl = r.folderUrl;
+      const total = JOB.photos.length; let n = 0;
+      for (const p of JOB.photos) {
+        n++; const rec = await DB.get('photos', p.id); if (!rec) continue;
+        if (!p.driveOrigId) { say('Uploading photo ' + n + ' of ' + total + '…'); const pr = await API.post('savePhoto', { folderId: r.folderId, fileName: p.id + '_orig', dataUrl: await blobToDataUrl(rec.orig) }); p.driveOrigId = pr.fileId; }
+        if ((p.annDirty || !p.driveAnnId) && rec.ann) { say('Uploading annotated photo ' + n + ' of ' + total + '…'); const pr = await API.post('savePhoto', { folderId: r.folderId, fileName: p.id + '_ann', dataUrl: await blobToDataUrl(rec.ann) }); p.driveAnnId = pr.fileId; p.annDirty = false; }
+      }
+      say('Finishing…'); await API.post('saveSurvey', { survey: exportSurvey(), folderId: r.folderId });
+      JOB.sync.dirty = false; JOB.sync.lastSyncedAt = nowIso(); await DB.put('jobs', JOB);
+      ov && ov.remove(); this.renderJobHead(); toast('✓ Saved to Drive'); return true;
+    } catch (e) {
+      ov && ov.remove(); await DB.put('jobs', JOB);
+      dialog({ title: 'Could not save', body: '<p>' + esc(e.message || e) + '</p><p class="hint">Your job is still safe on this device. Check your signal and the Apps Script URL / shared key (⋯ menu → Settings), then try again.</p>' });
+      return false;
+    }
+  },
+  async toEstimator() {
+    if (!JOB.items.length) { toast('Add at least one scope item first'); return; }
+    if (!Settings.estimator) {
+      const u = await askText('Estimator web address', 'https://yourname.github.io/estimator/', '');
+      if (!u) return; Settings.estimator = u;
+    }
+    const ok = await this.sync(); if (!ok) return;
+    const base = Settings.estimator, link = base + (base.includes('?') ? '&' : '?') + 'survey=' + encodeURIComponent(JOB.sync.folderId);
+    dialog({ title: 'Saved. Ready to price it.', body: '<p>The survey is on Drive. The estimator will load it automatically.</p>', buttons: [{ label: 'Not now', value: null, cls: 'gray' }, { label: '➜ Open Estimator', action: () => { window.open(link, '_blank'); return true; }, cls: 'orange' }] });
+  },
+  async openFromDrive() {
+    if (!API.ready()) { toast('Set the Apps Script URL first'); this.settings(); return; }
+    const body = document.createElement('div'); body.innerHTML = '<p class="hint">Loading surveys…</p>';
+    dialog({ title: 'Surveys on Drive', body, wide: true, buttons: [{ label: 'Close', value: null, cls: 'gray' }] });
+    try {
+      const r = await API.get('listSurveys'); const list = r.surveys || [];
+      if (!list.length) { body.innerHTML = '<div class="empty">No surveys on Drive yet.</div>'; return; }
+      body.innerHTML = list.map(s => '<div class="card" data-id="' + s.folderId + '"><div class="th">📁</div><div class="tx"><div class="nm">' + esc(s.customerName) + '</div><div class="sub">' + esc(s.propertyAddress) + '</div><div class="sub">' + s.itemCount + ' items · ' + s.photoCount + ' photos · ' + fmtDate(s.lastModified) + '</div></div></div>').join('');
+      $$('.card', body).forEach(c => c.onclick = () => { c.closest('.overlay').remove(); this.loadFromDrive(c.dataset.id); });
+    } catch (e) { body.innerHTML = '<p>' + esc(e.message) + '</p>'; }
+  },
+  async loadFromDrive(folderId) {
+    const msg = document.createElement('p'); msg.textContent = 'Loading…'; dialog({ title: 'Opening survey', body: msg, buttons: [] }); const ov = window.__lastDlg;
+    try {
+      const r = await API.get('loadSurvey', { folderId }); const s = r.survey;
+      const local = await DB.get('jobs', s.id);
+      if (local && local.sync && local.sync.dirty) { ov.remove(); if (!(await confirmDlg('This job has unsaved changes on this device. Replace them with the Drive copy?', 'Replace', 'bad'))) return; }
+      s.sync = { folderId, folderUrl: r.folderUrl, dirty: false, lastSyncedAt: nowIso() }; delete s.labor; delete s.totals; delete s.drive;
+      const prev = JOB; JOB = s; let n = 0;
+      for (const p of s.photos) {
+        n++; msg.textContent = 'Downloading photo ' + n + ' of ' + s.photos.length + '…';
+        let rec = await DB.get('photos', p.id);
+        if (!rec || !rec.orig) { if (!p.driveOrigId) continue; const pr = await API.get('getPhoto', { fileId: p.driveOrigId }); rec = { id: p.id, jobId: s.id, orig: dataUrlToBlob(pr.dataUrl), ann: null }; }
+        rec.ann = await renderAnnotated(p, rec.orig); photoUrl(p.id, 'ann', rec.ann); await DB.put('photos', rec); p.annDirty = false;
+      }
+      await DB.put('jobs', s); ov && ov.remove(); this.enterJob(); toast('✓ Survey loaded');
+    } catch (e) { console.error(e); ov && ov.remove(); JOB = null; dialog({ title: 'Could not open', body: '<p>' + esc(e.message || e) + '</p>' }); }
+  },
+  /* ---- settings ---- */
+  async settings() {
+    const rates = Settings.rates;
+    const rrows = Object.keys(SERVICES).filter(k => k !== 'other').map(k => '<label>' + SERVICES[k].icon + ' ' + SERVICES[k].label + ' — ' + MEASURE_UNIT[SERVICES[k].measure] + ' per labor-hour</label><input data-r="' + k + '" type="number" inputmode="decimal" step="any" placeholder="blank = no suggestion" value="' + esc(rates[k] || '') + '">').join('');
+    const body = '<label>Apps Script Web App URL</label><input id="sUrl" placeholder="https://script.google.com/macros/s/…/exec" value="' + esc(Settings.url) + '">'
+      + '<label>Shared key (only if you set SHARED_KEY in the script)</label><input id="sKey" type="password" value="' + esc(Settings.key) + '">'
+      + '<label>Estimator web address</label><input id="sEst" placeholder="https://yourname.github.io/estimator/" value="' + esc(Settings.estimator) + '">'
+      + '<label>Your name (shown as “surveyed by”)</label><input id="sCrew" value="' + esc(Settings.crew) + '">'
+      + '<details style="margin-top:14px"><summary style="font-weight:700;padding:8px 0">Production rates (optional)</summary><p class="hint">Used to suggest labor hours. Leave blank until you have real numbers from past jobs.</p>' + rrows + '</details>';
+    const r = await dialog({
+      title: 'Settings', body, wide: true,
+      buttons: [{ label: 'Cancel', value: null, cls: 'gray' },
+        { label: 'Test', cls: 'sec', action: ov => { Settings.url = $('#sUrl', ov).value; Settings.key = $('#sKey', ov).value; toast('Testing…', 8000); API.get('listSurveys').then(x => toast('✓ Connected — ' + x.surveys.length + ' survey(s) on Drive', 4000)).catch(e => toast('✗ ' + e.message, 5000)); return undefined; } },
+        { label: 'Save', action: ov => { const rt = {}; $$('[data-r]', ov).forEach(i => { if (parseFloat(i.value) > 0) rt[i.dataset.r] = parseFloat(i.value); }); Settings.url = $('#sUrl', ov).value; Settings.key = $('#sKey', ov).value; Settings.estimator = $('#sEst', ov).value; Settings.crew = $('#sCrew', ov).value; Settings.rates = rt; return true; } }]
     });
+    if (r) toast('Settings saved');
   }
-  if (data.additionalMaterials && data.additionalMaterials.length > 0) {
-    additionalMaterialRows = []; document.getElementById('additionalMaterialsContainer').innerHTML = '';
-    data.additionalMaterials.forEach(mat => {
-      addMaterialRow(); const lr = additionalMaterialRows[additionalMaterialRows.length-1];
-      setTimeout(() => {
-        const de = document.querySelector(`.addmat-desc[data-rowid="${lr.id}"]`); const ce = document.querySelector(`.addmat-cost[data-rowid="${lr.id}"]`);
-        if(de) { de.value = mat.description||''; lr.description = mat.description||''; }
-        if(ce) { ce.value = mat.cost||''; lr.cost = parseFloat(mat.cost)||0; }
-      }, 50);
-    });
-  }
-  if (data.actualCosts) {
-    ['actualMaterials','actualLabor','actualEquipment','actualOther','totalPriceCharged'].forEach(id => { const el = document.getElementById(id); if(el) el.value = data.actualCosts[id.replace('actual','').replace('totalPriceCharged','totalPriceCharged').toLowerCase()]||data.actualCosts[id]||''; });
-    if (document.getElementById('actualMaterials')) document.getElementById('actualMaterials').value = data.actualCosts.materials||'';
-    if (document.getElementById('actualLabor')) document.getElementById('actualLabor').value = data.actualCosts.labor||'';
-    if (document.getElementById('actualEquipment')) document.getElementById('actualEquipment').value = data.actualCosts.equipment||'';
-    if (document.getElementById('actualOther')) document.getElementById('actualOther').value = data.actualCosts.other||'';
-    if (document.getElementById('totalPriceCharged')) document.getElementById('totalPriceCharged').value = data.actualCosts.totalPriceCharged||'';
-    if (data.actualCosts.materials||data.actualCosts.labor) setTimeout(() => updateActualComparison(), 300);
-  }
-  if (data.timeTracking) {
-    if (document.getElementById('budgetHours')) document.getElementById('budgetHours').value = data.timeTracking.budgetHours||'';
-    if (document.getElementById('actualHours')) document.getElementById('actualHours').value = data.timeTracking.actualHours||'';
-    if (data.timeTracking.actualHours) setTimeout(() => updateTimeTracking(), 300);
-  }
-  if (data.projectNotes) {
-    if (document.getElementById('notesWentWell')) document.getElementById('notesWentWell').value = data.projectNotes.wentWell||'';
-    if (document.getElementById('notesChallenges')) document.getElementById('notesChallenges').value = data.projectNotes.challenges||'';
-    if (document.getElementById('notesActionSteps')) document.getElementById('notesActionSteps').value = data.projectNotes.actionSteps||'';
-  }
-  if (data.generalNotes) {
-    if (document.getElementById('orderNotes')) document.getElementById('orderNotes').value = data.generalNotes.orderNotes||'';
-    if (document.getElementById('equipmentNotes')) document.getElementById('equipmentNotes').value = data.generalNotes.equipmentNotes||'';
-    if (document.getElementById('siteNotes')) document.getElementById('siteNotes').value = data.generalNotes.siteNotes||'';
-    if (document.getElementById('materialNotes')) document.getElementById('materialNotes').value = data.generalNotes.materialNotes||'';
-    if (document.getElementById('materialAreaLabel')) document.getElementById('materialAreaLabel').value = data.generalNotes.materialAreaLabel||'';
-  }
-  if (data.completedMaterials) completedMaterials = data.completedMaterials;
-  surveyRef = data.survey || null; renderSurveyLink();
-  setTimeout(() => { const dc = document.getElementById('dimensionsContainer'); dc?.querySelectorAll('input').forEach(input => input.addEventListener('input', () => calculate())); }, 150);
-  setTimeout(() => calculate(), 300);
-}
-
-function newEstimate() {
-  if (!confirm('Start a new estimate? This will clear all current data.')) return;
-  surveyRef = null; renderSurveyLink();
-  document.querySelectorAll('input[type="text"], input[type="number"]').forEach(input => {
-    if (!['profitMarginSlider','appsScriptUrl'].includes(input.id)) input.value = '';
-  });
-  document.querySelectorAll('textarea').forEach(ta => ta.value = '');
-  if (document.getElementById('laborRate')) document.getElementById('laborRate').value = '158';
-  if (document.getElementById('profitMarginSlider')) { document.getElementById('profitMarginSlider').value = '40'; document.getElementById('profitMarginDisplay').textContent = '40%'; }
-  if (document.getElementById('markupPercent')) document.getElementById('markupPercent').value = '0';
-  document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-  if (document.getElementById('geoTextileLinearFt')) document.getElementById('geoTextileLinearFt').style.display = 'none';
-  if (document.getElementById('edgingLinearFt')) document.getElementById('edgingLinearFt').style.display = 'none';
-  if (document.getElementById('materialCategory')) { document.getElementById('materialCategory').value = 'mulch'; updateMaterialOptions(); updateDimensionsInputs(); }
-  equipmentRows = []; document.getElementById('equipmentContainer').innerHTML = '';
-  equipmentRentalSelections = []; equipmentRentalIdCounter = 0; document.getElementById('equipmentRentalList').innerHTML = '';
-  additionalMaterialRows = []; document.getElementById('additionalMaterialsContainer').innerHTML = '';
-  completedMaterials = []; currentFileId = null;
-  ['actualMaterials','actualLabor','actualEquipment','actualOther','totalPriceCharged','budgetHours','actualHours'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
-  const acs = document.getElementById('actualCostsSection'); if(acs) acs.style.display = 'none';
-  const tb = document.getElementById('toggleActualCosts'); if(tb) { tb.textContent = '📈 Track Actual Costs (Budget vs Actual)'; tb.style.background = 'linear-gradient(90deg,#9b59b6 0%,#8e44ad 100%)'; }
-  calculate();
-}
-
-function toggleActualCostsSection() {
-  const section = document.getElementById('actualCostsSection'), button = document.getElementById('toggleActualCosts');
-  if (section.style.display === 'none') { section.style.display = 'block'; button.textContent = '✓ Actual Costs Tracking Active'; button.style.background = 'linear-gradient(90deg,#27ae60 0%,#229954 100%)'; }
-  else { section.style.display = 'none'; button.textContent = '📈 Track Actual Costs (Budget vs Actual)'; button.style.background = 'linear-gradient(90deg,#9b59b6 0%,#8e44ad 100%)'; }
-}
-
-function updateTimeTracking() {
-  const bh = parseFloat(document.getElementById('budgetHours')?.value)||0;
-  const ah = parseFloat(document.getElementById('actualHours')?.value)||0;
-  const lr = parseFloat(document.getElementById('laborRate')?.value)||158;
-  const td = document.getElementById('timeTrackingDisplay'); if(!td) return;
-  if (ah === 0) { td.style.display = 'none'; return; }
-  const diff = ah-bh, eff = bh>0?(bh/ah)*100:0, blc = bh*lr, alc = ah*lr, cd = alc-blc;
-  const sc = Math.abs(diff/(bh||1)*100)<=10?'#27ae60':ah<=bh?'#3498db':'#e74c3c';
-  td.style.display = 'block';
-  td.innerHTML = `
-    <div style="text-align:center;padding:16px;background:white;border:3px solid ${sc};border-radius:8px;margin-bottom:12px;">
-      <div style="font-size:12px;color:#7f8c8d;margin-bottom:6px;">TIME EFFICIENCY</div>
-      <div style="font-size:32px;font-weight:700;color:${sc};">${eff.toFixed(0)}%</div>
-      <div style="font-size:13px;color:${sc};font-weight:600;">${ah<=bh?'✓ On/Under Budget':'⚠ Over Budget'} | ${diff>=0?'+':''}${diff.toFixed(1)}h</div>
-    </div>
-    <div style="background:white;padding:12px;border-radius:8px;font-size:12px;color:#2c3e50;">
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Budget: ${bh}h @ ${formatCurrency(lr)}/hr</span><span style="font-weight:700;">${formatCurrency(blc)}</span></div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Actual: ${ah}h @ ${formatCurrency(lr)}/hr</span><span style="font-weight:700;color:${sc};">${formatCurrency(alc)}</span></div>
-      <div style="display:flex;justify-content:space-between;border-top:1px solid #e0e0e0;padding-top:4px;margin-top:4px;"><span>Labor Variance:</span><span style="font-weight:700;color:${sc};">${cd>=0?'+':''}${formatCurrency(cd)}</span></div>
-    </div>`;
-  updateActualComparison();
-}
-
-function updateActualComparison() {
-  const am = parseFloat(document.getElementById('actualMaterials').value)||0;
-  const al = parseFloat(document.getElementById('actualLabor').value)||0;
-  const ae = parseFloat(document.getElementById('actualEquipment').value)||0;
-  const ao = parseFloat(document.getElementById('actualOther').value)||0;
-  const total = am+al+ae+ao;
-  const tpc = parseFloat(document.getElementById('totalPriceCharged').value)||0;
-  const cd = document.getElementById('comparisonDisplay');
-  if (total === 0) { if(cd) cd.style.display = 'none'; return; }
-  const bm = parseFloat(summaryContent.getAttribute('data-materials'))||0;
-  const bl = parseFloat(summaryContent.getAttribute('data-labor'))||0;
-  const be = parseFloat(summaryContent.getAttribute('data-equipment'))||0;
-  const bo = parseFloat(summaryContent.getAttribute('data-other'))||0;
-  const budget = bm+bl+be+bo;
-  const diff = total-budget, pct = budget>0?(diff/budget)*100:0;
-  const isOn = Math.abs(pct)<=5, isUnder = diff<0;
-  const sc = isOn?'#27ae60':isUnder?'#3498db':'#e74c3c';
-  const st = isOn?'✓ On Budget':isUnder?'↓ Under Budget':'↑ Over Budget';
-  let profitHtml = '';
-  if (tpc>0&&total>0) {
-    const ap = tpc-total, apm = (ap/tpc)*100, tm = parseFloat(document.getElementById('profitMarginSlider')?.value)||40, md = apm-tm;
-    const mc = Math.abs(md)<=2?'#27ae60':apm>tm?'#27ae60':apm>=(tm-5)?'#f39c12':'#e74c3c';
-    const ms = Math.abs(md)<=2?'✓ Met Target':apm>tm?'⭐ Exceeded Target':apm>=(tm-5)?'⚠ Close to Target':'✕ Below Target';
-    profitHtml = `<div style="margin-top:16px;padding:16px;background:${mc==='#27ae60'?'#e8f5e9':'#ffebee'};border:3px solid ${mc};border-radius:8px;">
-      <div style="text-align:center;margin-bottom:12px;"><div style="font-size:12px;color:#7f8c8d;margin-bottom:4px;">ACTUAL PROFIT MARGIN</div><div style="font-size:32px;font-weight:700;color:${mc};">${apm.toFixed(1)}%</div><div style="font-size:13px;font-weight:600;color:${mc};">${ms}</div></div>
-      <div style="background:white;padding:12px;border-radius:6px;font-size:12px;">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Price Charged:</span><span style="font-weight:700;">${formatCurrency(tpc)}</span></div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Actual Costs:</span><span style="font-weight:700;">${formatCurrency(total)}</span></div>
-        <div style="display:flex;justify-content:space-between;border-top:1px solid #e0e0e0;padding-top:4px;margin-top:4px;"><span>Actual Profit:</span><span style="font-weight:700;color:${mc};">${formatCurrency(ap)}</span></div>
-        <div style="display:flex;justify-content:space-between;margin-top:4px;"><span>Target vs Actual Margin:</span><span style="font-weight:700;color:${mc};">${tm.toFixed(0)}% vs ${apm.toFixed(1)}%</span></div>
-      </div></div>`;
-  }
-  if (cd) {
-    cd.style.display = 'block';
-    cd.innerHTML = `<div style="background:white;border:3px solid ${sc};border-radius:8px;padding:20px;">
-      <div style="text-align:center;margin-bottom:16px;font-size:18px;font-weight:700;color:${sc};">${st}</div>
-      <div style="background:#f8f9fa;padding:12px;border-radius:6px;margin-bottom:12px;font-size:13px;">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><strong>Total Budget:</strong><span>${formatCurrency(budget)}</span></div>
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><strong>Total Actual:</strong><span style="color:${sc};">${formatCurrency(total)}</span></div>
-        <div style="display:flex;justify-content:space-between;border-top:1px solid #e0e0e0;padding-top:4px;margin-top:4px;"><strong>Variance:</strong><span style="font-weight:700;color:${sc};">${diff>=0?'+':''}${formatCurrency(diff)} (${pct>=0?'+':''}${pct.toFixed(1)}%)</span></div>
-      </div>${profitHtml}</div>`;
-  }
-}
-
-window.addEventListener('DOMContentLoaded', init);
+};
+window.addEventListener('DOMContentLoaded', () => App.init());
 </script>
 </body>
 </html>

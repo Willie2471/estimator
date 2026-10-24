@@ -1,0 +1,15 @@
+{
+  "name": "WS Field Survey",
+  "short_name": "WS Survey",
+  "description": "Photo measuring and scope-of-work survey for WS Lawn Care Services",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#27ae60",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
