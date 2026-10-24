@@ -1131,6 +1131,7 @@ function applySurvey(s, folderId, folderUrl) {
   s.items.forEach(function (it) {
     var q = parseFloat(it.value) || 0; if (!(q > 0)) return;
     var tag = it.verified ? '' : (it.method === 'photo' ? ' (≈ photo estimate)' : ' (unverified)');
+    var dimTxt = (it.dims && it.dims.length) ? 'Sections: ' + it.dims.map(function (d) { return d[0] + '×' + d[1]; }).join(' + ') + ' ft. ' : '';
     var catMap = { mulch: 'mulch', rock: 'rock', dirt: 'dirt', sod: 'sod' };
     var cat = catMap[it.service];
     if (cat) {
@@ -1139,14 +1140,14 @@ function applySurvey(s, folderId, folderUrl) {
       var cost = 0, cy = 0, details = '', orderInfo = '';
       if (cat === 'sod') { var si = getSodPricing(q, mat); cost = si.cost; details = si.details; }
       else { var d = parseFloat(it.depthIn) || 1; cy = q * d / 12 / 27; cost = cy * mat.pricePerYard; details = q.toFixed(0) + ' sq ft × ' + d + '" = ' + cy.toFixed(2) + ' cu yds'; orderInfo = 'Order: ' + (Math.ceil(cy * 10 - 1e-9) / 10).toFixed(1) + ' cu yds (rounded up)'; }
-      completedMaterials.push({ entryId: 'mat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), category: cat, materialName: mat.name, areaLabel: it.name || '', cost: cost, details: details, orderInfo: orderInfo, notes: (warn + (it.notes || '') + tag).trim(), cy: cy, sqFt: q, pieces: 0 });
+      completedMaterials.push({ entryId: 'mat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6), category: cat, materialName: mat.name, areaLabel: it.name || '', cost: cost, details: details, orderInfo: orderInfo, notes: (warn + dimTxt + (it.notes || '') + tag).trim(), cy: cy, sqFt: q, pieces: 0 });
       matCount++;
     } else if (it.service === 'edging') { edgingFt += q; }
     else if (it.service === 'fabric') { fabricFt += q; }
     else {
       var unit = it.measure === 'count' ? 'ea' : it.measure === 'length' ? 'lin ft' : 'sq ft';
       var lbl = { hedge: 'Hedge/Shrub Trim', plants: 'Plants/Trees', removal: 'Removal/Haul-off', other: 'Other' }[it.service] || it.service;
-      notes.push('• ' + lbl + ' — ' + (it.name || '') + ': ' + q + ' ' + unit + (it.heightFt ? ', ' + it.heightFt + ' ft tall' : '') + (it.notes ? ' — ' + it.notes : '') + tag);
+      notes.push('• ' + lbl + ' — ' + (it.name || '') + ': ' + q + ' ' + unit + (it.heightFt ? ', ' + it.heightFt + ' ft tall' : '') + (it.notes ? ' — ' + it.notes : '') + (dimTxt ? ' (' + dimTxt.trim() + ')' : '') + tag);
     }
   });
   var addOn = function (cbId, ftId, lblId, add) {
