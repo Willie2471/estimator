@@ -284,7 +284,8 @@
 // ============================================================
 // APPS SCRIPT URL — configured once, stored in localStorage
 // ============================================================
-var APPS_SCRIPT_URL = localStorage.getItem('ws_apps_script_url') || '';
+var DEFAULT_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxD_YPo7UBIKGj5jpbP3TACQfB9eJGi5oLNsEoUN-2oLsn-Cq9ZjhJdy6RAxClMyePRNw/exec'; // built in; a URL saved on this device overrides it
+var APPS_SCRIPT_URL = localStorage.getItem('ws_apps_script_url') || DEFAULT_APPS_SCRIPT_URL;
 var SHARED_KEY = localStorage.getItem('ws_shared_key') || '';
 
 function saveScriptUrl() {
@@ -468,7 +469,7 @@ const edgingLinearFt = document.getElementById('edgingLinearFt');
 const summaryContent = document.getElementById('summaryContent');
 
 function init() {
-  var savedUrl = localStorage.getItem('ws_apps_script_url') || '';
+  var savedUrl = localStorage.getItem('ws_apps_script_url') || DEFAULT_APPS_SCRIPT_URL;
   if (savedUrl) { document.getElementById('appsScriptUrl').value = savedUrl; APPS_SCRIPT_URL = savedUrl; }
   var sk = document.getElementById('sharedKeyInput'); if (sk) sk.value = SHARED_KEY;
   checkDriveConnection();
