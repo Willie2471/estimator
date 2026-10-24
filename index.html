@@ -68,7 +68,22 @@
     .drive-status.err { background:rgba(231,76,60,0.2);color:#e74c3c; }
     .drive-status.loading { background:rgba(52,152,219,0.2);color:#3498db; }
     #toast { position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#27ae60;color:white;padding:12px 24px;border-radius:8px;font-weight:700;font-size:14px;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,0.2);display:none; }
+    #custSummary { display:none; position:fixed; inset:0; z-index:1500; background:#fff; overflow:auto; -webkit-overflow-scrolling:touch; }
+    #custSummary .cs-bar { position:sticky; top:0; background:linear-gradient(90deg,#2ecc71,#27ae60); padding:10px 14px; display:flex; gap:10px; align-items:center; z-index:2; }
+    #custSummary .cs-bar button { width:auto; padding:10px 16px; font-size:13px; letter-spacing:0; text-transform:none; background:#fff; color:#27ae60; box-shadow:none; }
+    #custSummary .cs-bar span { color:#fff; font-weight:700; flex:1; }
+    #custBody { max-width:820px; margin:0 auto; padding:20px; font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; font-size:14px; line-height:1.4; }
+    #custBody h1 { font-size:22px; } #custBody h2 { font-size:13px; letter-spacing:1px; text-transform:uppercase; color:#27ae60; margin:20px 0 8px; }
+    #custBody table { width:100%; border-collapse:collapse; margin:6px 0; }
+    #custBody th, #custBody td { border-bottom:1px solid #e0e0e0; padding:6px 4px; text-align:left; vertical-align:top; }
+    #custBody th { font-size:12px; color:#7f8c8d; text-transform:uppercase; }
+    .cs-photos { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .cs-photos .pg { break-inside:avoid; } .cs-photos img { width:100%; border-radius:6px; border:1px solid #e0e0e0; display:block; }
+    .cs-foot { margin-top:24px; padding-top:10px; border-top:2px solid #27ae60; font-size:12px; color:#7f8c8d; text-align:center; }
     @media print {
+      body.pc .container, body.pc #toast, body.pc .modal-overlay { display:none !important; }
+      body.pc #custSummary { display:block !important; position:static !important; overflow:visible !important; }
+      .no-print { display:none !important; }
       @page { size: letter; margin: 0.5in; }
       .left-panel { display: none !important; }
       .main-grid { grid-template-columns: 1fr !important; display: block !important; }
@@ -131,7 +146,7 @@
           <button onclick="addMaterialRow()" style="width:100%;padding:10px;background:#27ae60;color:white;border:none;border-radius:6px;cursor:pointer;margin-top:8px;">➕ Add Material Row</button>
           <div style="margin-top:18px;padding-top:16px;border-top:2px dashed #b7dfc5;">
             <div style="font-size:12px;font-weight:700;color:#27ae60;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">➕ Add-ons</div>
-            <label class="checkbox-label" id="geoTextileLabel"><input type="checkbox" id="includeGeoTextile"><span>Geo Textile Fabric ($1.20/ft)</span></label>
+            <label class="checkbox-label" id="geoTextileLabel"><input type="checkbox" id="includeGeoTextile"><span>Geo-Textile Weed Fabric ($1.20/ft)</span></label>
             <input type="number" id="geoTextileLinearFt" placeholder="Linear feet" style="display:none;">
             <label class="checkbox-label" id="edgingLabel"><input type="checkbox" id="includeEdging"><span>Composite Edging ($3.00/ft)</span></label>
             <input type="number" id="edgingLinearFt" placeholder="Linear feet" style="display:none;">
@@ -269,6 +284,16 @@
       <button onclick="closeLoadModal()" style="width:auto;padding:10px 20px;background:#7f8c8d;font-size:13px;letter-spacing:0;text-transform:none;">✕ Close</button>
     </div>
   </div>
+</div>
+
+<div id="custSummary">
+  <div class="cs-bar no-print">
+    <button onclick="closeCustomerSummary()">‹ Back to estimate</button>
+    <span>Customer Summary</span>
+    <button onclick="buildCustomerSummary()">↻ Refresh</button>
+    <button onclick="printCustomerSummary()">🖨️ Print / Save as PDF</button>
+  </div>
+  <div id="custBody"></div>
 </div>
 
 <div id="surveyModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeSurveyModal()">
@@ -438,7 +463,7 @@ function allocateSodCosts(curName, curSq) {
 }
 
 const ADDONS = {
-  geoTextile: { name: 'Geo Textile Fabric', pricePerLinearFt: 1.20 },
+  geoTextile: { name: 'Geo-Textile Weed Fabric', pricePerLinearFt: 1.20 },
   edging: { name: 'Composite Edging', pricePerLinearFt: 3.00 }
 };
 
@@ -796,7 +821,7 @@ function groupMaterials(e) {
   const hasCurrent = !!(e.category && e.category !== 'none' && e.materialCost > 0);
   if (hasCurrent) items.push({ category: e.category, name: e.materialName, area: (document.getElementById('materialAreaLabel')?.value || '').trim(), cost: e.materialCost, cy: e.category === 'sod' ? 0 : (e.cubicYards || 0), sq: e.category === 'sod' ? (e.totalSqFt || 0) : 0 });
   const addOns = [];
-  if (e.geoTextileCost > 0) addOns.push(['Geo Textile Fabric', `${e.geoTextileLinearFt} linear ft`, '🧵']);
+  if (e.geoTextileCost > 0) addOns.push(['Geo-Textile Weed Fabric', `${e.geoTextileLinearFt} linear ft`, '🧵']);
   if (e.edgingCost > 0) addOns.push(['Composite Edging', `${e.edgingLinearFt} linear ft`, '🔲']);
   const groups = [];
   ORDER_CATS.forEach(([key, label, icon]) => {
@@ -952,7 +977,7 @@ function displaySummary(e) {
         <div class="info-row" style="margin-left:16px;font-size:12px;opacity:0.8;"><span>Materials Subtotal:</span><span>${formatCurrency(e.additionalMaterialsBase)}</span></div>
         <div class="info-row" style="margin-left:16px;font-size:12px;opacity:0.8;"><span>10% Markup:</span><span>${formatCurrency(e.additionalMaterialsMarkup)}</span></div>
         <div class="info-row"><span>Additional Materials Total:</span><span>${formatCurrency(e.additionalMaterialsCost)}</span></div>`:''}
-      ${e.addOnsCost>0?`${e.geoTextileCost>0?`<div class="info-row"><span>🧵 Geo Textile Fabric (${e.geoTextileLinearFt} linear ft):</span><span>${formatCurrency(e.geoTextileCost)}</span></div>`:''}${e.edgingCost>0?`<div class="info-row"><span>🔲 Composite Edging (${e.edgingLinearFt} linear ft):</span><span>${formatCurrency(e.edgingCost)}</span></div>`:''}`:''}
+      ${e.addOnsCost>0?`${e.geoTextileCost>0?`<div class="info-row"><span>🧵 Geo-Textile Weed Fabric (${e.geoTextileLinearFt} linear ft):</span><span>${formatCurrency(e.geoTextileCost)}</span></div>`:''}${e.edgingCost>0?`<div class="info-row"><span>🔲 Composite Edging (${e.edgingLinearFt} linear ft):</span><span>${formatCurrency(e.edgingCost)}</span></div>`:''}`:''}
       ${e.laborCost>0?`<div class="info-row"><span>Labor${e.laborHours>0?` (${e.laborHours} ${e.laborHours===1?'hour':'hours'})`:''}:</span><span>${formatCurrency(e.laborCost)}</span></div>`:''}
       ${e.equipmentCost>0||e.equipmentRentalCost>0?`
         ${e.equipmentCost>0?`<div class="info-row"><span>Equipment:</span><span>${formatCurrency(e.equipmentCost)}</span></div>${e.equipmentRows&&e.equipmentRows.length>0?`<div style="margin-left:16px;margin-bottom:8px;">${e.equipmentRows.map(eq=>`<div style="display:flex;justify-content:space-between;font-size:12px;color:#7f8c8d;margin-bottom:4px;"><span>• ${eq.description}</span><span>${formatCurrency(eq.cost)}</span></div>`).join('')}</div>`:''}`:''}
@@ -978,6 +1003,7 @@ function displaySummary(e) {
       <div class="status-badge">${meetsGoal?`✓ This project meets the ${tg}% profit margin goal`:`⚠ This project is below the ${tg}% profit margin goal`}</div>
       <div style="font-size:12px;opacity:0.7;">Expected profit: ${formatCurrency(e.targetProfit)}</div>
     </div>
+    <button onclick="openCustomerSummary()" style="background:linear-gradient(90deg,#f39c12 0%,#e67e22 100%);border:none;margin-bottom:10px;">📄 Customer Summary (Site Survey Report)</button>
     <button onclick="window.print()" style="background:linear-gradient(90deg,#3498db 0%,#2980b9 100%);border:none;">🖨️ Print / Save as PDF</button>
   `;
 }
@@ -1161,8 +1187,8 @@ function applySurvey(s, folderId, folderUrl) {
   addOn('includeGeoTextile', 'geoTextileLinearFt', 'geoTextileLabel', fabricFt);
   var head = '— Site survey' + (s.crew ? ' by ' + s.crew : '') + (s.createdAt ? ' (' + new Date(s.createdAt).toLocaleDateString('en-US') + ')' : '') + ' —';
   var lines = [head];
-  if (edgingFt > 0) lines.push('• Edging: ' + (Math.round(edgingFt * 10) / 10) + ' lin ft (added to Add-ons)');
-  if (fabricFt > 0) lines.push('• Weed fabric: ' + (Math.round(fabricFt * 10) / 10) + ' lin ft (added to Add-ons)');
+  if (edgingFt > 0) lines.push('• Composite Edging: ' + (Math.round(edgingFt * 10) / 10) + ' lin ft (added to Add-ons)');
+  if (fabricFt > 0) lines.push('• Geo-Textile Weed Fabric: ' + (Math.round(fabricFt * 10) / 10) + ' lin ft (added to Add-ons)');
   lines = lines.concat(notes);
   if (s.siteNotes) lines.push('Site notes: ' + s.siteNotes);
   var lab = s.labor && parseFloat(s.labor.hours) > 0 ? parseFloat(s.labor.hours) : 0;
@@ -1395,6 +1421,88 @@ function updateActualComparison() {
         <div style="display:flex;justify-content:space-between;border-top:1px solid #e0e0e0;padding-top:4px;margin-top:4px;"><strong>Variance:</strong><span style="font-weight:700;color:${sc};">${diff>=0?'+':''}${formatCurrency(diff)} (${pct>=0?'+':''}${pct.toFixed(1)}%)</span></div>
       </div>${profitHtml}</div>`;
   }
+}
+
+// ============================================================
+// CUSTOMER SUMMARY  (customer-ready report; no prices)
+// Built from the current estimate + the linked survey's photos.
+// ============================================================
+var custCache = { folderId: '', survey: null, photos: {} };
+function escH(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function openCustomerSummary() {
+  document.getElementById('custSummary').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  buildCustomerSummary();
+}
+function closeCustomerSummary() { document.getElementById('custSummary').style.display = 'none'; document.body.style.overflow = ''; }
+function printCustomerSummary() {
+  document.body.classList.add('pc');
+  var done = function () { document.body.classList.remove('pc'); window.removeEventListener('afterprint', done); };
+  window.addEventListener('afterprint', done);
+  window.print();
+}
+async function buildCustomerSummary() {
+  var body = document.getElementById('custBody');
+  var keepNotes = document.getElementById('custNotes') ? document.getElementById('custNotes').value : '';
+  body.innerHTML = '<p style="color:#7f8c8d">Building summary…</p>';
+  calculate();
+  var e = window.lastSummaryData || {};
+  var g = groupMaterials(e);
+  var qty = function (i) {
+    var parts = [];
+    if (i.sq > 0) parts.push(Math.round(i.sq).toLocaleString('en-US') + ' sq ft');
+    if (i.category !== 'sod' && i.cy > 0) parts.push(i.cy.toFixed(1) + ' cu yd');
+    return parts.join(' · ');
+  };
+  var rows = g.items.map(function (i) {
+    return '<tr><td><b>' + escH(i.area || '—') + '</b></td><td>' + matIcon(i.category) + ' ' + escH(i.name) + '</td><td>' + qty(i) + '</td></tr>';
+  });
+  g.addOns.forEach(function (a) { rows.push('<tr><td><b>—</b></td><td>' + a[2] + ' ' + escH(a[0]) + '</td><td>' + escH(a[1].replace('linear ft', 'lin ft')) + '</td></tr>'); });
+  (e.additionalMaterials || []).forEach(function (m) { rows.push('<tr><td><b>—</b></td><td>📦 ' + escH(m.description) + '</td><td></td></tr>'); });
+
+  // Survey: photos + non-material scope (hedges, plants, removal, other)
+  var survey = null, photoHtml = '', crew = '';
+  if (surveyRef && surveyRef.folderId && APPS_SCRIPT_URL) {
+    try {
+      if (custCache.folderId !== surveyRef.folderId || !custCache.survey) {
+        var r = await fetchFromDrive('loadSurvey', { folderId: surveyRef.folderId });
+        if (!r.success) throw new Error(r.error || 'Load failed');
+        custCache = { folderId: surveyRef.folderId, survey: r.survey, photos: {} };
+      }
+      survey = custCache.survey; crew = survey.crew || '';
+      var labels = { hedge: 'Hedge/Shrub Trim', plants: 'Plants/Trees', removal: 'Removal/Haul-off', other: 'Other' };
+      (survey.items || []).forEach(function (it) {
+        if (!labels[it.service]) return;
+        var unit = it.measure === 'count' ? 'ea' : it.measure === 'length' ? 'lin ft' : 'sq ft';
+        rows.push('<tr><td><b>' + escH(it.name || '—') + '</b></td><td>' + escH(labels[it.service]) + (it.notes ? '<br><small>' + escH(it.notes) + '</small>' : '') + '</td><td>' + escH(it.value) + ' ' + unit + (it.heightFt ? '<br><small>' + escH(it.heightFt) + ' ft tall</small>' : '') + '</td></tr>');
+      });
+      var pics = [], n = 0, list = survey.photos || [];
+      for (var k = 0; k < list.length; k++) {
+        var p = list[k], fid = p.driveAnnId || p.driveOrigId; if (!fid) continue;
+        n++; body.innerHTML = '<p style="color:#7f8c8d">Loading photo ' + n + ' of ' + list.length + '…</p>';
+        if (!custCache.photos[fid]) { try { var pr = await fetchFromDrive('getPhoto', { fileId: fid }); if (pr.success) custCache.photos[fid] = pr.dataUrl; } catch (err) {} }
+        if (custCache.photos[fid]) pics.push('<div class="pg"><img src="' + custCache.photos[fid] + '" alt=""><div><b>' + escH(p.caption || '') + '</b></div></div>');
+      }
+      if (pics.length) photoHtml = '<h2>Site photos</h2><div class="cs-photos">' + pics.join('') + '</div>';
+    } catch (err) { photoHtml = '<p class="no-print" style="color:#c0392b;font-size:12px;">Could not load survey photos (' + escH(err.message || err) + '). Check your connection and tap Refresh.</p>'; }
+  } else {
+    photoHtml = '<p class="no-print" style="color:#7f8c8d;font-size:12px;">No survey linked to this estimate, so no photos are shown. Use 📥 Import Site Survey to add them.</p>';
+  }
+  var today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  var info = [['Project', e.projectName], ['Property', e.propertyAddress], ['Project type', e.projectType], ['Surveyed by', crew]].filter(function (x) { return x[1]; })
+    .map(function (x) { return '<tr><th style="width:130px">' + x[0] + '</th><td>' + escH(x[1]) + '</td></tr>'; }).join('');
+  body.innerHTML = '<div style="display:flex;gap:14px;align-items:center"><img src="https://static.wixstatic.com/media/99a075_f0b64d954a90417ba2ac87c06f85804a~mv2.png" style="height:64px;width:auto" alt=""><div><h1>Site Survey &amp; Scope of Work</h1><div style="color:#7f8c8d;font-size:13px">WS Lawn Care Services, LLC · ' + today + '</div></div></div>'
+    + (info ? '<table style="margin-top:12px">' + info + '</table>' : '')
+    + '<h2>Scope of work</h2>' + (rows.length ? '<table><tr><th>Area</th><th>Work</th><th>Quantity</th></tr>' + rows.join('') + '</table>' : '<p style="color:#7f8c8d">No scope items yet. Add materials to the estimate first.</p>')
+    + '<div id="custNotesPrint" style="white-space:pre-wrap;margin-top:12px"></div>'
+    + '<div class="no-print" style="background:#f0f8ff;border:2px solid #3498db;border-radius:8px;padding:12px;margin-top:14px"><b>Final adjustments</b> <span style="color:#7f8c8d;font-size:12px">(optional note for the customer — shown on the printed report)</span><textarea id="custNotes" style="width:100%;min-height:70px;margin-top:8px;margin-bottom:0" placeholder="e.g. Hedge trimming will be done after mulch install."></textarea></div>'
+    + photoHtml
+    + '<p style="margin-top:16px;font-size:13px">Once your estimate is accepted, your work order will be placed in our queue and you will be given the crew’s estimated arrival date and time.</p>'
+    + '<div class="cs-foot"><b>You Grow It, We Mow It!®</b><br>Commitment Without Compromise · Jesus First Before Profits<br>Call or text 321.209.0668 · support@wslawncareservicesllc.com</div>';
+  var ta = document.getElementById('custNotes'), pn = document.getElementById('custNotesPrint');
+  ta.value = keepNotes;
+  var sync = function () { pn.innerHTML = ta.value.trim() ? '<h2>Notes</h2>' + escH(ta.value) : ''; };
+  ta.addEventListener('input', sync); sync();
 }
 
 window.addEventListener('DOMContentLoaded', init);
