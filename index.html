@@ -1191,6 +1191,7 @@ function applySurvey(s, folderId, folderUrl) {
   if (fabricFt > 0) lines.push('• Geo-Textile Weed Fabric: ' + (Math.round(fabricFt * 10) / 10) + ' lin ft (added to Add-ons)');
   lines = lines.concat(notes);
   if (s.siteNotes) lines.push('Site notes: ' + s.siteNotes);
+  (s.photos || []).forEach(function (ph, i) { if (ph.notes) lines.push('Photo ' + (i + 1) + (ph.caption ? ' (' + ph.caption + ')' : '') + ' notes: ' + ph.notes); });
   var lab = s.labor && parseFloat(s.labor.hours) > 0 ? parseFloat(s.labor.hours) : 0;
   var lh = document.getElementById('laborHours');
   if (lab > 0 && !(parseFloat(lh.value) > 0)) { lh.value = lab; lines.push('Labor hours (' + lab + ') were suggested from the survey production rates — verify.'); }
@@ -1468,6 +1469,7 @@ function printCustomerSummary() {
 async function buildCustomerSummary() {
   var body = document.getElementById('custBody');
   var keepNotes = document.getElementById('custNotes') ? document.getElementById('custNotes').value : '';
+  var prevSa = document.getElementById('saFreq') ? { freq: document.getElementById('saFreq').value, cost: document.getElementById('saCost').value, pct: document.getElementById('saPct').value } : {};
   body.innerHTML = '<p style="color:#7f8c8d">Building summary…</p>';
   calculate();
   var e = window.lastSummaryData || {};
@@ -1478,6 +1480,10 @@ async function buildCustomerSummary() {
     if (i.category !== 'sod' && i.cy > 0) parts.push(i.cy.toFixed(1) + ' cu yd');
     return parts.join(' · ');
   };
+  var plain = [];
+  g.items.forEach(function (i) { plain.push([i.area || '', i.name, qty(i)]); });
+  g.addOns.forEach(function (a) { plain.push(['', a[0], a[1].replace('linear ft', 'lin ft')]); });
+  (e.additionalMaterials || []).forEach(function (m) { plain.push(['', m.description, '']); });
   var rows = g.items.map(function (i) {
     return '<tr><td><b>' + escH(i.area || '—') + '</b></td><td>' + matIcon(i.category) + ' ' + escH(i.name) + '</td><td>' + qty(i) + '</td></tr>';
   });
@@ -1497,6 +1503,7 @@ async function buildCustomerSummary() {
       var labels = { hedge: 'Hedge/Shrub Trim', plants: 'Plants/Trees', removal: 'Removal/Haul-off', other: 'Other' };
       (survey.items || []).forEach(function (it) {
         if (!labels[it.service]) return;
+        plain.push([it.name || '', labels[it.service], it.value + ' ' + (it.measure === 'count' ? 'ea' : it.measure === 'length' ? 'lin ft' : 'sq ft')]);
         var unit = it.measure === 'count' ? 'ea' : it.measure === 'length' ? 'lin ft' : 'sq ft';
         rows.push('<tr><td><b>' + escH(it.name || '—') + '</b></td><td>' + escH(labels[it.service]) + (it.notes ? '<br><small>' + escH(it.notes) + '</small>' : '') + '</td><td>' + escH(it.value) + ' ' + unit + (it.heightFt ? '<br><small>' + escH(it.heightFt) + ' ft tall</small>' : '') + '</td></tr>');
       });
@@ -1520,6 +1527,10 @@ async function buildCustomerSummary() {
     + '<h2>Scope of work</h2>' + (rows.length ? '<table><tr><th>Area</th><th>Work</th><th>Quantity</th></tr>' + rows.join('') + '</table>' : '<p style="color:#7f8c8d">No scope items yet. Add materials to the estimate first.</p>')
     + '<div id="custNotesPrint" style="white-space:pre-wrap;margin-top:12px"></div>'
     + '<div class="no-print" style="background:#f0f8ff;border:2px solid #3498db;border-radius:8px;padding:12px;margin-top:14px"><b>Final adjustments</b> <span style="color:#7f8c8d;font-size:12px">(optional note for the customer — shown on the printed report)</span><textarea id="custNotes" style="width:100%;min-height:70px;margin-top:8px;margin-bottom:0" placeholder="e.g. Hedge trimming will be done after mulch install."></textarea></div>'
+    + '<div class="no-print" id="saPanel" style="background:#f4fbf6;border:2px solid #27ae60;border-radius:8px;padding:12px;margin-top:14px"><b>📋 Service Autopilot estimate snippet</b> <span style="color:#7f8c8d;font-size:12px">(fills your SA template with this job; copy and paste it into the SA estimate template’s HTML/code block)</span>'
+    + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px"><div><label style="font-size:12px">Frequency</label><input id="saFreq" style="margin-bottom:0"></div><div><label style="font-size:12px">Your cost ($)</label><input id="saCost" inputmode="decimal" style="margin-bottom:0"></div><div><label style="font-size:12px">Deposit %</label><input id="saPct" inputmode="decimal" style="margin-bottom:0"></div></div>'
+    + '<textarea id="saCode" readonly style="width:100%;min-height:90px;margin-top:8px;margin-bottom:0;font-family:monospace;font-size:11px"></textarea>'
+    + '<button type="button" id="saCopy" style="margin-top:8px;width:auto;padding:10px 18px;font-size:13px;letter-spacing:0;text-transform:none">Copy snippet</button> <span id="saMsg" style="font-size:12px;color:#27ae60"></span></div>'
     + photoHtml
     + '<p style="margin-top:16px;font-size:13px">Once your estimate is accepted, your work order will be placed in our queue and you will be given the crew’s estimated arrival date and time.</p>'
     + '<div class="cs-foot"><b>You Grow It, We Mow It!®</b><br>Commitment Without Compromise · Jesus First Before Profits<br>Call or text 321.209.0668 · support@wslawncareservicesllc.com</div>';
@@ -1527,6 +1538,61 @@ async function buildCustomerSummary() {
   ta.value = keepNotes;
   var sync = function () { pn.innerHTML = ta.value.trim() ? '<h2>Notes</h2>' + escH(ta.value) : ''; };
   ta.addEventListener('input', sync); sync();
+  wireSaSnippet(e, plain, g, ta, prevSa);
+}
+
+// ---------- Service Autopilot snippet: your SA template with this job's details filled in ----------
+// Anything we have no data for stays as the original SA merge tag, so SA still fills it in itself.
+function buildSaSnippet(v) {
+  var G = 'color: rgb(65, 168, 95);';
+  var mt = function (name, tag, val, strongStyle) {
+    if (val) return '<strong><span style="' + G + (strongStyle || '') + '">' + escH(val) + '</span></strong>';
+    return '<code data-bee-code="" data-bee-name="' + name + '" data-bee-type="mergetag" spellcheck="false"><strong><span style="' + G + (strongStyle || '') + '">[' + tag + ']</span></strong></code>';
+  };
+  var money = function (n) { return n > 0 ? n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : ''; };
+  var scope = v.plain.length ? '<table style="width: 100%; border-collapse: collapse; font-size: 14px;"><tbody>' + v.plain.map(function (r) {
+    return '<tr><td style="padding: 6px 8px; border-bottom: 1px solid #e0e0e0;">' + (r[0] ? '<strong>' + escH(r[0]) + '</strong><br>' : '') + escH(r[1]) + '</td><td style="padding: 6px 8px; border-bottom: 1px solid #e0e0e0; text-align: right; white-space: nowrap;">' + escH(r[2]) + '</td></tr>';
+  }).join('') + '</tbody></table>' : '';
+  var cost = parseFloat(v.cost) || 0, dep = cost * (parseFloat(v.pct) || 0) / 100;
+  return '<div style="background: linear-gradient(to right, #f0f7f0, #ffffff); padding: 15px; border-left: 4px solid #2e7d32; margin: 10px 0;">' + mt('Client Name', 'clientname', v.client, 'font-size: 18px;') + '</div>'
+    + '<div style="margin: 15px 0;"><table style="width: 100%; border-collapse: collapse;"><tbody>'
+    + '<tr><td style="padding: 8px; background: #e8f5e9; font-weight: bold;">⛑ Job Type:</td><td style="padding: 8px;">' + mt('Services Interested In', 'ServicesInterestedIn', v.jobType) + '</td></tr>'
+    + '<tr><td style="padding: 8px; background: #e8f5e9; width: 30%; font-weight: bold;">📅 Frequency:</td><td style="padding: 8px;">' + mt('Service Frequency', 'ServiceFrequency', v.freq) + '</td></tr>'
+    + '<tr><td style="padding: 8px; background: #e8f5e9; font-weight: bold;">📍 Service Area:</td><td style="padding: 8px;">' + mt('Service Area', 'ServiceArea', v.areas) + '</td></tr>'
+    + '<tr><td style="padding: 8px; background: #e8f5e9; font-weight: bold;">📍 Material:</td><td style="padding: 8px;">' + mt('Project Material', 'ProjectMaterial', v.materials) + '</td></tr>'
+    + '</tbody></table></div>'
+    + '<h3 style="color: rgb(46, 125, 50); border-bottom: 3px solid rgb(46, 125, 50); margin: -20px -20px 15px; padding: 10px 20px; background: linear-gradient(to right, rgb(232, 245, 233), rgb(241, 248, 244)); text-align: center;">✓ What\'s Included - Our Scope of Work:</h3>'
+    + scope
+    + '<div style="text-align: center; margin: 15px 0;"><a href="https://www.wslawncareservicesllc.com/lawnmowingservices" rel="noopener noreferrer" style="display: inline-block; background: #2e7d32; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;" target="_blank">📖 View Scope Of Work</a></div>'
+    + '<div style="background: #fff9e6; border: 2px dashed #f9a825; padding: 12px; margin: 15px 0; border-radius: 5px;"><strong>⚠️ Important Notes: ' + (v.notes ? escH(v.notes).replace(/\n/g, '<br>') : '<code data-bee-code="" data-bee-name="Project Important Notes" data-bee-type="mergetag" spellcheck="false"><em>[ProjectImportantNotes]</em></code>') + '&nbsp;</strong><br>***Before we begin: Please call 811 to mark all underground utilities (electric, gas, water, cable, etc.). Our equipment may dig or excavate. WS Lawn Care is not responsible for damage to utilities not marked by 811.***</div>'
+    + '<div style="background: linear-gradient(135deg, #2e7d32, #43a047); color: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"><div style="font-size: 16px; margin-bottom: 10px;">💰 <strong>Your Cost:&nbsp;(require 50% down for material cost)</strong></div>'
+    + '<div style="font-size: 28px; font-weight: bold; margin-bottom: 15px;">$' + (cost > 0 ? money(cost) : '<code data-bee-code="" data-bee-name="Service Per Visit Cost" data-bee-type="mergetag" spellcheck="false">[ServicePerVisitCost]</code>') + '</div>'
+    + '<div style="border-top: 2px solid rgba(255,255,255,0.3); padding-top: 15px; margin-top: 10px;"><div style="font-size: 16px; margin-bottom: 5px;"><strong>Your ' + escH(String(parseFloat(v.pct) || 50)) + '% down amount:</strong></div><div style="font-size: 24px; font-weight: bold;">$' + (dep > 0 ? money(dep) : '<code data-bee-code="" data-bee-name="Service Deposit/Monthly Cost" data-bee-type="mergetag" spellcheck="false">[ServiceDeposit/MonthlyCost]</code>') + '&nbsp;</div></div></div>';
+}
+function wireSaSnippet(e, plain, g, notesTa, prev) {
+  var uniq = function (a) { var o = []; a.forEach(function (x) { x = String(x || '').trim(); if (x && o.indexOf(x) < 0) o.push(x); }); return o; };
+  var price = Math.round((e.recommendedPrice || 0) * 100) / 100;
+  var $f = function (id) { return document.getElementById(id); };
+  $f('saFreq').value = prev.freq != null ? prev.freq : 'One-time';
+  $f('saCost').value = prev.cost != null ? prev.cost : (price > 0 ? price.toFixed(2) : '');
+  $f('saPct').value = prev.pct != null ? prev.pct : '50';
+  var materials = uniq(g.items.map(function (i) { return i.name; }).concat(g.addOns.map(function (a) { return a[0]; })));
+  var gen = function () {
+    $f('saCode').value = buildSaSnippet({
+      client: (e.projectName || '').trim(), jobType: (e.projectType || '').trim(), freq: $f('saFreq').value.trim(),
+      areas: uniq(plain.map(function (r) { return r[0]; })).join(', '), materials: materials.join(', '),
+      notes: notesTa.value.trim(), cost: $f('saCost').value, pct: $f('saPct').value, plain: plain
+    });
+  };
+  ['saFreq', 'saCost', 'saPct'].forEach(function (id) { $f(id).addEventListener('input', gen); });
+  notesTa.addEventListener('input', gen);
+  $f('saCopy').onclick = function () {
+    var ta = $f('saCode'), txt = ta.value, msg = $f('saMsg');
+    var ok = function () { msg.textContent = '✓ Copied. Paste it into the SA template.'; setTimeout(function () { msg.textContent = ''; }, 4000); };
+    var legacy = function () { ta.focus(); ta.select(); try { if (document.execCommand('copy')) ok(); else msg.textContent = 'Press Ctrl+C to copy the selected code.'; } catch (err) { msg.textContent = 'Press Ctrl+C to copy the selected code.'; } };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(ok, legacy); else legacy();
+  };
+  gen();
 }
 
 window.addEventListener('DOMContentLoaded', init);
