@@ -114,6 +114,9 @@
         <input type="text" id="projectName" placeholder="Project Name">
         <input type="text" id="propertyAddress" placeholder="Property Address">
         <input type="text" id="projectType" placeholder="Project Type">
+        <label class="checkbox-label" id="coLabel" style="margin-top:4px;"><input type="checkbox" id="changeOrder" onchange="toggleChangeOrder()"><span><b>🔄 Change Order Request</b> — customer is amending an estimate</span></label>
+        <textarea id="changeOrderNote" style="display:none;margin-top:8px;min-height:60px;" placeholder="What changed? e.g. Customer upgraded from Pine Bark mulch to 3&quot; Brown River Rock" oninput="calculate()"></textarea>
+        <input type="number" inputmode="decimal" step="0.01" id="changeOrderOld" style="display:none;margin-top:8px;" placeholder="Previous estimate total ($) — what the customer was originally quoted">
       </div>
       <div class="section">
         <h2>📦 Material Selection</h2>
@@ -781,6 +784,7 @@ function calculateTotalsAndDisplay(curCost, curData, completedCost) {
     projectName: document.getElementById('projectName')?.value||'',
     propertyAddress: document.getElementById('propertyAddress')?.value||'',
     projectType: document.getElementById('projectType')?.value||'',
+    changeOrder: !!document.getElementById('changeOrder')?.checked, changeOrderNote: document.getElementById('changeOrderNote')?.value||'', changeOrderOld: document.getElementById('changeOrderOld')?.value||'',
     materialCost: curCost, completedMaterials, completedMaterialsCost: completedCost,
     additionalMaterialsBase: addMatBase, additionalMaterialsMarkup: addMatMarkup, additionalMaterialsCost: addMatCost,
     additionalMaterials: validAddMat, addOnsCost, geoTextileCost: geoCost, edgingCost: edgCost,
@@ -941,6 +945,7 @@ function displaySummary(e) {
           <div style="font-weight:700;font-size:14px;color:#2c3e50;margin-bottom:12px;border-bottom:2px solid #3498db;padding-bottom:8px;">📋 Project Information</div>
           ${e.projectName?`<div style="margin-bottom:8px;"><span style="color:#7f8c8d;font-size:12px;font-weight:600;">Project:</span><span style="color:#2c3e50;font-size:13px;font-weight:600;margin-left:8px;">${e.projectName}</span></div>`:''}
           ${e.propertyAddress?`<div style="margin-bottom:8px;"><span style="color:#7f8c8d;font-size:12px;font-weight:600;">Address:</span><span style="color:#2c3e50;font-size:13px;margin-left:8px;">${e.propertyAddress}</span></div>`:''}
+          ${e.changeOrder?`<div style="margin-top:6px;padding:6px 10px;background:#fff3cd;border:2px solid #f39c12;border-radius:6px;font-size:12px;font-weight:700;color:#d35400;">🔄 CHANGE ORDER REQUEST${e.changeOrderNote?`<div style="font-weight:400;color:#2c3e50;margin-top:2px;">${e.changeOrderNote.replace(/</g,'&lt;')}</div>`:''}</div>`:''}
           ${e.projectType?`<div><span style="color:#7f8c8d;font-size:12px;font-weight:600;">Type:</span><span style="color:#2c3e50;font-size:13px;margin-left:8px;">${e.projectType}</span></div>`:''}
         </div>`:''}
       ${e.completedMaterials&&e.completedMaterials.length>0?e.completedMaterials.map(mat=>`
@@ -1227,6 +1232,7 @@ function captureProjectData() {
     projectNotes: { wentWell: document.getElementById('notesWentWell')?.value||'', challenges: document.getElementById('notesChallenges')?.value||'', actionSteps: document.getElementById('notesActionSteps')?.value||'' },
     generalNotes: { orderNotes: document.getElementById('orderNotes')?.value||'', equipmentNotes: document.getElementById('equipmentNotes')?.value||'', siteNotes: document.getElementById('siteNotes')?.value||'', materialNotes: document.getElementById('materialNotes')?.value||'', materialAreaLabel: document.getElementById('materialAreaLabel')?.value||'' },
     completedMaterials: completedMaterials||[],
+    changeOrder: { on: !!document.getElementById('changeOrder')?.checked, note: document.getElementById('changeOrderNote')?.value||'', old: document.getElementById('changeOrderOld')?.value||'' },
     survey: surveyRef
   };
   const dc = document.getElementById('dimensionsContainer');
@@ -1322,9 +1328,19 @@ function restoreProjectData(data) {
     if (document.getElementById('materialAreaLabel')) document.getElementById('materialAreaLabel').value = data.generalNotes.materialAreaLabel||'';
   }
   if (data.completedMaterials) completedMaterials = data.completedMaterials;
+  if (document.getElementById('changeOrder')) { document.getElementById('changeOrder').checked = !!(data.changeOrder && data.changeOrder.on); document.getElementById('changeOrderNote').value = (data.changeOrder && data.changeOrder.note) || ''; document.getElementById('changeOrderOld').value = (data.changeOrder && data.changeOrder.old) || ''; toggleChangeOrder(); }
   surveyRef = data.survey || null; renderSurveyLink();
   setTimeout(() => { const dc = document.getElementById('dimensionsContainer'); dc?.querySelectorAll('input').forEach(input => input.addEventListener('input', () => calculate())); }, 150);
   setTimeout(() => calculate(), 300);
+}
+
+function toggleChangeOrder() {
+  var on = !!(document.getElementById('changeOrder') || {}).checked;
+  var lab = document.getElementById('coLabel'), note = document.getElementById('changeOrderNote');
+  if (lab) { lab.style.background = on ? '#fff3cd' : ''; lab.style.borderColor = on ? '#f39c12' : ''; }
+  if (note) note.style.display = on ? 'block' : 'none';
+  var old = document.getElementById('changeOrderOld'); if (old) old.style.display = on ? 'block' : 'none';
+  if (typeof calculate === 'function') calculate();
 }
 
 function newEstimate() {
@@ -1338,6 +1354,7 @@ function newEstimate() {
   if (document.getElementById('profitMarginSlider')) { document.getElementById('profitMarginSlider').value = '40'; document.getElementById('profitMarginDisplay').textContent = '40%'; }
   if (document.getElementById('markupPercent')) document.getElementById('markupPercent').value = '0';
   document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+  toggleChangeOrder();
   if (document.getElementById('geoTextileLinearFt')) document.getElementById('geoTextileLinearFt').style.display = 'none';
   if (document.getElementById('edgingLinearFt')) document.getElementById('edgingLinearFt').style.display = 'none';
   if (document.getElementById('materialCategory')) { document.getElementById('materialCategory').value = 'mulch'; updateMaterialOptions(); updateDimensionsInputs(); }
@@ -1440,7 +1457,7 @@ function closeCustomerSummary() { document.getElementById('custSummary').style.d
 function printWithTitle(extraClass) {
   var oldTitle = document.title;
   var nm = ((document.getElementById('projectName') || {}).value || '').replace(/[\\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
-  document.title = 'WS Lawn Care Services, LLC' + (nm ? ' - ' + nm : '');
+  document.title = 'WS Lawn Care Services, LLC' + (nm ? ' - ' + nm : '') + ((document.getElementById('changeOrder') || {}).checked ? ' - Change Order' : '');
   if (extraClass) document.body.classList.add(extraClass);
   var done = function () { document.title = oldTitle; if (extraClass) document.body.classList.remove(extraClass); window.removeEventListener('afterprint', done); };
   window.addEventListener('afterprint', done);
@@ -1452,7 +1469,7 @@ function printCustomerSummary() {
   var framed = false; try { framed = window.self !== window.top; } catch (err) { framed = true; }
   if (!framed) { printWithTitle('pc'); return; }
   var nm = ((document.getElementById('projectName') || {}).value || '').replace(/[\\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
-  var title = 'WS Lawn Care Services, LLC' + (nm ? ' - ' + nm : '');
+  var title = 'WS Lawn Care Services, LLC' + (nm ? ' - ' + nm : '') + ((document.getElementById('changeOrder') || {}).checked ? ' - Change Order' : '');
   var clone = document.getElementById('custBody').cloneNode(true);
   Array.prototype.forEach.call(clone.querySelectorAll('.no-print'), function (n) { n.remove(); });
   var w = window.open('', '_blank');
@@ -1523,6 +1540,7 @@ async function buildCustomerSummary() {
   var info = [['Project', e.projectName], ['Property', e.propertyAddress], ['Project type', e.projectType], ['Surveyed by', crew]].filter(function (x) { return x[1]; })
     .map(function (x) { return '<tr><th style="width:130px">' + x[0] + '</th><td>' + escH(x[1]) + '</td></tr>'; }).join('');
   body.innerHTML = '<div style="display:flex;gap:14px;align-items:center"><img src="https://static.wixstatic.com/media/99a075_f0b64d954a90417ba2ac87c06f85804a~mv2.png" style="height:64px;width:auto" alt=""><div><h1>Site Survey &amp; Scope of Work</h1><div style="color:#7f8c8d;font-size:13px">WS Lawn Care Services, LLC · ' + today + '</div></div></div>'
+    + (e.changeOrder ? '<div style="margin-top:14px;padding:12px 14px;background:#fff3cd;border:2px solid #f39c12;border-left:8px solid #e67e22;border-radius:6px;-webkit-print-color-adjust:exact;print-color-adjust:exact"><div style="font-size:16px;font-weight:800;color:#d35400;letter-spacing:.5px">🔄 CHANGE ORDER REQUEST</div><div style="font-size:13px;margin-top:4px">This is a revised estimate reflecting a change you requested to your previous estimate. Please review the updated scope below.</div>' + ((e.changeOrderNote || '').trim() ? '<div style="font-size:13px;margin-top:6px"><b>Requested change:</b> ' + escH(e.changeOrderNote.trim()).replace(/\n/g, '<br>') + '</div>' : '') + '<div id="coPriceBox"></div></div>' : '')
     + (info ? '<table style="margin-top:12px">' + info + '</table>' : '')
     + '<h2>Scope of work</h2>' + (rows.length ? '<table><tr><th>Area</th><th>Work</th><th>Quantity</th></tr>' + rows.join('') + '</table>' : '<p style="color:#7f8c8d">No scope items yet. Add materials to the estimate first.</p>')
     + '<div id="custNotesPrint" style="white-space:pre-wrap;margin-top:12px"></div>'
@@ -1541,6 +1559,20 @@ async function buildCustomerSummary() {
   wireSaSnippet(e, plain, g, ta, prevSa);
 }
 
+// Previous vs updated price table for a change order (inline styles, so it also works pasted into Service Autopilot)
+function coPriceHtml(oldV, newV) {
+  oldV = parseFloat(oldV) || 0; newV = parseFloat(newV) || 0;
+  if (!(oldV > 0) || !(newV > 0)) return '';
+  var d = Math.round((newV - oldV) * 100) / 100;
+  var f = function (n) { return '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+  var td = 'padding: 6px 10px; border: 1px solid #f0c36d;';
+  var diffTxt = d === 0 ? 'No change' : (d > 0 ? '+' : '−') + f(d) + (d > 0 ? ' increase' : ' decrease');
+  return '<table style="width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; background: #ffffff;"><tbody>'
+    + '<tr><td style="' + td + '">Previous estimate</td><td style="' + td + ' text-align: right;">' + f(oldV) + '</td></tr>'
+    + '<tr><td style="' + td + '">Updated estimate</td><td style="' + td + ' text-align: right;"><strong>' + f(newV) + '</strong></td></tr>'
+    + '<tr><td style="' + td + ' font-weight: bold;">Difference</td><td style="' + td + ' text-align: right; font-weight: bold; color: ' + (d > 0 ? '#c0392b' : '#27ae60') + ';">' + diffTxt + '</td></tr></tbody></table>';
+}
+
 // ---------- Service Autopilot snippet: your SA template with this job's details filled in ----------
 // Anything we have no data for stays as the original SA merge tag, so SA still fills it in itself.
 function buildSaSnippet(v) {
@@ -1554,7 +1586,8 @@ function buildSaSnippet(v) {
     return '<tr><td style="padding: 6px 8px; border-bottom: 1px solid #e0e0e0;">' + (r[0] ? '<strong>' + escH(r[0]) + '</strong><br>' : '') + escH(r[1]) + '</td><td style="padding: 6px 8px; border-bottom: 1px solid #e0e0e0; text-align: right; white-space: nowrap;">' + escH(r[2]) + '</td></tr>';
   }).join('') + '</tbody></table>' : '';
   var cost = parseFloat(v.cost) || 0, dep = cost * (parseFloat(v.pct) || 0) / 100;
-  return '<div style="background: linear-gradient(to right, #f0f7f0, #ffffff); padding: 15px; border-left: 4px solid #2e7d32; margin: 10px 0;">' + mt('Client Name', 'clientname', v.client, 'font-size: 18px;') + '</div>'
+  var co = v.co ? '<div style="background: #fff3cd; border: 2px solid #f39c12; border-left: 8px solid #e67e22; padding: 12px; margin: 10px 0; border-radius: 5px;"><strong style="color: #d35400; font-size: 16px;">🔄 CHANGE ORDER REQUEST</strong><br>This is a revised estimate reflecting a change you requested to your previous estimate. Please review the updated scope below.' + (v.coNote ? '<br><strong>Requested change:</strong> ' + escH(v.coNote).replace(/\n/g, '<br>') : '') + coPriceHtml(v.coOld, v.cost) + '</div>' : '';
+  return co + '<div style="background: linear-gradient(to right, #f0f7f0, #ffffff); padding: 15px; border-left: 4px solid #2e7d32; margin: 10px 0;">' + mt('Client Name', 'clientname', v.client, 'font-size: 18px;') + '</div>'
     + '<div style="margin: 15px 0;"><table style="width: 100%; border-collapse: collapse;"><tbody>'
     + '<tr><td style="padding: 8px; background: #e8f5e9; font-weight: bold;">⛑ Job Type:</td><td style="padding: 8px;">' + mt('Services Interested In', 'ServicesInterestedIn', v.jobType) + '</td></tr>'
     + '<tr><td style="padding: 8px; background: #e8f5e9; width: 30%; font-weight: bold;">📅 Frequency:</td><td style="padding: 8px;">' + mt('Service Frequency', 'ServiceFrequency', v.freq) + '</td></tr>'
@@ -1578,10 +1611,11 @@ function wireSaSnippet(e, plain, g, notesTa, prev) {
   $f('saPct').value = prev.pct != null ? prev.pct : '50';
   var materials = uniq(g.items.map(function (i) { return i.name; }).concat(g.addOns.map(function (a) { return a[0]; })));
   var gen = function () {
+    var pb = $f('coPriceBox'); if (pb) pb.innerHTML = coPriceHtml(e.changeOrderOld, $f('saCost').value);
     $f('saCode').value = buildSaSnippet({
       client: (e.projectName || '').trim(), jobType: (e.projectType || '').trim(), freq: $f('saFreq').value.trim(),
       areas: uniq(plain.map(function (r) { return r[0]; })).join(', '), materials: materials.join(', '),
-      notes: notesTa.value.trim(), cost: $f('saCost').value, pct: $f('saPct').value, plain: plain
+      co: !!e.changeOrder, coNote: (e.changeOrderNote || '').trim(), coOld: e.changeOrderOld, notes: notesTa.value.trim(), cost: $f('saCost').value, pct: $f('saPct').value, plain: plain
     });
   };
   ['saFreq', 'saCost', 'saPct'].forEach(function (id) { $f(id).addEventListener('input', gen); });
