@@ -1486,7 +1486,7 @@ function printCustomerSummary() {
 async function buildCustomerSummary() {
   var body = document.getElementById('custBody');
   var keepNotes = document.getElementById('custNotes') ? document.getElementById('custNotes').value : '';
-  var prevSa = document.getElementById('saFreq') ? { freq: document.getElementById('saFreq').value, cost: document.getElementById('saCost').value, pct: document.getElementById('saPct').value } : {};
+  var prevSa = document.getElementById('saFreq') ? { sig: document.getElementById('saPanel').dataset.sig || '', freq: document.getElementById('saFreq').value, cost: document.getElementById('saCost').value, auto: document.getElementById('saCost').dataset.auto || '', pct: document.getElementById('saPct').value, pdf: document.getElementById('saPdf').value, pdfSig: document.getElementById('saPdf').dataset.sig || '' } : {};
   body.innerHTML = '<p style="color:#7f8c8d">Building summary…</p>';
   calculate();
   var e = window.lastSummaryData || {};
@@ -1547,6 +1547,7 @@ async function buildCustomerSummary() {
     + '<div class="no-print" style="background:#f0f8ff;border:2px solid #3498db;border-radius:8px;padding:12px;margin-top:14px"><b>Final adjustments</b> <span style="color:#7f8c8d;font-size:12px">(optional note for the customer — shown on the printed report)</span><textarea id="custNotes" style="width:100%;min-height:70px;margin-top:8px;margin-bottom:0" placeholder="e.g. Hedge trimming will be done after mulch install."></textarea></div>'
     + '<div class="no-print" id="saPanel" style="background:#f4fbf6;border:2px solid #27ae60;border-radius:8px;padding:12px;margin-top:14px"><b>📋 Service Autopilot estimate snippet</b> <span style="color:#7f8c8d;font-size:12px">(fills your SA template with this job; copy and paste it into the SA estimate template’s HTML/code block)</span>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px"><div><label style="font-size:12px">Frequency</label><input id="saFreq" style="margin-bottom:0"></div><div><label style="font-size:12px">Your cost ($)</label><input id="saCost" inputmode="decimal" style="margin-bottom:0"></div><div><label style="font-size:12px">Deposit %</label><input id="saPct" inputmode="decimal" style="margin-bottom:0"></div></div>'
+    + '<div style="margin-top:8px"><label style="font-size:12px">PDF link for the “View Scope Of Work” button <span style="color:#7f8c8d">(auto-filled by Create PDF link, or paste your own)</span></label><input id="saPdf" type="text" placeholder="https://drive.google.com/file/d/…" style="margin-bottom:6px"><button type="button" id="saMakePdf" style="width:auto;padding:9px 14px;font-size:13px;letter-spacing:0;text-transform:none">📎 Create PDF link</button> <button type="button" id="saDlPdf" style="width:auto;padding:9px 14px;font-size:13px;letter-spacing:0;text-transform:none;background:#fff;color:#27ae60;border:2px solid #27ae60;box-shadow:none">⬇ Download PDF</button> <span id="saPdfMsg" style="font-size:12px;color:#27ae60"></span></div>'
     + '<textarea id="saCode" readonly style="width:100%;min-height:90px;margin-top:8px;margin-bottom:0;font-family:monospace;font-size:11px"></textarea>'
     + '<button type="button" id="saCopy" style="margin-top:8px;width:auto;padding:10px 18px;font-size:13px;letter-spacing:0;text-transform:none">Copy snippet</button> <span id="saMsg" style="font-size:12px;color:#27ae60"></span></div>'
     + photoHtml
@@ -1596,7 +1597,7 @@ function buildSaSnippet(v) {
     + '</tbody></table></div>'
     + '<h3 style="color: rgb(46, 125, 50); border-bottom: 3px solid rgb(46, 125, 50); margin: -20px -20px 15px; padding: 10px 20px; background: linear-gradient(to right, rgb(232, 245, 233), rgb(241, 248, 244)); text-align: center;">✓ What\'s Included - Our Scope of Work:</h3>'
     + scope
-    + '<div style="text-align: center; margin: 15px 0;"><a href="https://www.wslawncareservicesllc.com/lawnmowingservices" rel="noopener noreferrer" style="display: inline-block; background: #2e7d32; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;" target="_blank">📖 View Scope Of Work</a></div>'
+    + '<div style="text-align: center; margin: 15px 0;"><a href="' + (v.pdf ? escH(v.pdf) : 'https://www.wslawncareservicesllc.com/lawnmowingservices') + '" rel="noopener noreferrer" style="display: inline-block; background: #2e7d32; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;" target="_blank">📖 View Scope Of Work' + (v.pdf ? ' (PDF)' : '') + '</a></div>'
     + '<div style="background: #fff9e6; border: 2px dashed #f9a825; padding: 12px; margin: 15px 0; border-radius: 5px;"><strong>⚠️ Important Notes: ' + (v.notes ? escH(v.notes).replace(/\n/g, '<br>') : '<code data-bee-code="" data-bee-name="Project Important Notes" data-bee-type="mergetag" spellcheck="false"><em>[ProjectImportantNotes]</em></code>') + '&nbsp;</strong><br>***Before we begin: Please call 811 to mark all underground utilities (electric, gas, water, cable, etc.). Our equipment may dig or excavate. WS Lawn Care is not responsible for damage to utilities not marked by 811.***</div>'
     + '<div style="background: linear-gradient(135deg, #2e7d32, #43a047); color: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"><div style="font-size: 16px; margin-bottom: 10px;">💰 <strong>Your Cost:&nbsp;(require 50% down for material cost)</strong></div>'
     + '<div style="font-size: 28px; font-weight: bold; margin-bottom: 15px;">$' + (cost > 0 ? money(cost) : '<code data-bee-code="" data-bee-name="Service Per Visit Cost" data-bee-type="mergetag" spellcheck="false">[ServicePerVisitCost]</code>') + '</div>'
@@ -1606,20 +1607,68 @@ function wireSaSnippet(e, plain, g, notesTa, prev) {
   var uniq = function (a) { var o = []; a.forEach(function (x) { x = String(x || '').trim(); if (x && o.indexOf(x) < 0) o.push(x); }); return o; };
   var price = Math.round((e.recommendedPrice || 0) * 100) / 100;
   var $f = function (id) { return document.getElementById(id); };
-  $f('saFreq').value = prev.freq != null ? prev.freq : 'One-time';
-  $f('saCost').value = prev.cost != null ? prev.cost : (price > 0 ? price.toFixed(2) : '');
-  $f('saPct').value = prev.pct != null ? prev.pct : '50';
+  var sig = (e.projectName || '') + '|' + (e.propertyAddress || '');
+  var same = prev.sig === sig;                       // same job as last time this panel was built
+  var autoCost = price > 0 ? price.toFixed(2) : '';
+  $f('saPanel').dataset.sig = sig;
+  $f('saFreq').value = same && prev.freq ? prev.freq : 'One-time';
+  // keep a cost you typed in yourself; otherwise follow the estimate's current price
+  $f('saCost').value = same && prev.cost && prev.cost !== prev.auto ? prev.cost : autoCost;
+  $f('saCost').dataset.auto = autoCost;
+  $f('saPct').value = same && prev.pct ? prev.pct : '50';
+  // a PDF link only stays if the estimate hasn't changed since it was made
+  var pdfSig = sig + '|' + autoCost + '|' + plain.length + '|' + (e.changeOrder ? 1 : 0) + '|' + (e.changeOrderNote || '') + '|' + (e.changeOrderOld || '');
+  $f('saPdf').value = same && prev.pdf && prev.pdfSig === pdfSig ? prev.pdf : '';
+  $f('saPdf').dataset.sig = pdfSig;
   var materials = uniq(g.items.map(function (i) { return i.name; }).concat(g.addOns.map(function (a) { return a[0]; })));
   var gen = function () {
     var pb = $f('coPriceBox'); if (pb) pb.innerHTML = coPriceHtml(e.changeOrderOld, $f('saCost').value);
     $f('saCode').value = buildSaSnippet({
       client: (e.projectName || '').trim(), jobType: (e.projectType || '').trim(), freq: $f('saFreq').value.trim(),
       areas: uniq(plain.map(function (r) { return r[0]; })).join(', '), materials: materials.join(', '),
-      co: !!e.changeOrder, coNote: (e.changeOrderNote || '').trim(), coOld: e.changeOrderOld, notes: notesTa.value.trim(), cost: $f('saCost').value, pct: $f('saPct').value, plain: plain
+      co: !!e.changeOrder, coNote: (e.changeOrderNote || '').trim(), coOld: e.changeOrderOld, pdf: $f('saPdf').value.trim(), notes: notesTa.value.trim(), cost: $f('saCost').value, pct: $f('saPct').value, plain: plain
     });
   };
-  ['saFreq', 'saCost', 'saPct'].forEach(function (id) { $f(id).addEventListener('input', gen); });
+  ['saFreq', 'saCost', 'saPct', 'saPdf'].forEach(function (id) { $f(id).addEventListener('input', gen); });
   notesTa.addEventListener('input', gen);
+  var pdfMsg = function (t, bad) { var m = $f('saPdfMsg'); m.style.color = bad ? '#c0392b' : '#27ae60'; m.textContent = t; };
+  var pdfName = function () {
+    var nm = (e.projectName || '').replace(/[\\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
+    return 'WS Lawn Care Services, LLC' + (nm ? ' - ' + nm : '') + (e.changeOrder ? ' - Change Order' : '') + ' - ' + new Date().toISOString().slice(0, 10) + '.pdf';
+  };
+  var loadPdfLib = function () {
+    if (window.html2pdf) return Promise.resolve();
+    return new Promise(function (res, rej) { var sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'; sc.onload = res; sc.onerror = function () { rej(new Error('Could not load the PDF tool (check your connection).')); }; document.head.appendChild(sc); });
+  };
+  var makePdfBlob = async function () {
+    await loadPdfLib();
+    var clone = document.getElementById('custBody').cloneNode(true);
+    Array.prototype.forEach.call(clone.querySelectorAll('.no-print'), function (n) { n.remove(); });
+    clone.removeAttribute('id'); clone.style.cssText = 'width:7.4in;padding:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:13px;line-height:1.4;color:#000;background:#fff';
+    var wrap = document.createElement('div'); wrap.id = 'custBody'; wrap.style.cssText = 'position:fixed;left:-10000px;top:0;width:7.5in;background:#fff;'; wrap.appendChild(clone); document.body.appendChild(wrap);
+    try {
+      return await window.html2pdf().set({
+        margin: 0.5, image: { type: 'jpeg', quality: 0.85 }, html2canvas: { scale: 1.5, useCORS: true, backgroundColor: '#fff' },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['.pg', 'tr', 'h2'] }
+      }).from(wrap).outputPdf('blob');
+    } finally { wrap.remove(); }
+  };
+  $f('saDlPdf').onclick = async function () {
+    try { pdfMsg('Building PDF…'); var b = await makePdfBlob(); var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = pdfName(); a.click(); pdfMsg('✓ Downloaded.'); }
+    catch (err) { pdfMsg(err.message || String(err), true); }
+  };
+  $f('saMakePdf').onclick = async function () {
+    try {
+      pdfMsg('Building PDF…'); var b = await makePdfBlob();
+      pdfMsg('Uploading to Drive…');
+      var b64 = await new Promise(function (res, rej) { var fr = new FileReader(); fr.onload = function () { res(String(fr.result).split(',')[1]); }; fr.onerror = rej; fr.readAsDataURL(b); });
+      var r = await postToDrive('savePdf', { folderId: (surveyRef && surveyRef.folderId) || '', fileName: pdfName(), base64: b64 });
+      if (!r || !r.success || !r.url) throw new Error((r && r.error) ? r.error : 'Drive did not return a link.');
+      $f('saPdf').value = r.url; gen(); pdfMsg('✓ PDF saved. The button in the snippet now links to it.');
+    } catch (err) {
+      pdfMsg('Could not create the link: ' + (err && err.message ? err.message : err) + '. The Drive script may need the savePdf update. Meanwhile, use Download PDF, upload it to Drive, share it, and paste the link above.', true);
+    }
+  };
   $f('saCopy').onclick = function () {
     var ta = $f('saCode'), txt = ta.value, msg = $f('saMsg');
     var ok = function () { msg.textContent = '✓ Copied. Paste it into the SA template.'; setTimeout(function () { msg.textContent = ''; }, 4000); };
