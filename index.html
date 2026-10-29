@@ -1574,6 +1574,79 @@ function coPriceHtml(oldV, newV) {
     + '<tr><td style="' + td + ' font-weight: bold;">Difference</td><td style="' + td + ' text-align: right; font-weight: bold; color: ' + (d > 0 ? '#c0392b' : '#27ae60') + ';">' + diffTxt + '</td></tr></tbody></table>';
 }
 
+// Builds the customer summary PDF block by block so photos and tables are never cut across a page.
+// Needs html2canvas and jsPDF (window.html2canvas, window.jspdf.jsPDF).
+async function buildSummaryPdf(src) {
+  var PW = 8.5, PH = 11, M = 0.5, CW = PW - 2 * M;           // letter, 0.5in margins, 7.5in content width
+  var PX = CW * 96;                                          // content width in CSS px
+  var clone = src.cloneNode(true);
+  Array.prototype.forEach.call(clone.querySelectorAll('.no-print'), function (n) { n.remove(); });
+  clone.removeAttribute('id');
+  // 1) split the report into blocks that must stay together
+  var blocks = [], pendingHead = null;
+  Array.prototype.slice.call(clone.children).forEach(function (el) {
+    if (el.classList.contains('cs-photos')) {
+      var cards = Array.prototype.slice.call(el.querySelectorAll('.pg')), first = true;
+      for (var i = 0; i < cards.length; i += 2) {
+        var row = document.createElement('div'); row.style.cssText = 'display:flex;gap:12px;align-items:flex-start;';
+        [cards[i], cards[i + 1]].forEach(function (c) {
+          var cell = document.createElement('div'); cell.style.cssText = 'flex:1 1 0;min-width:0;';
+          if (c) {
+            var im = c.querySelector('img');
+            if (im) {                                            // fit the photo inside a fixed box without stretching it
+              im.style.cssText = 'max-width:100%;max-height:3.3in;width:auto;height:auto;display:block;border-radius:4px;';
+              var box = document.createElement('div'); box.style.cssText = 'height:3.3in;display:flex;align-items:center;justify-content:center;background:#f4f4f4;border:1px solid #e0e0e0;border-radius:6px;overflow:hidden;';
+              im.parentNode.insertBefore(box, im); box.appendChild(im);
+            }
+            cell.appendChild(c);
+          }
+          row.appendChild(cell);
+        });
+        var blk = document.createElement('div'); blk.style.cssText = 'padding-bottom:10px;';
+        if (first && pendingHead) { blk.appendChild(pendingHead); pendingHead = null; }
+        first = false; blk.appendChild(row); blocks.push(blk);
+      }
+      if (pendingHead) { blocks.push(pendingHead); pendingHead = null; }
+      return;
+    }
+    if (pendingHead) { var g = document.createElement('div'); g.appendChild(pendingHead); g.appendChild(el); blocks.push(g); pendingHead = null; return; }
+    if (el.tagName === 'H2') { pendingHead = el; return; }       // keep a heading with whatever follows it
+    blocks.push(el);
+  });
+  if (pendingHead) blocks.push(pendingHead);
+  // 2) render each block, place it on the current page, start a new page when it will not fit
+  var pdf = new window.jspdf.jsPDF({ unit: 'in', format: 'letter', orientation: 'portrait', compress: true });
+  var y = M, usable = PH - 2 * M;
+  var host = document.createElement('div');
+  host.style.cssText = 'position:absolute;left:0;top:0;z-index:-1;pointer-events:none;';
+  document.body.appendChild(host);
+  try {
+    for (var b = 0; b < blocks.length; b++) {
+      var wrap = document.createElement('div'); wrap.id = 'custBody';
+      wrap.style.cssText = 'width:' + PX + 'px;max-width:none;margin:0;padding:0;background:#fff;display:flow-root;font-size:13px;';
+      wrap.appendChild(blocks[b]); host.innerHTML = ''; host.appendChild(wrap);
+      await Promise.all(Array.prototype.map.call(wrap.querySelectorAll('img'), function (im) { return im.decode ? im.decode().catch(function () {}) : null; }));
+      var cv = await window.html2canvas(wrap, { scale: 2, backgroundColor: '#fff', useCORS: true, scrollX: 0, scrollY: 0, windowWidth: Math.max(document.documentElement.clientWidth, PX) });
+      if (!cv.width || !cv.height) continue;
+      var h = cv.height / cv.width * CW;
+      if (h <= usable) {
+        if (y + h > PH - M && y > M) { pdf.addPage(); y = M; }
+        pdf.addImage(cv.toDataURL('image/jpeg', 0.88), 'JPEG', M, y, CW, h); y += h;
+      } else {                                                   // taller than a page (very long table): slice it
+        var slicePx = Math.floor(usable / CW * cv.width), off = 0;
+        if (y > M) { pdf.addPage(); y = M; }
+        while (off < cv.height) {
+          var sh = Math.min(slicePx, cv.height - off), c2 = document.createElement('canvas'); c2.width = cv.width; c2.height = sh;
+          var cx = c2.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, c2.width, c2.height); cx.drawImage(cv, 0, off, cv.width, sh, 0, 0, cv.width, sh);
+          var sH = sh / cv.width * CW; pdf.addImage(c2.toDataURL('image/jpeg', 0.88), 'JPEG', M, M, CW, sH); off += sh; y = M + sH;
+          if (off < cv.height) { pdf.addPage(); y = M; }
+        }
+      }
+    }
+  } finally { host.remove(); }
+  return pdf.output('blob');
+}
+
 // ---------- Service Autopilot snippet: your SA template with this job's details filled in ----------
 // Anything we have no data for stays as the original SA merge tag, so SA still fills it in itself.
 function buildSaSnippet(v) {
@@ -1636,22 +1709,13 @@ function wireSaSnippet(e, plain, g, notesTa, prev) {
     var nm = (e.projectName || '').replace(/[\\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
     return 'WS Lawn Care Services, LLC' + (nm ? ' - ' + nm : '') + (e.changeOrder ? ' - Change Order' : '') + ' - ' + new Date().toISOString().slice(0, 10) + '.pdf';
   };
-  var loadPdfLib = function () {
-    if (window.html2pdf) return Promise.resolve();
-    return new Promise(function (res, rej) { var sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'; sc.onload = res; sc.onerror = function () { rej(new Error('Could not load the PDF tool (check your connection).')); }; document.head.appendChild(sc); });
+  var loadScript = function (url) {
+    return new Promise(function (res, rej) { var sc = document.createElement('script'); sc.src = url; sc.onload = res; sc.onerror = function () { rej(new Error('Could not load the PDF tool (check your connection).')); }; document.head.appendChild(sc); });
   };
   var makePdfBlob = async function () {
-    await loadPdfLib();
-    var clone = document.getElementById('custBody').cloneNode(true);
-    Array.prototype.forEach.call(clone.querySelectorAll('.no-print'), function (n) { n.remove(); });
-    clone.removeAttribute('id'); clone.style.cssText = 'width:7.4in;padding:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:13px;line-height:1.4;color:#000;background:#fff';
-    // Keep this wrapper out of the page and free of position/left styles: the PDF tool copies it into its own
-    // container, and an off-screen position gets copied too, which produced a blank PDF.
-    var wrap = document.createElement('div'); wrap.id = 'custBody'; wrap.style.cssText = 'width:7.5in;background:#fff;'; wrap.appendChild(clone);
-    return await window.html2pdf().set({
-      margin: 0.5, image: { type: 'jpeg', quality: 0.85 }, html2canvas: { scale: 1.5, useCORS: true, backgroundColor: '#fff' },
-      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }, pagebreak: { mode: ['css', 'legacy'], avoid: ['.pg', 'tr', 'h2'] }
-    }).from(wrap).outputPdf('blob');
+    if (!window.html2canvas) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    if (!(window.jspdf && window.jspdf.jsPDF)) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    return buildSummaryPdf(document.getElementById('custBody'));
   };
   $f('saDlPdf').onclick = async function () {
     try { pdfMsg('Building PDF…'); var b = await makePdfBlob(); var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = pdfName(); a.click(); pdfMsg('✓ Downloaded.'); }
