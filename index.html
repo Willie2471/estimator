@@ -151,7 +151,7 @@
             <div style="font-size:12px;font-weight:700;color:#27ae60;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">➕ Add-ons</div>
             <label class="checkbox-label" id="geoTextileLabel"><input type="checkbox" id="includeGeoTextile"><span>Geo-Textile Weed Fabric ($1.20/ft)</span></label>
             <input type="number" id="geoTextileLinearFt" placeholder="Linear feet" style="display:none;">
-            <label class="checkbox-label" id="edgingLabel"><input type="checkbox" id="includeEdging"><span>Composite Edging ($4.50/ft)</span></label>
+            <label class="checkbox-label" id="edgingLabel"><input type="checkbox" id="includeEdging"><span>Composite Edging ($1.98/ft)</span></label>
             <input type="number" id="edgingLinearFt" placeholder="Linear feet" style="display:none;">
           </div>
         </div>
@@ -467,7 +467,7 @@ function allocateSodCosts(curName, curSq) {
 
 const ADDONS = {
   geoTextile: { name: 'Geo-Textile Weed Fabric', pricePerLinearFt: 1.20 },
-  edging: { name: 'Composite Edging', pricePerLinearFt: 4.50 }
+  edging: { name: 'Composite Edging', pricePerLinearFt: 1.98, pieceFt: 20, stakeSpacingFt: 5 } // $1.98/ft = $32.02 per 20 ft piece + one $1.88 stake every 5 ft
 };
 
 const EQUIPMENT_RENTAL = [
@@ -819,6 +819,13 @@ function sodQtyText(sqft, pallets, pieces, sep) {
   return `${sqft.toFixed(0)} sq ft${sep}${sodSplitText({ pallets, pieces })}`;
 }
 
+// Edging purchase counts: 20 ft pieces, plus one 12\" stake every 5 ft and one extra to close the end of the run
+function edgingOrder(ft) {
+  ft = parseFloat(ft) || 0;
+  if (ft <= 0) return null;
+  return { ft: ft, pieces: Math.ceil(ft / ADDONS.edging.pieceFt), stakes: Math.ceil(ft / ADDONS.edging.stakeSpacingFt) + 1 };
+}
+
 function groupMaterials(e) {
   const items = [];
   (e.completedMaterials || []).forEach(m => { const q = getMaterialQty(m); items.push({ category: m.category, name: m.materialName, area: m.areaLabel || '', cost: m.cost || 0, cy: q.cy, sq: q.sq }); });
@@ -839,12 +846,12 @@ function groupMaterials(e) {
       totCost: rows.reduce((t, r) => t + r.cost, 0), totCy: rows.reduce((t, r) => t + r.cy, 0),
       totSq: rows.reduce((t, r) => t + r.sq, 0), totPallets: isSod ? rows.reduce((t, r) => t + r.pallets, 0) : 0, totPieces: rows.reduce((t, r) => t + r.pieces, 0) });
   });
-  return { items, groups, addOns, hasCurrent };
+  return { items, groups, addOns, hasCurrent, edging: e.edgingCost > 0 ? edgingOrder(e.edgingLinearFt) : null };
 }
 
 // Running order totals grouped by material category for easier ordering
 function buildOrderSummary(e) {
-  const { groups, addOns, hasCurrent } = groupMaterials(e);
+  const { groups, addOns, hasCurrent, edging } = groupMaterials(e);
   if (!groups.length && !addOns.length) return '';
   let html = '<div class="info-box"><h3>🛒 Material Order Summary</h3>';
   groups.forEach(g => {
@@ -859,7 +866,7 @@ function buildOrderSummary(e) {
       <div style="border-top:1px solid #e0e0e0;margin-top:6px;padding-top:6px;font-size:12px;font-weight:700;color:#27ae60;">${totalLine}</div>
     </div>`;
   });
-  if (addOns.length) html += `<div style="font-size:12px;color:#2c3e50;padding:0 4px;">${addOns.map(a => `<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>${a[2]} ${a[0]}</span><span style="font-weight:600;">${a[1]}</span></div>`).join('')}</div>`;
+  if (addOns.length) html += `<div style="font-size:12px;color:#2c3e50;padding:0 4px;">${addOns.map(a => `<div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>${a[2]} ${a[0]}</span><span style="font-weight:600;">${a[1]}</span></div>`).join('')}${edging ? `<div style="margin:2px 0 6px 22px;padding-left:8px;border-left:3px solid #27ae60;"><div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span>Edging pieces (20 ft)</span><span style="font-weight:600;">${edging.pieces}</span></div><div style="display:flex;justify-content:space-between;"><span>📍 Edging stakes (12 in, every 5 ft)</span><span style="font-weight:600;">${edging.stakes}</span></div></div>` : ''}</div>`;
   if (hasCurrent) html += '<div style="font-size:10px;color:#7f8c8d;margin-top:6px;">Includes the material currently being configured (not yet added).</div>';
   return html + '</div>';
 }
@@ -867,7 +874,7 @@ function buildOrderSummary(e) {
 // Plain-text ordering email (quantities only, no prices)
 function buildOrderEmail() {
   const e = window.lastSummaryData || {};
-  const { items, groups, addOns } = groupMaterials(e);
+  const { items, groups, addOns, edging } = groupMaterials(e);
   const name = (e.projectName || '').trim(), addr = (e.propertyAddress || '').trim();
   const subject = 'Material Order' + (name ? ' - ' + name : '') + (addr ? ' - ' + addr : '');
   const L = [];
@@ -882,6 +889,7 @@ function buildOrderEmail() {
       g.rows.forEach(r => L.push('   - ' + r.name + ': ' + (g.isSod ? sodQtyText(r.sq, r.pallets, r.pieces, ' = ') : `${r.cy.toFixed(2)} cu yd (order ${roundUpTenth(r.cy)})`)));
     });
     addOns.forEach(a => L.push(a[0] + ': ' + a[1]));
+    if (edging) L.push('   - Edging pieces (1 in x 4 in x 20 ft): ' + edging.pieces, '   - Edging stakes (2 in x 12 in): ' + edging.stakes + '  (every 5 ft + 1 for the end; sold 100 per box)');
   }
   if (items.some(i => i.area)) {
     L.push('', 'BREAKDOWN BY AREA');
