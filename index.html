@@ -12,9 +12,9 @@
     html, body { height: 100%; overflow: auto; -webkit-overflow-scrolling: touch; }
     body { font-family: 'Space Mono', 'Courier New', monospace; background: #ffffff; padding: 0; color: #2c3e50; margin: 0; }
     .container { max-width: none; width: 100%; margin: 0; background: #ffffff; border-radius: 0; border: none; box-shadow: none; }
-    .header { position: relative; background: linear-gradient(90deg, #2ecc71 0%, #27ae60 100%); padding: 24px 90px; border-bottom: 1px solid #27ae60; color: #ffffff; }
-    .header h1 { font-size: 32px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; color: #ffffff; }
-    .header p { opacity: 0.95; font-size: 14px; letter-spacing: 0.5px; color: #ffffff; }
+    .header { position: relative; background: linear-gradient(90deg, #2ecc71 0%, #27ae60 100%); padding: 20px 100px; border-bottom: 1px solid #27ae60; color: #ffffff; }
+    .header h1 { font-size: 24px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; color: #ffffff; }
+    .header p { opacity: 0.95; font-size: 12px; letter-spacing: 0.3px; color: #ffffff; }
     .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #e0e0e0; }
     .left-panel { background: #ffffff; padding: 24px; }
     .right-panel { background: #ffffff; padding: 24px; }
@@ -56,9 +56,19 @@
     .send-to-breakdown-btn:hover { background: linear-gradient(90deg, #d35400 0%, #e67e22 100%); }
     /* Portal avatar / back link */
     .avatar-link { position:absolute; top:50%; left:20px; transform:translateY(-50%); display:flex; flex-direction:column; align-items:center; gap:4px; text-decoration:none; color:#ffffff; font-size:10px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; }
-    .avatar-link img, .avatar-link svg { width:52px; height:52px; border-radius:50%; object-fit:cover; border:2px solid #ffffff; background:#ffffff; box-shadow:0 2px 8px rgba(0,0,0,0.25); display:block; }
+    .avatar-link img, .avatar-link svg { width:48px; height:48px; border-radius:50%; object-fit:cover; border:2px solid #ffffff; background:#ffffff; box-shadow:0 2px 8px rgba(0,0,0,0.25); display:block; }
     .avatar-link:hover { opacity:0.85; }
-    @media (max-width: 600px) { .header { padding: 20px 12px 20px 84px; } .header h1 { font-size: 22px !important; } }
+    .header-inner { display:flex; align-items:center; gap:16px; justify-content:center; }
+    .header-inner img.hdr-logo { height:64px; width:auto; filter:drop-shadow(0 2px 8px rgba(0,0,0,0.2)); }
+    @media (max-width: 900px) {
+      .header { padding: 12px 14px 16px; }
+      .avatar-link { position:static; transform:none; flex-direction:row; gap:8px; margin-bottom:10px; }
+      .avatar-link img, .avatar-link svg { width:36px; height:36px; }
+      .header-inner { gap:12px; }
+      .header-inner img.hdr-logo { height:48px; }
+      .header h1 { font-size: 17px !important; letter-spacing: 0 !important; line-height:1.2; }
+      .header p { font-size: 11px !important; }
+    }
     /* Modal */
     .modal-overlay { position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:1000;display:flex;align-items:center;justify-content:center; }
     .modal-box { background:white;border-radius:12px;padding:24px;max-width:620px;width:92%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.25); }
@@ -107,10 +117,10 @@
 <div id="toast"></div>
 <div class="container">
   <div class="header">
-    <a class="avatar-link no-print" href="https://wsemployeeservices.wslawncareservicesllc.com/portal/dashboard/view/178951" target="_top" title="Back to dashboard">{{Avatar}}<span>&#8249; Dashboard</span></a>
-    <div style="display:flex;align-items:center;gap:20px;justify-content:center;">
-      <img src="https://static.wixstatic.com/media/99a075_f0b64d954a90417ba2ac87c06f85804a~mv2.png" alt="WS Lawn Care Services" style="height:80px;width:auto;filter:drop-shadow(0 2px 8px rgba(0,0,0,0.2));">
-      <div><h1 style="margin-bottom:8px;">Landscaping Cost Estimator</h1><p style="margin:0;">Professional project estimation & job costing</p></div>
+    <a class="avatar-link no-print" href="https://wsemployeeservices.wslawncareservicesllc.com/portal/dashboard/view/178951" target="_top" title="Back to dashboard"><span id="avatarSlot">{{Avatar}}</span><span>&#8249; Dashboard</span></a>
+    <div class="header-inner">
+      <img class="hdr-logo" src="https://static.wixstatic.com/media/99a075_f0b64d954a90417ba2ac87c06f85804a~mv2.png" alt="WS Lawn Care Services">
+      <div><h1 style="margin-bottom:4px;">Landscaping Cost Estimator</h1><p style="margin:0;">Professional project estimation &amp; job costing</p></div>
     </div>
   </div>
   <div class="main-grid">
@@ -1756,6 +1766,18 @@ function wireSaSnippet(e, plain, g, notesTa, prev) {
   gen();
 }
 
+
+// Avatar: SuiteDash fills {{Avatar}} when served inside the portal. Anywhere else (or if it fails), show a default icon.
+(function () {
+  function fixAvatar() {
+    var slot = document.getElementById('avatarSlot'); if (!slot) return;
+    var t = (slot.textContent || '').trim();
+    if (slot.querySelector('img,svg')) return;
+    if (/^https?:\/\//i.test(t) || /^data:image/i.test(t)) { slot.innerHTML = '<img alt="" src="' + t.replace(/"/g, '&quot;') + '">'; return; }
+    slot.innerHTML = '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="24" fill="#ffffff"/><circle cx="24" cy="18" r="8" fill="#27ae60"/><path d="M8 42c2-9 9-13 16-13s14 4 16 13z" fill="#27ae60"/></svg>';
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fixAvatar); else fixAvatar();
+})();
 window.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
