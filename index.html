@@ -1772,7 +1772,14 @@ function wireSaSnippet(e, plain, g, notesTa, prev) {
   function fixAvatar() {
     var slot = document.getElementById('avatarSlot'); if (!slot) return;
     var t = (slot.textContent || '').trim();
-    if (slot.querySelector('img,svg')) return;
+    // When embedded in an iframe, the parent page can pass the avatar as ?avatar=<image url> (and optionally ?back=<dashboard url>)
+    try {
+      var qp = new URLSearchParams(location.search), qa = qp.get('avatar'), qb = qp.get('back');
+      if (qa && /^https?:\/\//i.test(qa)) t = qa;
+      else if (/\{\{.*\}\}/.test(t)) t = '';
+      if (qb && /^https?:\/\//i.test(qb)) { var lk = slot.closest('a'); if (lk) lk.href = qb; }
+    } catch (e) {}
+    if (slot.querySelector('img,svg') && !/\{\{/.test(slot.textContent)) { if (!new URLSearchParams(location.search).get('avatar')) return; }
     if (/^https?:\/\//i.test(t) || /^data:image/i.test(t)) { slot.innerHTML = '<img alt="" src="' + t.replace(/"/g, '&quot;') + '">'; return; }
     slot.innerHTML = '<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><circle cx="24" cy="24" r="24" fill="#ffffff"/><circle cx="24" cy="18" r="8" fill="#27ae60"/><path d="M8 42c2-9 9-13 16-13s14 4 16 13z" fill="#27ae60"/></svg>';
   }
