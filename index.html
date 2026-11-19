@@ -12,7 +12,7 @@
     html, body { height: 100%; overflow: auto; -webkit-overflow-scrolling: touch; }
     body { font-family: 'Space Mono', 'Courier New', monospace; background: #ffffff; padding: 0; color: #2c3e50; margin: 0; }
     .container { max-width: none; width: 100%; margin: 0; background: #ffffff; border-radius: 0; border: none; box-shadow: none; }
-    .header { position: relative; background: linear-gradient(90deg, #2ecc71 0%, #27ae60 100%); padding: 20px 100px; border-bottom: 1px solid #27ae60; color: #ffffff; }
+    .header { position: relative; background: linear-gradient(90deg, #2ecc71 0%, #27ae60 100%); padding: 20px 100px 20px 24px; border-bottom: 1px solid #27ae60; color: #ffffff; }
     .header h1 { font-size: 24px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; color: #ffffff; }
     .header p { opacity: 0.95; font-size: 12px; letter-spacing: 0.3px; color: #ffffff; }
     .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #e0e0e0; }
@@ -54,17 +54,18 @@
     .notes-section textarea:focus { border-color: #3498db; }
     .send-to-breakdown-btn { background: linear-gradient(90deg, #e67e22 0%, #d35400 100%); box-shadow: 0 2px 8px rgba(230,126,34,0.3); margin-top: 8px; }
     .send-to-breakdown-btn:hover { background: linear-gradient(90deg, #d35400 0%, #e67e22 100%); }
-    /* Portal avatar / back link */
-    .avatar-link { position:absolute; top:50%; left:20px; transform:translateY(-50%); display:flex; flex-direction:column; align-items:center; gap:4px; text-decoration:none; color:#ffffff; font-size:10px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; }
-    .avatar-link img, .avatar-link svg { width:48px; height:48px; border-radius:50%; object-fit:cover; border:2px solid #ffffff; background:#ffffff; box-shadow:0 2px 8px rgba(0,0,0,0.25); display:block; }
+    /* Portal avatar / back link (top right, like the home screen) */
+    .avatar-link { position:absolute; top:50%; right:20px; transform:translateY(-50%); display:block; text-decoration:none; line-height:0; z-index:3; }
+    .avatar-link .avatar-label { display:none; }
+    .avatar-link img, .avatar-link svg { width:56px; height:56px; border-radius:50%; object-fit:cover; border:2px solid #ffffff; background:#ffffff; box-shadow:0 2px 8px rgba(0,0,0,0.25); display:block; }
     .avatar-link:hover { opacity:0.85; }
     .header-inner { display:flex; align-items:center; gap:16px; justify-content:center; }
     .header-inner img.hdr-logo { height:64px; width:auto; filter:drop-shadow(0 2px 8px rgba(0,0,0,0.2)); }
     @media (max-width: 900px) {
-      .header { padding: 12px 14px 16px; }
-      .avatar-link { position:static; transform:none; flex-direction:row; gap:8px; margin-bottom:10px; }
-      .avatar-link img, .avatar-link svg { width:36px; height:36px; }
-      .header-inner { gap:12px; }
+      .header { padding: 12px 72px 14px 14px; }
+      .avatar-link { top:12px; right:12px; transform:none; }
+      .avatar-link img, .avatar-link svg { width:46px; height:46px; }
+      .header-inner { gap:12px; justify-content:flex-start; }
       .header-inner img.hdr-logo { height:48px; }
       .header h1 { font-size: 17px !important; letter-spacing: 0 !important; line-height:1.2; }
       .header p { font-size: 11px !important; }
@@ -117,7 +118,7 @@
 <div id="toast"></div>
 <div class="container">
   <div class="header">
-    <a class="avatar-link no-print" href="https://wsemployeeservices.wslawncareservicesllc.com/portal/dashboard/view/178951" target="_top" title="Back to dashboard"><span id="avatarSlot">{{Avatar}}</span><span>&#8249; Dashboard</span></a>
+    <a class="avatar-link no-print" href="https://wsemployeeservices.wslawncareservicesllc.com/portal/dashboard/view/178951" target="_top" title="Back to dashboard"><span id="avatarSlot">{{Avatar}}</span><span class="avatar-label">Dashboard</span></a>
     <div class="header-inner">
       <img class="hdr-logo" src="https://static.wixstatic.com/media/99a075_f0b64d954a90417ba2ac87c06f85804a~mv2.png" alt="WS Lawn Care Services">
       <div><h1 style="margin-bottom:4px;">Landscaping Cost Estimator</h1><p style="margin:0;">Professional project estimation &amp; job costing</p></div>
@@ -1771,6 +1772,8 @@ function wireSaSnippet(e, plain, g, notesTa, prev) {
 (function () {
   function fixAvatar() {
     var slot = document.getElementById('avatarSlot'); if (!slot) return;
+    // ?noavatar=1 → the parent page (SuiteDash) draws the avatar itself on top of the iframe
+    try { if (new URLSearchParams(location.search).has('noavatar')) { var al = slot.closest('a'); if (al) al.style.display = 'none'; return; } } catch (e) {}
     var t = (slot.textContent || '').trim();
     // When embedded in an iframe, the parent page can pass the avatar as ?avatar=<image url> (and optionally ?back=<dashboard url>)
     try {
