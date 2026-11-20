@@ -1527,7 +1527,7 @@ function printCustomerSummary() {
 async function buildCustomerSummary() {
   var body = document.getElementById('custBody');
   var keepNotes = document.getElementById('custNotes') ? document.getElementById('custNotes').value : '';
-  var prevSa = document.getElementById('saFreq') ? { sig: document.getElementById('saPanel').dataset.sig || '', freq: document.getElementById('saFreq').value, cost: document.getElementById('saCost').value, auto: document.getElementById('saCost').dataset.auto || '', pct: document.getElementById('saPct').value, pdf: document.getElementById('saPdf').value, pdfSig: document.getElementById('saPdf').dataset.sig || '', coBtn: document.getElementById('saCoBtn').checked } : {};
+  var prevSa = document.getElementById('saFreq') ? { sig: document.getElementById('saPanel').dataset.sig || '', freq: document.getElementById('saFreq').value, cost: document.getElementById('saCost').value, auto: document.getElementById('saCost').dataset.auto || '', pct: document.getElementById('saPct').value, pdf: document.getElementById('saPdf').value, pdfSig: document.getElementById('saPdf').dataset.sig || '', coBtn: document.getElementById('saCoBtn').checked, coEmbed: document.getElementById('saCoEmbed').checked } : {};
   body.innerHTML = '<p style="color:#7f8c8d">Building summary…</p>';
   calculate();
   var e = window.lastSummaryData || {};
@@ -1589,6 +1589,7 @@ async function buildCustomerSummary() {
     + '<div class="no-print" id="saPanel" style="background:#f4fbf6;border:2px solid #27ae60;border-radius:8px;padding:12px;margin-top:14px"><b>📋 Service Autopilot estimate snippet</b> <span style="color:#7f8c8d;font-size:12px">(fills your SA template with this job; copy and paste it into the SA estimate template’s HTML/code block)</span>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px"><div><label style="font-size:12px">Frequency</label><input id="saFreq" style="margin-bottom:0"></div><div><label style="font-size:12px">Your cost ($)</label><input id="saCost" inputmode="decimal" style="margin-bottom:0"></div><div><label style="font-size:12px">Deposit %</label><input id="saPct" inputmode="decimal" style="margin-bottom:0"></div></div>'
     + '<label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="saCoBtn" checked style="width:auto;margin:0"> Include the “Request a Change” button (opens the change order form with this customer’s info prefilled)</label>'
+    + '<label style="display:flex;align-items:center;gap:8px;margin-top:6px;margin-left:22px;font-size:13px;cursor:pointer"><input type="checkbox" id="saCoEmbed" checked style="width:auto;margin:0"> Open the form right on the estimate (uncheck for a plain link that opens a new tab)</label>'
     + '<div style="margin-top:8px"><label style="font-size:12px">PDF link for the “View Scope Of Work” button <span style="color:#7f8c8d">(auto-filled by Create PDF link, or paste your own)</span></label><input id="saPdf" type="text" placeholder="https://drive.google.com/file/d/…" style="margin-bottom:6px"><button type="button" id="saMakePdf" style="width:auto;padding:9px 14px;font-size:13px;letter-spacing:0;text-transform:none">📎 Create PDF link</button> <button type="button" id="saDlPdf" style="width:auto;padding:9px 14px;font-size:13px;letter-spacing:0;text-transform:none;background:#fff;color:#27ae60;border:2px solid #27ae60;box-shadow:none">⬇ Download PDF</button> <span id="saPdfMsg" style="font-size:12px;color:#27ae60"></span></div>'
     + '<textarea id="saCode" readonly style="width:100%;min-height:90px;margin-top:8px;margin-bottom:0;font-family:monospace;font-size:11px"></textarea>'
     + '<button type="button" id="saCopy" style="margin-top:8px;width:auto;padding:10px 18px;font-size:13px;letter-spacing:0;text-transform:none">Copy snippet</button> <span id="saMsg" style="font-size:12px;color:#27ae60"></span></div>'
@@ -1719,7 +1720,11 @@ function buildSaSnippet(v) {
     + '<div style="border-top: 2px solid rgba(255,255,255,0.3); padding-top: 15px; margin-top: 10px;"><div style="font-size: 16px; margin-bottom: 5px;"><strong>Your ' + escH(String(parseFloat(v.pct) || 50)) + '% down amount:</strong></div><div style="font-size: 24px; font-weight: bold;">$' + (dep > 0 ? money(dep) : '<code data-bee-code="" data-bee-name="Service Deposit/Monthly Cost" data-bee-type="mergetag" spellcheck="false">[ServiceDeposit/MonthlyCost]</code>') + '&nbsp;</div></div></div>'
     + (v.coBtn ? '<div style="background: #f4fbf6; border: 2px solid #2e7d32; border-radius: 8px; padding: 16px; margin: 20px 0; text-align: center;"><div style="font-size: 16px; font-weight: bold; color: #2e7d32; margin-bottom: 6px;">✏️ Need to change something?</div>'
       + '<div style="font-size: 14px; margin-bottom: 12px;">Different mulch, rock or sod, edging color, a new date, or want to add or phase the work? Send us a change order request and we will send you an updated estimate.</div>'
-      + '<a href="' + escH(coRequestUrl(v)) + '" rel="noopener noreferrer" style="display: inline-block; background: #ffffff; color: #2e7d32; padding: 12px 22px; text-decoration: none; border-radius: 5px; font-weight: bold; border: 2px solid #2e7d32;" target="_blank">✏️ Request a Change to This Estimate</a>'
+      + (v.coEmbed
+        ? '<details style="text-align: left;"><summary style="display: block; width: fit-content; margin: 0 auto; cursor: pointer; background: #ffffff; color: #2e7d32; padding: 12px 22px; border-radius: 5px; font-weight: bold; border: 2px solid #2e7d32; list-style: none;">✏️ Request a Change to This Estimate</summary>'
+          + '<iframe src="' + escH(coRequestUrl(v)) + '" title="Change order request form" style="width: 100%; height: 700px; border: 1px solid #d9e4dd; border-radius: 8px; margin-top: 12px; background: #fff;" loading="lazy"></iframe>'
+          + '<div style="font-size: 12px; text-align: center; margin-top: 8px;">Form not showing? <a href="' + escH(coRequestUrl(v)) + '" target="_blank" rel="noopener noreferrer" style="color: #2e7d32; font-weight: bold;">Open it in a new tab</a></div></details>'
+        : '<a href="' + escH(coRequestUrl(v)) + '" rel="noopener noreferrer" style="display: inline-block; background: #ffffff; color: #2e7d32; padding: 12px 22px; text-decoration: none; border-radius: 5px; font-weight: bold; border: 2px solid #2e7d32;" target="_blank">✏️ Request a Change to This Estimate</a>')
       + '<div style="font-size: 12px; color: #555; margin-top: 10px;">Prefer to talk? Call or text 321.209.0668.</div></div>' : '');
 }
 function wireSaSnippet(e, plain, g, notesTa, prev) {
@@ -1746,12 +1751,14 @@ function wireSaSnippet(e, plain, g, notesTa, prev) {
       client: (e.projectName || '').trim(), jobType: (e.projectType || '').trim(), freq: $f('saFreq').value.trim(),
       areas: uniq(plain.map(function (r) { return r[0]; })).join(', '), materials: materials.join(', '),
       co: !!e.changeOrder, coNote: (e.changeOrderNote || '').trim(), coOld: e.changeOrderOld, pdf: $f('saPdf').value.trim(), notes: notesTa.value.trim(), cost: $f('saCost').value, pct: $f('saPct').value, plain: plain,
-      addr: (e.propertyAddress || '').trim(), coBtn: $f('saCoBtn').checked
+      addr: (e.propertyAddress || '').trim(), coBtn: $f('saCoBtn').checked, coEmbed: $f('saCoEmbed').checked
     });
   };
   ['saFreq', 'saCost', 'saPct', 'saPdf'].forEach(function (id) { $f(id).addEventListener('input', gen); });
   $f('saCoBtn').checked = prev.coBtn !== false;      // stays as you left it when the summary is rebuilt
+  $f('saCoEmbed').checked = prev.coEmbed !== false;
   $f('saCoBtn').addEventListener('change', gen);
+  $f('saCoEmbed').addEventListener('change', gen);
   notesTa.addEventListener('input', gen);
   var pdfMsg = function (t, bad) { var m = $f('saPdfMsg'); m.style.color = bad ? '#c0392b' : '#27ae60'; m.textContent = t; };
   var pdfName = function () {
