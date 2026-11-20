@@ -1471,6 +1471,22 @@ function updateActualComparison() {
 // Built from the current estimate + the linked survey's photos.
 // ============================================================
 var custCache = { folderId: '', survey: null, photos: {} };
+// Customer-facing change order form (hosted on GitHub Pages). A URL saved on this device overrides it.
+var CHANGE_ORDER_URL = (function () { try { return localStorage.getItem('ws_change_order_url'); } catch (e) { return ''; } })() || 'https://willie2471.github.io/change-order/';
+// Link to the change order form with the customer's details prefilled. Where we have no data, the SA merge tag stays so SA fills it in when the estimate is sent.
+function coRequestUrl(v) {
+  var q = [];
+  var add = function (k, val, tag) { if (val) q.push(k + '=' + encodeURIComponent(val)); else if (tag) q.push(k + '=' + tag); };
+  add('client', v.client, '[clientname]');
+  add('address', v.addr, '[physicaladdress1]');
+  add('job', v.client, '');
+  add('jobType', v.jobType, '');
+  var cost = parseFloat(v.cost) || 0;
+  if (cost > 0) q.push('total=' + encodeURIComponent('$' + cost.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })));
+  var sc = [v.areas, v.materials].filter(String).join(' — ').slice(0, 300);
+  if (sc) q.push('scope=' + encodeURIComponent(sc));
+  return CHANGE_ORDER_URL + (CHANGE_ORDER_URL.indexOf('?') < 0 ? '?' : '&') + q.join('&');
+}
 function escH(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
 function openCustomerSummary() {
   document.getElementById('custSummary').style.display = 'block';
@@ -1511,7 +1527,7 @@ function printCustomerSummary() {
 async function buildCustomerSummary() {
   var body = document.getElementById('custBody');
   var keepNotes = document.getElementById('custNotes') ? document.getElementById('custNotes').value : '';
-  var prevSa = document.getElementById('saFreq') ? { sig: document.getElementById('saPanel').dataset.sig || '', freq: document.getElementById('saFreq').value, cost: document.getElementById('saCost').value, auto: document.getElementById('saCost').dataset.auto || '', pct: document.getElementById('saPct').value, pdf: document.getElementById('saPdf').value, pdfSig: document.getElementById('saPdf').dataset.sig || '' } : {};
+  var prevSa = document.getElementById('saFreq') ? { sig: document.getElementById('saPanel').dataset.sig || '', freq: document.getElementById('saFreq').value, cost: document.getElementById('saCost').value, auto: document.getElementById('saCost').dataset.auto || '', pct: document.getElementById('saPct').value, pdf: document.getElementById('saPdf').value, pdfSig: document.getElementById('saPdf').dataset.sig || '', coBtn: document.getElementById('saCoBtn').checked } : {};
   body.innerHTML = '<p style="color:#7f8c8d">Building summary…</p>';
   calculate();
   var e = window.lastSummaryData || {};
@@ -1572,6 +1588,7 @@ async function buildCustomerSummary() {
     + '<div class="no-print" style="background:#f0f8ff;border:2px solid #3498db;border-radius:8px;padding:12px;margin-top:14px"><b>Final adjustments</b> <span style="color:#7f8c8d;font-size:12px">(optional note for the customer — shown on the printed report)</span><textarea id="custNotes" style="width:100%;min-height:70px;margin-top:8px;margin-bottom:0" placeholder="e.g. Hedge trimming will be done after mulch install."></textarea></div>'
     + '<div class="no-print" id="saPanel" style="background:#f4fbf6;border:2px solid #27ae60;border-radius:8px;padding:12px;margin-top:14px"><b>📋 Service Autopilot estimate snippet</b> <span style="color:#7f8c8d;font-size:12px">(fills your SA template with this job; copy and paste it into the SA estimate template’s HTML/code block)</span>'
     + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px"><div><label style="font-size:12px">Frequency</label><input id="saFreq" style="margin-bottom:0"></div><div><label style="font-size:12px">Your cost ($)</label><input id="saCost" inputmode="decimal" style="margin-bottom:0"></div><div><label style="font-size:12px">Deposit %</label><input id="saPct" inputmode="decimal" style="margin-bottom:0"></div></div>'
+    + '<label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="saCoBtn" checked style="width:auto;margin:0"> Include the “Request a Change” button (opens the change order form with this customer’s info prefilled)</label>'
     + '<div style="margin-top:8px"><label style="font-size:12px">PDF link for the “View Scope Of Work” button <span style="color:#7f8c8d">(auto-filled by Create PDF link, or paste your own)</span></label><input id="saPdf" type="text" placeholder="https://drive.google.com/file/d/…" style="margin-bottom:6px"><button type="button" id="saMakePdf" style="width:auto;padding:9px 14px;font-size:13px;letter-spacing:0;text-transform:none">📎 Create PDF link</button> <button type="button" id="saDlPdf" style="width:auto;padding:9px 14px;font-size:13px;letter-spacing:0;text-transform:none;background:#fff;color:#27ae60;border:2px solid #27ae60;box-shadow:none">⬇ Download PDF</button> <span id="saPdfMsg" style="font-size:12px;color:#27ae60"></span></div>'
     + '<textarea id="saCode" readonly style="width:100%;min-height:90px;margin-top:8px;margin-bottom:0;font-family:monospace;font-size:11px"></textarea>'
     + '<button type="button" id="saCopy" style="margin-top:8px;width:auto;padding:10px 18px;font-size:13px;letter-spacing:0;text-transform:none">Copy snippet</button> <span id="saMsg" style="font-size:12px;color:#27ae60"></span></div>'
@@ -1699,7 +1716,11 @@ function buildSaSnippet(v) {
     + '<div style="background: #fff9e6; border: 2px dashed #f9a825; padding: 12px; margin: 15px 0; border-radius: 5px;"><strong>⚠️ Important Notes: ' + (v.notes ? escH(v.notes).replace(/\n/g, '<br>') : '<code data-bee-code="" data-bee-name="Project Important Notes" data-bee-type="mergetag" spellcheck="false"><em>[ProjectImportantNotes]</em></code>') + '&nbsp;</strong><br>***Before we begin: Please call 811 to mark all underground utilities (electric, gas, water, cable, etc.). Our equipment may dig or excavate. WS Lawn Care is not responsible for damage to utilities not marked by 811.***</div>'
     + '<div style="background: linear-gradient(135deg, #2e7d32, #43a047); color: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"><div style="font-size: 16px; margin-bottom: 10px;">💰 <strong>Your Cost:&nbsp;(require 50% down for material cost)</strong></div>'
     + '<div style="font-size: 28px; font-weight: bold; margin-bottom: 15px;">$' + (cost > 0 ? money(cost) : '<code data-bee-code="" data-bee-name="Service Per Visit Cost" data-bee-type="mergetag" spellcheck="false">[ServicePerVisitCost]</code>') + '</div>'
-    + '<div style="border-top: 2px solid rgba(255,255,255,0.3); padding-top: 15px; margin-top: 10px;"><div style="font-size: 16px; margin-bottom: 5px;"><strong>Your ' + escH(String(parseFloat(v.pct) || 50)) + '% down amount:</strong></div><div style="font-size: 24px; font-weight: bold;">$' + (dep > 0 ? money(dep) : '<code data-bee-code="" data-bee-name="Service Deposit/Monthly Cost" data-bee-type="mergetag" spellcheck="false">[ServiceDeposit/MonthlyCost]</code>') + '&nbsp;</div></div></div>';
+    + '<div style="border-top: 2px solid rgba(255,255,255,0.3); padding-top: 15px; margin-top: 10px;"><div style="font-size: 16px; margin-bottom: 5px;"><strong>Your ' + escH(String(parseFloat(v.pct) || 50)) + '% down amount:</strong></div><div style="font-size: 24px; font-weight: bold;">$' + (dep > 0 ? money(dep) : '<code data-bee-code="" data-bee-name="Service Deposit/Monthly Cost" data-bee-type="mergetag" spellcheck="false">[ServiceDeposit/MonthlyCost]</code>') + '&nbsp;</div></div></div>'
+    + (v.coBtn ? '<div style="background: #f4fbf6; border: 2px solid #2e7d32; border-radius: 8px; padding: 16px; margin: 20px 0; text-align: center;"><div style="font-size: 16px; font-weight: bold; color: #2e7d32; margin-bottom: 6px;">✏️ Need to change something?</div>'
+      + '<div style="font-size: 14px; margin-bottom: 12px;">Different mulch, rock or sod, edging color, a new date, or want to add or phase the work? Send us a change order request and we will send you an updated estimate.</div>'
+      + '<a href="' + escH(coRequestUrl(v)) + '" rel="noopener noreferrer" style="display: inline-block; background: #ffffff; color: #2e7d32; padding: 12px 22px; text-decoration: none; border-radius: 5px; font-weight: bold; border: 2px solid #2e7d32;" target="_blank">✏️ Request a Change to This Estimate</a>'
+      + '<div style="font-size: 12px; color: #555; margin-top: 10px;">Prefer to talk? Call or text 321.209.0668.</div></div>' : '');
 }
 function wireSaSnippet(e, plain, g, notesTa, prev) {
   var uniq = function (a) { var o = []; a.forEach(function (x) { x = String(x || '').trim(); if (x && o.indexOf(x) < 0) o.push(x); }); return o; };
@@ -1724,10 +1745,13 @@ function wireSaSnippet(e, plain, g, notesTa, prev) {
     $f('saCode').value = buildSaSnippet({
       client: (e.projectName || '').trim(), jobType: (e.projectType || '').trim(), freq: $f('saFreq').value.trim(),
       areas: uniq(plain.map(function (r) { return r[0]; })).join(', '), materials: materials.join(', '),
-      co: !!e.changeOrder, coNote: (e.changeOrderNote || '').trim(), coOld: e.changeOrderOld, pdf: $f('saPdf').value.trim(), notes: notesTa.value.trim(), cost: $f('saCost').value, pct: $f('saPct').value, plain: plain
+      co: !!e.changeOrder, coNote: (e.changeOrderNote || '').trim(), coOld: e.changeOrderOld, pdf: $f('saPdf').value.trim(), notes: notesTa.value.trim(), cost: $f('saCost').value, pct: $f('saPct').value, plain: plain,
+      addr: (e.propertyAddress || '').trim(), coBtn: $f('saCoBtn').checked
     });
   };
   ['saFreq', 'saCost', 'saPct', 'saPdf'].forEach(function (id) { $f(id).addEventListener('input', gen); });
+  $f('saCoBtn').checked = prev.coBtn !== false;      // stays as you left it when the summary is rebuilt
+  $f('saCoBtn').addEventListener('change', gen);
   notesTa.addEventListener('input', gen);
   var pdfMsg = function (t, bad) { var m = $f('saPdfMsg'); m.style.color = bad ? '#c0392b' : '#27ae60'; m.textContent = t; };
   var pdfName = function () {
