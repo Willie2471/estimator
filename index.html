@@ -1704,7 +1704,7 @@ async function buildSummaryPdf(src) {
   try {
     for (var b = 0; b < blocks.length; b++) {
       var wrap = document.createElement('div'); wrap.id = 'custBody';
-      wrap.style.cssText = 'width:' + PX + 'px;max-width:none;margin:0;padding:0;background:#fff;display:flow-root;font-size:13px;';
+      wrap.style.cssText = 'width:' + PX + 'px;max-width:none;margin:0;padding:0;background:#fff;display:flow-root;font-size:13px;font-family:Arial,Helvetica,sans-serif;font-kerning:none;font-variant-ligatures:none;text-rendering:geometricPrecision;word-spacing:normal;letter-spacing:normal;';
       wrap.appendChild(blocks[b]); host.innerHTML = ''; host.appendChild(wrap);
       await Promise.all(Array.prototype.map.call(wrap.querySelectorAll('img'), function (im) { return im.decode ? im.decode().catch(function () {}) : null; }));
       var cv = await window.html2canvas(wrap, { scale: 2, backgroundColor: '#fff', useCORS: true, scrollX: 0, scrollY: 0, windowWidth: Math.max(document.documentElement.clientWidth, PX) });
