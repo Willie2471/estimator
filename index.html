@@ -1473,7 +1473,44 @@ function updateActualComparison() {
 var custCache = { folderId: '', survey: null, photos: {} };
 // Customer-facing change order form (hosted on GitHub Pages). A URL saved on this device overrides it.
 var CHANGE_ORDER_URL = (function () { try { return localStorage.getItem('ws_change_order_url'); } catch (e) { return ''; } })() || 'https://willie2471.github.io/change-order/';
-// Link to the change order form with the customer's details prefilled. Where we have no data, the SA merge tag stays so SA fills it in when the estimate is sent.
+
+// Documents shown inside the SA snippet (expand in place). Scope pamphlet is hosted on GitHub Pages so it can be framed.
+var PAMPHLET_URL = (function () { try { return localStorage.getItem('ws_pamphlet_url'); } catch (e) { return ''; } })() || 'https://willie2471.github.io/mowing-pamphlet/';
+var DOC_LINKS = {
+  cert: 'https://d15k2d11r6t6rl.cloudfront.net/pub/6brz/ftj1sozt/n3x/r7f/tu0/Applicator%20Certificate.png',
+  bmp:  'https://d15k2d11r6t6rl.cloudfront.net/pub/6brz/ftj1sozt/05y/mtm/bxh/Florida%20Department%20of%20Environment%20Protection.png',
+  gl:   'https://d15k2d11r6t6rl.cloudfront.net/pub/6brz/ftj1sozt/mw9/4i5/om8/GL_ACORD_02_01_2026_P104393107-3248628897856.PDF'
+};
+var TERMS = [
+  ['1. Service Overview', ['We agree to provide lawn care services to the client as outlined in the agreed-upon service package.', 'Any additional request not covered by initial estimate will be considered add-ons and will incur additional costs to the owner.']],
+  ['2. Service Schedule', ['The service schedule will be established and communicated to the client in advance.', 'Weather conditions may affect the service schedule, and we will communicate any necessary adjustments.']],
+  ['3. Payment', ['The client agrees to pay the specified amount for the agreed-upon services.', 'Invoices are due upon arrival, and late payments may incur additional charges.']],
+  ['4. Cancellation and Rescheduling', ['The client agrees to provide a 7 day notice for cancellations or rescheduling of services.', 'Cancellation fees may apply for services canceled without proper notice.']],
+  ['5. Property Access', ['The client agrees to provide access to the property during scheduled service times.', 'We are not responsible for any damage caused to items left on the lawn, and the client should remove any obstacles or hazards including dog waste. Extra fee of $10 will be added after the second reminder if we have to remove any obstructing items.']],
+  ['6. Quality of Service', ['We strive to provide high-quality services, but results may vary based on factors such as weather and lawn condition.', 'We will address any concerns or issues promptly upon notification by the client.']],
+  ['7. Liability', ['WS Lawn Care Services, LLC is not liable for any damage to property or injuries that occur on the client’s premises, except in the case of negligence on our part in this instance WS Lawn Care Services LLC is insured.']],
+  ['8. Equipment and Supplies', ['WS Lawn Care Services, LLC will provide all necessary equipment and supplies for the services.', 'The client agrees not to interfere with or attempt to operate the equipment.']],
+  ['9. Termination of Services', ['Either party may terminate services with 7 day notice.', 'Termination does not relieve the client of any outstanding payment obligations.']],
+  ['10. Governing Law', ['This agreement is governed by the laws of Florida.', 'Any disputes will be resolved through negotiation, and if not resolved, through legal action in Florida.']],
+  ['11. Changes to Terms and Conditions', ['WS Lawn Care Services, LLC reserves the right to modify these terms and conditions without prior notice to the client.']]
+];
+// One expandable section (plain HTML, no scripts). The shared name makes browsers keep only one open at a time.
+function docBox(title, body) {
+  return '<details name="wsdocs" style="margin: 8px 0; border: 2px solid #2e7d32; border-radius: 8px; background: #ffffff; text-align: left;"><summary style="cursor: pointer; padding: 12px 16px; font-weight: bold; color: #2e7d32; font-size: 15px;">' + title + '</summary><div style="padding: 4px 14px 14px; font-size: 14px; line-height: 1.5;">' + body + '</div></details>';
+}
+function docFrame(url, h) {
+  return '<iframe src="' + escH(url) + '" style="width: 100%; height: ' + h + 'px; border: 1px solid #d9e4dd; border-radius: 6px; background: #fff;" loading="lazy"></iframe>'
+    + '<div style="font-size: 12px; text-align: center; margin-top: 8px;">Not showing? <a href="' + escH(url) + '" target="_blank" rel="noopener noreferrer" style="color: #2e7d32; font-weight: bold;">Open it in a new tab</a></div>';
+}
+function docImage(url, alt) {
+  return '<a href="' + escH(url) + '" target="_blank" rel="noopener noreferrer"><img src="' + escH(url) + '" alt="' + escH(alt) + '" style="width: 100%; max-width: 760px; display: block; margin: 0 auto; border: 1px solid #d9e4dd; border-radius: 6px;"></a>'
+    + '<div style="font-size: 12px; text-align: center; margin-top: 8px;">Tap the image to open it full size.</div>';
+}
+function termsHtml() {
+  return '<div style="font-weight: bold; margin-bottom: 6px;">WS Lawn Care Services, LLC – Terms and Conditions</div>' + TERMS.map(function (t) {
+    return '<div style="margin-top: 10px;"><strong>' + escH(t[0]) + ':</strong>' + t[1].map(function (x) { return '<div style="margin-top: 3px;">' + escH(x) + '</div>'; }).join('') + '</div>';
+  }).join('');
+}// Link to the change order form with the customer's details prefilled. Where we have no data, the SA merge tag stays so SA fills it in when the estimate is sent.
 function coRequestUrl(v) {
   var q = [];
   var add = function (k, val, tag) { if (val) q.push(k + '=' + encodeURIComponent(val)); else if (tag) q.push(k + '=' + tag); };
@@ -1527,7 +1564,7 @@ function printCustomerSummary() {
 async function buildCustomerSummary() {
   var body = document.getElementById('custBody');
   var keepNotes = document.getElementById('custNotes') ? document.getElementById('custNotes').value : '';
-  var prevSa = document.getElementById('saFreq') ? { sig: document.getElementById('saPanel').dataset.sig || '', freq: document.getElementById('saFreq').value, cost: document.getElementById('saCost').value, auto: document.getElementById('saCost').dataset.auto || '', pct: document.getElementById('saPct').value, pdf: document.getElementById('saPdf').value, pdfSig: document.getElementById('saPdf').dataset.sig || '', coBtn: document.getElementById('saCoBtn').checked, coEmbed: document.getElementById('saCoEmbed').checked } : {};
+  var prevSa = document.getElementById('saFreq') ? { sig: document.getElementById('saPanel').dataset.sig || '', freq: document.getElementById('saFreq').value, cost: document.getElementById('saCost').value, auto: document.getElementById('saCost').dataset.auto || '', pct: document.getElementById('saPct').value, pdf: document.getElementById('saPdf').value, pdfSig: document.getElementById('saPdf').dataset.sig || '', coBtn: document.getElementById('saCoBtn').checked, coEmbed: document.getElementById('saCoEmbed').checked, docs: document.getElementById('saDocs').checked } : {};
   body.innerHTML = '<p style="color:#7f8c8d">Building summary…</p>';
   calculate();
   var e = window.lastSummaryData || {};
@@ -1590,6 +1627,7 @@ async function buildCustomerSummary() {
     + '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:8px"><div><label style="font-size:12px">Frequency</label><input id="saFreq" style="margin-bottom:0"></div><div><label style="font-size:12px">Your cost ($)</label><input id="saCost" inputmode="decimal" style="margin-bottom:0"></div><div><label style="font-size:12px">Deposit %</label><input id="saPct" inputmode="decimal" style="margin-bottom:0"></div></div>'
     + '<label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="saCoBtn" checked style="width:auto;margin:0"> Include the “Request a Change” button (opens the change order form with this customer’s info prefilled)</label>'
     + '<label style="display:flex;align-items:center;gap:8px;margin-top:6px;margin-left:22px;font-size:13px;cursor:pointer"><input type="checkbox" id="saCoEmbed" checked style="width:auto;margin:0"> Open the form right on the estimate (uncheck for a plain link that opens a new tab)</label>'
+    + '<label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;cursor:pointer"><input type="checkbox" id="saDocs" checked style="width:auto;margin:0"> Show Scope of Work, Terms and Conditions, Applicator License, Best Management Practices and Liability Insurance right on the estimate (each expands in place)</label>'
     + '<div style="margin-top:8px"><label style="font-size:12px">PDF link for the “View Scope Of Work” button <span style="color:#7f8c8d">(auto-filled by Create PDF link, or paste your own)</span></label><input id="saPdf" type="text" placeholder="https://drive.google.com/file/d/…" style="margin-bottom:6px"><button type="button" id="saMakePdf" style="width:auto;padding:9px 14px;font-size:13px;letter-spacing:0;text-transform:none">📎 Create PDF link</button> <button type="button" id="saDlPdf" style="width:auto;padding:9px 14px;font-size:13px;letter-spacing:0;text-transform:none;background:#fff;color:#27ae60;border:2px solid #27ae60;box-shadow:none">⬇ Download PDF</button> <span id="saPdfMsg" style="font-size:12px;color:#27ae60"></span></div>'
     + '<textarea id="saCode" readonly style="width:100%;min-height:90px;margin-top:8px;margin-bottom:0;font-family:monospace;font-size:11px"></textarea>'
     + '<button type="button" id="saCopy" style="margin-top:8px;width:auto;padding:10px 18px;font-size:13px;letter-spacing:0;text-transform:none">Copy snippet</button> <span id="saMsg" style="font-size:12px;color:#27ae60"></span></div>'
@@ -1713,7 +1751,7 @@ function buildSaSnippet(v) {
     + '</tbody></table></div>'
     + '<h3 style="color: rgb(46, 125, 50); border-bottom: 3px solid rgb(46, 125, 50); margin: -20px -20px 15px; padding: 10px 20px; background: linear-gradient(to right, rgb(232, 245, 233), rgb(241, 248, 244)); text-align: center;">✓ What\'s Included - Our Scope of Work:</h3>'
     + scope
-    + '<div style="text-align: center; margin: 15px 0;"><a href="' + (v.pdf ? escH(v.pdf) : 'https://www.wslawncareservicesllc.com/lawnmowingservices') + '" rel="noopener noreferrer" style="display: inline-block; background: #2e7d32; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;" target="_blank">📖 View Scope Of Work' + (v.pdf ? ' (PDF)' : '') + '</a></div>'
+    + (v.docs ? '<div style="margin: 15px 0;">' + docBox('📖 View Scope Of Work', docFrame(v.pdf || PAMPHLET_URL, 840)) + '</div>' : '<div style="text-align: center; margin: 15px 0;"><a href="' + (v.pdf ? escH(v.pdf) : 'https://www.wslawncareservicesllc.com/lawnmowingservices') + '" rel="noopener noreferrer" style="display: inline-block; background: #2e7d32; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; font-weight: bold;" target="_blank">📖 View Scope Of Work' + (v.pdf ? ' (PDF)' : '') + '</a></div>')
     + '<div style="background: #fff9e6; border: 2px dashed #f9a825; padding: 12px; margin: 15px 0; border-radius: 5px;"><strong>⚠️ Important Notes: ' + (v.notes ? escH(v.notes).replace(/\n/g, '<br>') : '<code data-bee-code="" data-bee-name="Project Important Notes" data-bee-type="mergetag" spellcheck="false"><em>[ProjectImportantNotes]</em></code>') + '&nbsp;</strong><br>***Before we begin: Please call 811 to mark all underground utilities (electric, gas, water, cable, etc.). Our equipment may dig or excavate. WS Lawn Care is not responsible for damage to utilities not marked by 811.***</div>'
     + '<div style="background: linear-gradient(135deg, #2e7d32, #43a047); color: white; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);"><div style="font-size: 16px; margin-bottom: 10px;">💰 <strong>Your Cost:&nbsp;(require 50% down for material cost)</strong></div>'
     + '<div style="font-size: 28px; font-weight: bold; margin-bottom: 15px;">$' + (cost > 0 ? money(cost) : '<code data-bee-code="" data-bee-name="Service Per Visit Cost" data-bee-type="mergetag" spellcheck="false">[ServicePerVisitCost]</code>') + '</div>'
@@ -1725,7 +1763,13 @@ function buildSaSnippet(v) {
           + '<iframe src="' + escH(coRequestUrl(v)) + '" title="Change order request form" style="width: 100%; height: 700px; border: 1px solid #d9e4dd; border-radius: 8px; margin-top: 12px; background: #fff;" loading="lazy"></iframe>'
           + '<div style="font-size: 12px; text-align: center; margin-top: 8px;">Form not showing? <a href="' + escH(coRequestUrl(v)) + '" target="_blank" rel="noopener noreferrer" style="color: #2e7d32; font-weight: bold;">Open it in a new tab</a></div></details>'
         : '<a href="' + escH(coRequestUrl(v)) + '" rel="noopener noreferrer" style="display: inline-block; background: #ffffff; color: #2e7d32; padding: 12px 22px; text-decoration: none; border-radius: 5px; font-weight: bold; border: 2px solid #2e7d32;" target="_blank">✏️ Request a Change to This Estimate</a>')
-      + '<div style="font-size: 12px; color: #555; margin-top: 10px;">Prefer to talk? Call or text 321.209.0668.</div></div>' : '');
+      + '<div style="font-size: 12px; color: #555; margin-top: 10px;">Prefer to talk? Call or text 321.209.0668.</div></div>' : '')
+    + (v.docs ? '<div style="margin: 20px 0;"><div style="font-size: 16px; font-weight: bold; color: #2e7d32; margin-bottom: 6px; text-align: center;">📎 Terms &amp; Documents</div>'
+      + docBox('📄 Terms and Conditions', termsHtml())
+      + docBox('🪪 Applicator License', docImage(DOC_LINKS.cert, 'Applicator Certificate'))
+      + docBox('🌿 Best Management Practices', docImage(DOC_LINKS.bmp, 'Florida Department of Environmental Protection Best Management Practices'))
+      + docBox('🛡️ General Liability Insurance', docFrame(DOC_LINKS.gl, 620))
+      + '<div style="font-size: 12px; color: #555; text-align: center; margin-top: 6px;">Tap a title to open it. Tap it again to close.</div></div>' : '');
 }
 function wireSaSnippet(e, plain, g, notesTa, prev) {
   var uniq = function (a) { var o = []; a.forEach(function (x) { x = String(x || '').trim(); if (x && o.indexOf(x) < 0) o.push(x); }); return o; };
@@ -1751,7 +1795,7 @@ function wireSaSnippet(e, plain, g, notesTa, prev) {
       client: (e.projectName || '').trim(), jobType: (e.projectType || '').trim(), freq: $f('saFreq').value.trim(),
       areas: uniq(plain.map(function (r) { return r[0]; })).join(', '), materials: materials.join(', '),
       co: !!e.changeOrder, coNote: (e.changeOrderNote || '').trim(), coOld: e.changeOrderOld, pdf: $f('saPdf').value.trim(), notes: notesTa.value.trim(), cost: $f('saCost').value, pct: $f('saPct').value, plain: plain,
-      addr: (e.propertyAddress || '').trim(), coBtn: $f('saCoBtn').checked, coEmbed: $f('saCoEmbed').checked
+      addr: (e.propertyAddress || '').trim(), coBtn: $f('saCoBtn').checked, coEmbed: $f('saCoEmbed').checked, docs: $f('saDocs').checked
     });
   };
   ['saFreq', 'saCost', 'saPct', 'saPdf'].forEach(function (id) { $f(id).addEventListener('input', gen); });
@@ -1759,6 +1803,8 @@ function wireSaSnippet(e, plain, g, notesTa, prev) {
   $f('saCoEmbed').checked = prev.coEmbed !== false;
   $f('saCoBtn').addEventListener('change', gen);
   $f('saCoEmbed').addEventListener('change', gen);
+  $f('saDocs').checked = prev.docs !== false;
+  $f('saDocs').addEventListener('change', gen);
   notesTa.addEventListener('input', gen);
   var pdfMsg = function (t, bad) { var m = $f('saPdfMsg'); m.style.color = bad ? '#c0392b' : '#27ae60'; m.textContent = t; };
   var pdfName = function () {
