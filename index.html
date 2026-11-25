@@ -96,7 +96,49 @@
     .cs-photos { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
     .cs-photos .pg { break-inside:avoid; } .cs-photos img { width:100%; border-radius:6px; border:1px solid #e0e0e0; display:block; }
     .cs-foot { margin-top:24px; padding-top:10px; border-top:2px solid #27ae60; font-size:12px; color:#7f8c8d; text-align:center; }
+    /* ACTUAL COSTS PAGE (full screen, same pattern as the Customer Summary) */
+    #actualPage { display:none; position:fixed; inset:0; z-index:1500; background:#fff; overflow:auto; -webkit-overflow-scrolling:touch; }
+    #actualPage .cs-bar { position:sticky; top:0; background:linear-gradient(90deg,#9b59b6,#8e44ad); padding:10px 14px; display:flex; gap:10px; align-items:center; z-index:2; }
+    #actualPage .cs-bar button { width:auto; padding:10px 16px; font-size:13px; letter-spacing:0; text-transform:none; background:#fff; color:#8e44ad; box-shadow:none; }
+    #actualPage .cs-bar span { color:#fff; font-weight:700; flex:1; }
+    .act-wrap { max-width:860px; margin:0 auto; padding:16px; }
+    .act-proj { font-size:13px; color:#7f8c8d; margin-bottom:12px; }
+    .act-proj b { color:#2c3e50; }
+    .act-card { background:#f8f9fa; border:2px solid #e0e0e0; border-radius:8px; padding:16px; margin-bottom:16px; }
+    .act-card h3 { font-size:16px; margin:0 0 12px; color:#2c3e50; }
+    .act-hint { font-size:12px; color:#7f8c8d; margin-bottom:8px; }
+    .act-bh { font-size:12px; font-weight:700; color:#8e44ad; text-transform:uppercase; letter-spacing:.5px; margin:16px 0 4px; padding-bottom:4px; border-bottom:2px solid #e0e0e0; }
+    .act-row { display:grid; grid-template-columns:minmax(0,1fr) 84px 118px 84px; gap:8px; align-items:center; padding:8px 0; border-bottom:1px solid #eee; }
+    .act-row input { margin-bottom:0; padding:9px 10px; text-align:right; }
+    .act-head { font-size:11px; font-weight:700; color:#7f8c8d; text-transform:uppercase; border-bottom:2px solid #e0e0e0; padding-bottom:4px; }
+    .act-lbl { font-size:13px; font-weight:600; color:#2c3e50; overflow-wrap:anywhere; }
+    .act-lbl small { display:block; font-size:11px; font-weight:400; color:#7f8c8d; margin-top:2px; }
+    .act-bud { font-size:12px; text-align:right; color:#2c3e50; }
+    .act-var { font-size:12px; font-weight:700; text-align:right; }
+    .act-extra .act-lbl { font-weight:400; color:#7f8c8d; }
+    .act-sub { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:12px 0; }
+    .act-sub label { font-size:11px; margin-bottom:4px; }
+    .act-sub input { margin-bottom:0; background:#eef1f5; font-weight:700; }
+    .act-go { width:100%; padding:16px; background:linear-gradient(90deg,#27ae60,#229954); color:#fff; border:none; border-radius:8px; font-weight:700; font-size:15px; cursor:pointer; margin-bottom:24px; }
+    .act-tools { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:14px; }
+    .act-tools button { width:auto; padding:10px 14px; font-size:13px; letter-spacing:0; text-transform:none; background:linear-gradient(90deg,#3498db,#2980b9); }
+    .act-tools button.sec { background:#fff; color:#8e44ad; border:2px solid #8e44ad; box-shadow:none; }
+    .act-tools button.drv { background:linear-gradient(90deg,#27ae60,#229954); }
+    #actMsg { font-size:12px; color:#27ae60; flex:1 1 100%; }
+    #actBody { font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; font-size:14px; line-height:1.4; }
+    #actBody h1 { font-size:22px; } #actBody h2 { font-size:13px; letter-spacing:1px; text-transform:uppercase; color:#27ae60; margin:20px 0 8px; }
+    #actBody table { width:100%; border-collapse:collapse; margin:6px 0; }
+    #actBody th, #actBody td { border-bottom:1px solid #e0e0e0; padding:6px 4px; text-align:left; vertical-align:top; }
+    #actBody th { font-size:12px; color:#7f8c8d; text-transform:uppercase; }
+    #actBody ul { margin:4px 0 0 18px; padding:0; } #actBody li { margin-bottom:5px; }
+    @media (max-width:640px) {
+      .act-row { grid-template-columns:1fr 1fr; } .act-row .act-lbl { grid-column:1 / 3; }
+      .act-head { display:none; } .act-sub { grid-template-columns:1fr; }
+    }
     @media print {
+      body.pa .container, body.pa #toast, body.pa .modal-overlay { display:none !important; }
+      body.pa #actualPage { display:block !important; position:static !important; overflow:visible !important; }
+      body.pa #actEntry { display:none !important; }
       body.pc .container, body.pc #toast, body.pc .modal-overlay { display:none !important; }
       body.pc #custSummary { display:block !important; position:static !important; overflow:visible !important; }
       .no-print { display:none !important; }
@@ -258,36 +300,7 @@
       <div id="summaryContent"></div>
 
       <div style="margin-top:32px;padding-top:32px;border-top:3px solid #e0e0e0;">
-        <button id="toggleActualCosts" onclick="toggleActualCostsSection()" style="width:100%;padding:16px;background:linear-gradient(90deg,#9b59b6 0%,#8e44ad 100%);color:white;border:none;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;margin-bottom:16px;">📈 Track Actual Costs (Budget vs Actual)</button>
-        <div id="actualCostsSection" style="display:none;">
-          <div style="background:#f8f9fa;border:2px solid #e0e0e0;border-radius:8px;padding:20px;margin-bottom:16px;">
-            <h3 style="margin:0 0 16px 0;color:#2c3e50;font-size:16px;">💰 Enter Actual Costs</h3>
-            <div style="margin-bottom:12px;"><label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;">Materials (Actual)</label><input type="number" id="actualMaterials" placeholder="0.00" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:6px;font-family:inherit;" oninput="updateActualComparison()"></div>
-            <div style="margin-top:16px;padding-top:16px;border-top:2px solid #e0e0e0;">
-              <label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;color:#27ae60;">💵 Total Price Charged to Customer</label>
-              <input type="number" id="totalPriceCharged" placeholder="0.00" style="width:100%;padding:12px;border:2px solid #27ae60;border-radius:6px;font-family:inherit;font-weight:600;font-size:16px;" oninput="updateActualComparison()">
-              <div style="font-size:11px;color:#7f8c8d;margin-top:4px;">Enter the final amount the customer paid</div>
-            </div>
-            <div style="margin-bottom:12px;margin-top:12px;"><label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;">Labor (Actual)</label><input type="number" id="actualLabor" placeholder="0.00" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:6px;font-family:inherit;" oninput="updateActualComparison()"></div>
-            <div style="margin-bottom:12px;"><label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;">Equipment (Actual)</label><input type="number" id="actualEquipment" placeholder="0.00" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:6px;font-family:inherit;" oninput="updateActualComparison()"></div>
-            <div style="margin-bottom:12px;"><label style="display:block;margin-bottom:4px;font-size:13px;font-weight:600;">Other Costs (Actual)</label><input type="number" id="actualOther" placeholder="0.00" style="width:100%;padding:10px;border:2px solid #e0e0e0;border-radius:6px;font-family:inherit;" oninput="updateActualComparison()"></div>
-          </div>
-          <div style="background:#e8f5e9;border:2px solid #27ae60;border-radius:8px;padding:20px;margin-bottom:16px;">
-            <h3 style="margin:0 0 16px 0;color:#27ae60;font-size:16px;">⏱️ Time Tracking & Efficiency</h3>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
-              <div><label style="display:block;margin-bottom:4px;font-size:12px;font-weight:600;color:#2c3e50;">Budget Hours</label><input type="number" id="budgetHours" placeholder="0" step="0.5" style="width:100%;padding:8px;border:2px solid #27ae60;border-radius:6px;font-family:inherit;text-align:center;font-weight:600;" oninput="updateTimeTracking()" readonly><div style="font-size:10px;color:#7f8c8d;margin-top:4px;text-align:center;">From estimate</div></div>
-              <div><label style="display:block;margin-bottom:4px;font-size:12px;font-weight:600;color:#2c3e50;">Actual Hours</label><input type="number" id="actualHours" placeholder="0" step="0.5" style="width:100%;padding:8px;border:2px solid #3498db;border-radius:6px;font-family:inherit;text-align:center;font-weight:600;" oninput="updateTimeTracking()"><div style="font-size:10px;color:#7f8c8d;margin-top:4px;text-align:center;">Hours worked</div></div>
-            </div>
-            <div id="timeTrackingDisplay" style="display:none;"></div>
-          </div>
-          <div style="background:#fff9e6;border:2px solid #f39c12;border-radius:8px;padding:20px;margin-bottom:16px;">
-            <h3 style="margin:0 0 16px 0;color:#f39c12;font-size:16px;display:flex;align-items:center;gap:8px;">📝 Project Summary Notes <span style="font-size:10px;padding:3px 8px;background:rgba(243,156,18,0.2);border-radius:12px;font-weight:normal;">Optional</span></h3>
-            <div style="margin-bottom:16px;"><label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:#2c3e50;">✅ What Went Well</label><textarea id="notesWentWell" placeholder="Example: Crew arrived on time, equipment worked perfectly..." style="width:100%;min-height:70px;padding:10px;border:2px solid #27ae60;border-radius:6px;font-family:inherit;font-size:13px;resize:vertical;"></textarea></div>
-            <div style="margin-bottom:16px;"><label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:#2c3e50;">⚠️ Challenges / Issues</label><textarea id="notesChallenges" placeholder="Example: Unexpected underground utilities, equipment breakdown..." style="width:100%;min-height:70px;padding:10px;border:2px solid #e74c3c;border-radius:6px;font-family:inherit;font-size:13px;resize:vertical;"></textarea></div>
-            <div><label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:#2c3e50;">🎯 Action Steps for Future Jobs</label><textarea id="notesActionSteps" placeholder="Example: Add 2 hours buffer for similar properties..." style="width:100%;min-height:70px;padding:10px;border:2px solid #3498db;border-radius:6px;font-family:inherit;font-size:13px;resize:vertical;"></textarea></div>
-          </div>
-          <div id="comparisonDisplay" style="display:none;"></div>
-        </div>
+        <button id="toggleActualCosts" onclick="openActualPage()" style="width:100%;padding:16px;background:linear-gradient(90deg,#9b59b6 0%,#8e44ad 100%);color:white;border:none;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;margin-bottom:16px;">📈 Track Actual Costs (Budget vs Actual)</button>
       </div>
     </div>
   </div>
@@ -314,6 +327,62 @@
     <button onclick="printCustomerSummary()">🖨️ Print / Save as PDF</button>
   </div>
   <div id="custBody"></div>
+</div>
+
+<div id="actualPage">
+  <div class="cs-bar no-print">
+    <button type="button" onclick="closeActualPage()">&lsaquo; Back to estimate</button>
+    <span id="actTitle">Actual Costs</span>
+  </div>
+  <div id="actEntry" class="act-wrap">
+    <div class="act-proj" id="actProj"></div>
+    <div class="act-card">
+      <h3>&#128176; Enter Actual Costs</h3>
+      <div class="act-hint">Each line comes from this estimate. Type what you actually spent on it. Leave a line blank if it did not apply.</div>
+      <div id="actLines"></div>
+    </div>
+    <div class="act-card">
+      <h3>&#129518; Labor &amp; Totals</h3>
+      <label style="font-size:13px;font-weight:600;">Labor (Actual)</label>
+      <input type="number" id="actualLabor" placeholder="0.00" style="margin-bottom:4px;" oninput="updateActualComparison()">
+      <div class="act-hint" id="actLaborBud"></div>
+      <div class="act-sub">
+        <div><label>Materials total</label><input type="number" id="actualMaterials" placeholder="0.00" readonly></div>
+        <div><label>Equipment total</label><input type="number" id="actualEquipment" placeholder="0.00" readonly></div>
+        <div><label>Other total</label><input type="number" id="actualOther" placeholder="0.00" readonly></div>
+      </div>
+      <div style="padding-top:14px;border-top:2px solid #e0e0e0;">
+        <label style="font-size:13px;font-weight:600;color:#27ae60;">&#128181; Total Price Charged to Customer</label>
+        <input type="number" id="totalPriceCharged" placeholder="0.00" style="padding:12px;border-color:#27ae60;font-weight:600;font-size:16px;margin-bottom:4px;" oninput="updateActualComparison()">
+        <div class="act-hint">Enter the final amount the customer paid</div>
+      </div>
+    </div>
+    <div style="background:#e8f5e9;border:2px solid #27ae60;border-radius:8px;padding:20px;margin-bottom:16px;">
+            <h3 style="margin:0 0 16px 0;color:#27ae60;font-size:16px;">⏱️ Time Tracking & Efficiency</h3>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+              <div><label style="display:block;margin-bottom:4px;font-size:12px;font-weight:600;color:#2c3e50;">Budget Hours</label><input type="number" id="budgetHours" placeholder="0" step="0.5" style="width:100%;padding:8px;border:2px solid #27ae60;border-radius:6px;font-family:inherit;text-align:center;font-weight:600;" oninput="updateTimeTracking()" readonly><div style="font-size:10px;color:#7f8c8d;margin-top:4px;text-align:center;">From estimate</div></div>
+              <div><label style="display:block;margin-bottom:4px;font-size:12px;font-weight:600;color:#2c3e50;">Actual Hours</label><input type="number" id="actualHours" placeholder="0" step="0.5" style="width:100%;padding:8px;border:2px solid #3498db;border-radius:6px;font-family:inherit;text-align:center;font-weight:600;" oninput="updateTimeTracking()"><div style="font-size:10px;color:#7f8c8d;margin-top:4px;text-align:center;">Hours worked</div></div>
+            </div>
+            <div id="timeTrackingDisplay" style="display:none;"></div>
+          </div>
+          <div style="background:#fff9e6;border:2px solid #f39c12;border-radius:8px;padding:20px;margin-bottom:16px;">
+            <h3 style="margin:0 0 16px 0;color:#f39c12;font-size:16px;display:flex;align-items:center;gap:8px;">📝 Project Summary Notes <span style="font-size:10px;padding:3px 8px;background:rgba(243,156,18,0.2);border-radius:12px;font-weight:normal;">Optional</span></h3>
+            <div style="margin-bottom:16px;"><label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:#2c3e50;">✅ What Went Well</label><textarea id="notesWentWell" placeholder="Example: Crew arrived on time, equipment worked perfectly..." style="width:100%;min-height:70px;padding:10px;border:2px solid #27ae60;border-radius:6px;font-family:inherit;font-size:13px;resize:vertical;"></textarea></div>
+            <div style="margin-bottom:16px;"><label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:#2c3e50;">⚠️ Challenges / Issues</label><textarea id="notesChallenges" placeholder="Example: Unexpected underground utilities, equipment breakdown..." style="width:100%;min-height:70px;padding:10px;border:2px solid #e74c3c;border-radius:6px;font-family:inherit;font-size:13px;resize:vertical;"></textarea></div>
+            <div><label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:#2c3e50;">🎯 Action Steps for Future Jobs</label><textarea id="notesActionSteps" placeholder="Example: Add 2 hours buffer for similar properties..." style="width:100%;min-height:70px;padding:10px;border:2px solid #3498db;border-radius:6px;font-family:inherit;font-size:13px;resize:vertical;"></textarea></div>
+          </div>
+    <div id="comparisonDisplay" style="display:none;margin-bottom:16px;"></div>
+    <button type="button" class="act-go" onclick="showActualReport()">&#128202; View Final Report</button>
+  </div>
+  <div id="actReportWrap" class="act-wrap" style="display:none;">
+    <div class="act-tools no-print">
+      <button type="button" class="sec" onclick="showActualEntry()">&lsaquo; Edit actuals</button>
+      <button type="button" onclick="printActualReport()">&#128424;&#65039; Print / Save as PDF</button>
+      <button type="button" class="drv" onclick="saveActualReportToDrive()">&#9729; Save project + report to customer folder</button>
+      <span id="actMsg"></span>
+    </div>
+    <div id="actBody"></div>
+  </div>
 </div>
 
 <div id="surveyModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeSurveyModal()">
@@ -1252,7 +1321,7 @@ function captureProjectData() {
     equipment: equipmentRows.map(r => ({ description: document.getElementById(`equipment-desc-${r.id}`)?.value||'', cost: parseFloat(document.getElementById(`equipment-cost-${r.id}`)?.value)||0 })).filter(e => e.description.trim()),
     equipmentRental: equipmentRentalSelections.filter(r => r.name&&r.cost>0).map(r => ({ name:r.name, duration:r.duration, baseCost:r.baseCost, insurance:r.insurance, salesTax:r.salesTax, cost:r.cost, details:r.details })),
     additionalMaterials: additionalMaterialRows.map(r => ({ id:r.id, description:r.description, cost:r.cost })).filter(m => m.description||m.cost),
-    actualCosts: { materials: document.getElementById('actualMaterials')?.value||'', labor: document.getElementById('actualLabor')?.value||'', equipment: document.getElementById('actualEquipment')?.value||'', other: document.getElementById('actualOther')?.value||'', totalPriceCharged: document.getElementById('totalPriceCharged')?.value||'' },
+    actualCosts: { materials: document.getElementById('actualMaterials')?.value||'', labor: document.getElementById('actualLabor')?.value||'', equipment: document.getElementById('actualEquipment')?.value||'', other: document.getElementById('actualOther')?.value||'', totalPriceCharged: document.getElementById('totalPriceCharged')?.value||'', lines: actualLines },
     timeTracking: { budgetHours: document.getElementById('budgetHours')?.value||'', actualHours: document.getElementById('actualHours')?.value||'' },
     projectNotes: { wentWell: document.getElementById('notesWentWell')?.value||'', challenges: document.getElementById('notesChallenges')?.value||'', actionSteps: document.getElementById('notesActionSteps')?.value||'' },
     generalNotes: { orderNotes: document.getElementById('orderNotes')?.value||'', equipmentNotes: document.getElementById('equipmentNotes')?.value||'', siteNotes: document.getElementById('siteNotes')?.value||'', materialNotes: document.getElementById('materialNotes')?.value||'', materialAreaLabel: document.getElementById('materialAreaLabel')?.value||'' },
@@ -1267,6 +1336,7 @@ function captureProjectData() {
 
 function restoreProjectData(data) {
   if (!data) return;
+  actualLines = {};
   if (data.projectDetails) {
     ['projectName','propertyAddress','projectType'].forEach(id => { const el = document.getElementById(id); if(el) el.value = data.projectDetails[id]||''; });
   }
@@ -1333,7 +1403,10 @@ function restoreProjectData(data) {
     if (document.getElementById('actualEquipment')) document.getElementById('actualEquipment').value = data.actualCosts.equipment||'';
     if (document.getElementById('actualOther')) document.getElementById('actualOther').value = data.actualCosts.other||'';
     if (document.getElementById('totalPriceCharged')) document.getElementById('totalPriceCharged').value = data.actualCosts.totalPriceCharged||'';
+    if (data.actualCosts.lines && typeof data.actualCosts.lines === 'object') actualLines = Object.assign({}, data.actualCosts.lines);
+    else { [['materials','mat'],['equipment','eq'],['other','oth']].forEach(([k,sec]) => { if (parseFloat(data.actualCosts[k])>0) actualLines['x|'+sec] = String(data.actualCosts[k]); }); } // older saves had totals only
     if (data.actualCosts.materials||data.actualCosts.labor) setTimeout(() => updateActualComparison(), 300);
+    setTimeout(() => { if (typeof actRefreshBtn === 'function') actRefreshBtn(); }, 350);
   }
   if (data.timeTracking) {
     if (document.getElementById('budgetHours')) document.getElementById('budgetHours').value = data.timeTracking.budgetHours||'';
@@ -1386,17 +1459,273 @@ function newEstimate() {
   equipmentRows = []; document.getElementById('equipmentContainer').innerHTML = '';
   equipmentRentalSelections = []; equipmentRentalIdCounter = 0; document.getElementById('equipmentRentalList').innerHTML = '';
   additionalMaterialRows = []; document.getElementById('additionalMaterialsContainer').innerHTML = '';
-  completedMaterials = []; currentFileId = null;
+  completedMaterials = []; currentFileId = null; actualLines = {};
   ['actualMaterials','actualLabor','actualEquipment','actualOther','totalPriceCharged','budgetHours','actualHours'].forEach(id => { const el = document.getElementById(id); if(el) el.value = ''; });
   const acs = document.getElementById('actualCostsSection'); if(acs) acs.style.display = 'none';
   const tb = document.getElementById('toggleActualCosts'); if(tb) { tb.textContent = '📈 Track Actual Costs (Budget vs Actual)'; tb.style.background = 'linear-gradient(90deg,#9b59b6 0%,#8e44ad 100%)'; }
   calculate();
 }
 
-function toggleActualCostsSection() {
-  const section = document.getElementById('actualCostsSection'), button = document.getElementById('toggleActualCosts');
-  if (section.style.display === 'none') { section.style.display = 'block'; button.textContent = '✓ Actual Costs Tracking Active'; button.style.background = 'linear-gradient(90deg,#27ae60 0%,#229954 100%)'; }
-  else { section.style.display = 'none'; button.textContent = '📈 Track Actual Costs (Budget vs Actual)'; button.style.background = 'linear-gradient(90deg,#9b59b6 0%,#8e44ad 100%)'; }
+// ============================================================
+// ACTUAL COSTS PAGE  (opens full screen; line items come from the loaded estimate)
+// ============================================================
+var actualLines = {};   // line key -> actual $ typed for that estimate line (saved with the project)
+var actItemList = [];   // [{key,sec,label,short,sub,budget}] rebuilt from the estimate every time the page opens
+var ACT_SEC = { mat: ['🧱 Materials', 'materials'], eq: ['🚜 Equipment', 'equipment'], oth: ['📦 Add-ons, delivery & other', 'costs'] };
+var ACT_IDS = { mat: 'actualMaterials', eq: 'actualEquipment', oth: 'actualOther' };
+
+function actNum(v) { var n = parseFloat(v); return isFinite(n) ? n : 0; }
+function actVal(id) { var el = document.getElementById(id); return el ? el.value : ''; }
+function actCust() { return ((document.getElementById('projectName') || {}).value || '').replace(/[\\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim(); }
+
+// One line per thing in the estimate: every material (mulch, rock, dirt, sod), extra materials, equipment, rentals, add-ons, delivery, haul-away
+function actItems() {
+  calculate();
+  var e = window.lastSummaryData || {}, g = groupMaterials(e), out = [], seen = {};
+  var add = function (sec, base, label, short, sub, budget) {
+    var key = base; seen[key] = (seen[key] || 0) + 1; if (seen[key] > 1) key += '#' + seen[key];
+    out.push({ key: key, sec: sec, label: label, short: short, sub: sub || '', budget: budget || 0 });
+  };
+  g.items.forEach(function (i) {
+    var q = i.category === 'sod' ? (i.sq > 0 ? Math.round(i.sq).toLocaleString('en-US') + ' sq ft' : '') : (i.cy > 0 ? i.cy.toFixed(2) + ' cu yd' : '');
+    var cat = { mulch: 'Mulch', rock: 'Decorative rock', dirt: 'Dirt / soil', sod: 'Sod' }[i.category] || '';
+    add('mat', 'm|' + i.category + '|' + i.name + '|' + (i.area || ''), matIcon(i.category) + ' ' + i.name, i.name + (i.area ? ' (' + i.area + ')' : ''), [cat, i.area, q].filter(Boolean).join(' · '), i.cost);
+  });
+  (e.additionalMaterials || []).forEach(function (m) { add('mat', 'am|' + m.description, '📦 ' + m.description, m.description, 'Extra material · estimate includes 10% markup', (m.cost || 0) * 1.10); });
+  (e.equipmentRows || []).forEach(function (r) { add('eq', 'eq|' + r.description, '🔧 ' + r.description, r.description, '', r.cost); });
+  (e.equipmentRentalSelections || []).forEach(function (r) { add('eq', 'rent|' + r.name + '|' + (r.duration || ''), '🚜 ' + r.name, r.name, 'Rental' + (r.duration ? ' · ' + r.duration : ''), r.cost); });
+  if (e.geoTextileCost > 0) add('oth', 'geo', '🧵 Geo-Textile Weed Fabric', 'Geo-textile weed fabric', (e.geoTextileLinearFt || 0) + ' lin ft', e.geoTextileCost);
+  if (e.edgingCost > 0) add('oth', 'edg', '🔲 Composite Edging', 'Composite edging', (e.edgingLinearFt || 0) + ' lin ft', e.edgingCost);
+  if (e.deliveryFee > 0) add('oth', 'del', '🚚 Delivery fee', 'Delivery fee', '', e.deliveryFee);
+  if (e.haulAway > 0) add('oth', 'haul', '🗑️ Haul-away / disposal', 'Haul-away / disposal', '', e.haulAway);
+  return out;
+}
+function actRow(i) {
+  var cur = actualLines[i.key];
+  return '<div class="act-row' + (i.extra ? ' act-extra' : '') + '"><div class="act-lbl">' + escH(i.label) + (i.sub ? '<small>' + escH(i.sub) + '</small>' : '') + '</div>'
+    + '<div class="act-bud">' + (i.extra ? '—' : formatCurrency(i.budget)) + '</div>'
+    + '<input type="number" inputmode="decimal" step="0.01" min="0" placeholder="Spent $" data-key="' + escH(i.key) + '" data-sec="' + i.sec + '" data-bud="' + (i.extra ? '' : i.budget) + '" value="' + escH(cur == null ? '' : cur) + '" oninput="actLineInput(this)">'
+    + '<div class="act-var"></div></div>';
+}
+function actVar(row) {
+  var inp = row.querySelector('input'), out = row.querySelector('.act-var'); if (!inp || !out) return;
+  if (inp.dataset.bud === '' || inp.value === '') { out.textContent = ''; return; }
+  var bud = actNum(inp.dataset.bud), d = actNum(inp.value) - bud, tol = Math.max(1, bud * 0.05);
+  out.style.color = d > tol ? '#e74c3c' : d < -tol ? '#2980b9' : '#27ae60';
+  out.textContent = (d > 0 ? '+' : '') + formatCurrency(d);
+}
+function actRenderLines() {
+  actItemList = actItems();
+  var html = '<div class="act-row act-head"><div>Item</div><div class="act-bud">Estimate</div><div style="text-align:right">Actual spent</div><div class="act-var">Over / under</div></div>';
+  if (!actItemList.length) html += '<p style="color:#7f8c8d;font-size:13px;">No materials, equipment or add-ons are in this estimate yet. Use the “other” lines below, or add items to the estimate first.</p>';
+  ['mat', 'eq', 'oth'].forEach(function (sec) {
+    html += '<div class="act-bh">' + ACT_SEC[sec][0] + '</div>';
+    actItemList.filter(function (i) { return i.sec === sec; }).forEach(function (i) { html += actRow(i); });
+    html += actRow({ key: 'x|' + sec, sec: sec, label: '➕ Other ' + ACT_SEC[sec][1] + ' not in the estimate', sub: 'Anything bought or used that was not planned', budget: 0, extra: true });
+  });
+  var host = document.getElementById('actLines'); host.innerHTML = html;
+  Array.prototype.forEach.call(host.querySelectorAll('.act-row'), actVar);
+}
+function actLineInput(inp) {
+  if (inp.value === '') delete actualLines[inp.dataset.key]; else actualLines[inp.dataset.key] = inp.value;
+  actVar(inp.parentNode); actRollup();
+}
+// Section totals feed the same fields the budget-vs-actual comparison already uses
+function actRollup() {
+  var tot = { mat: 0, eq: 0, oth: 0 }, any = { mat: false, eq: false, oth: false };
+  Array.prototype.forEach.call(document.querySelectorAll('#actLines input[data-key]'), function (i) {
+    if (i.value !== '') { tot[i.dataset.sec] += actNum(i.value); any[i.dataset.sec] = true; }
+  });
+  Object.keys(ACT_IDS).forEach(function (k) { var el = document.getElementById(ACT_IDS[k]); if (el) el.value = any[k] ? tot[k].toFixed(2) : ''; });
+  updateActualComparison();
+}
+function openActualPage() {
+  calculate();
+  var e = window.lastSummaryData || {};
+  actRenderLines(); actRollup();
+  var nm = (e.projectName || '').trim(), ad = (e.propertyAddress || '').trim();
+  document.getElementById('actProj').innerHTML = nm || ad ? '<b>' + escH(nm || 'Untitled project') + '</b>' + (ad ? ' · ' + escH(ad) : '') : '<i>No project name entered yet.</i>';
+  document.getElementById('actLaborBud').textContent = 'Estimate: ' + formatCurrency(e.laborCost || 0) + ' (' + (e.laborHours || 0) + ' h). Fills in automatically from Actual Hours below; you can also type it.';
+  document.getElementById('actTitle').textContent = 'Actual Costs';
+  showActualEntry(true);
+  var pg = document.getElementById('actualPage'); pg.style.display = 'block'; pg.scrollTop = 0;
+  document.body.style.overflow = 'hidden';
+  updateTimeTracking();
+}
+function closeActualPage() { document.getElementById('actualPage').style.display = 'none'; document.body.style.overflow = ''; actRefreshBtn(); }
+function toggleActualCostsSection() { openActualPage(); }
+function actRefreshBtn() {
+  var tb = document.getElementById('toggleActualCosts'); if (!tb) return;
+  var any = ['actualMaterials', 'actualLabor', 'actualEquipment', 'actualOther', 'totalPriceCharged', 'actualHours'].some(function (id) { return actNum(actVal(id)) > 0; });
+  tb.textContent = any ? '✓ Actual Costs Tracking Active (tap to open)' : '📈 Track Actual Costs (Budget vs Actual)';
+  tb.style.background = any ? 'linear-gradient(90deg,#27ae60 0%,#229954 100%)' : 'linear-gradient(90deg,#9b59b6 0%,#8e44ad 100%)';
+}
+function showActualEntry(keepTop) {
+  document.getElementById('actReportWrap').style.display = 'none';
+  document.getElementById('actEntry').style.display = 'block';
+  document.getElementById('actTitle').textContent = 'Actual Costs';
+  if (!keepTop) document.getElementById('actualPage').scrollTop = 0;
+}
+function showActualReport() {
+  actRollup();
+  buildActualReport();
+  document.getElementById('actEntry').style.display = 'none';
+  document.getElementById('actReportWrap').style.display = 'block';
+  document.getElementById('actTitle').textContent = 'Final Report';
+  document.getElementById('actMsg').textContent = '';
+  document.getElementById('actualPage').scrollTop = 0;
+}
+
+// ---------- Final report: budget vs actual, what went well, what to improve ----------
+function buildActualReport() {
+  calculate();
+  var e = window.lastSummaryData || {}, sc = document.getElementById('summaryContent');
+  var cats = [['mat', 'Materials'], ['lab', 'Labor'], ['eq', 'Equipment'], ['oth', 'Add-ons, delivery & other']];
+  var bud = { mat: actNum(sc.getAttribute('data-materials')), lab: actNum(sc.getAttribute('data-labor')), eq: actNum(sc.getAttribute('data-equipment')), oth: actNum(sc.getAttribute('data-other')) };
+  var act = { mat: actNum(actVal('actualMaterials')), lab: actNum(actVal('actualLabor')), eq: actNum(actVal('actualEquipment')), oth: actNum(actVal('actualOther')) };
+  var budT = bud.mat + bud.lab + bud.eq + bud.oth, actT = act.mat + act.lab + act.eq + act.oth;
+  var price = actNum(actVal('totalPriceCharged')), target = actNum(actVal('profitMarginSlider')) || 40;
+  var bh = actNum(actVal('budgetHours')), ah = actNum(actVal('actualHours'));
+  var money = formatCurrency, sgn = function (d) { return (d > 0 ? '+' : '') + money(d); };
+  var missing = cats.filter(function (c) { return bud[c[0]] > 0 && act[c[0]] === 0; }).map(function (c) { return c[1]; });
+  var ap = price - actT, apm = price > 0 ? ap / price * 100 : 0, diffT = actT - budT, pctT = budT > 0 ? diffT / budT * 100 : 0;
+
+  // line items with an actual typed in
+  var rows = actItemList.filter(function (i) { return actualLines[i.key] != null && actualLines[i.key] !== ''; })
+    .map(function (i) { var a = actNum(actualLines[i.key]); return { sec: i.sec, name: i.short, sub: i.sub, bud: i.budget, act: a, d: a - i.budget }; });
+  var extras = [['mat', 'materials'], ['eq', 'equipment'], ['oth', 'other costs']].map(function (x) { return { sec: x[0], name: 'Not in estimate: ' + x[1], sub: '', bud: 0, act: actNum(actualLines['x|' + x[0]]), d: actNum(actualLines['x|' + x[0]]) }; }).filter(function (r) { return r.act > 0; });
+  var extraTot = extras.reduce(function (t, r) { return t + r.act; }, 0);
+
+  // highlights (kept short: the top few of each)
+  var well = [], imp = [];
+  if (actT > 0 && budT > 0 && !missing.length) {
+    if (pctT <= -5) well.push('Total job cost came in ' + money(-diffT) + ' (' + Math.abs(pctT).toFixed(0) + '%) under the estimate.');
+    else if (pctT <= 5) well.push('Total job cost stayed within 5% of the estimate (' + sgn(diffT) + ').');
+    else imp.push('Total job cost ran ' + money(diffT) + ' (' + pctT.toFixed(0) + '%) over the estimate.');
+  }
+  if (price > 0 && actT > 0) {
+    if (apm >= target - 2) well.push('Profit margin was ' + apm.toFixed(1) + '% against a ' + target + '% target' + (apm > target + 2 ? ', so the target was exceeded.' : '.'));
+    else imp.push('Profit margin was ' + apm.toFixed(1) + '%, ' + (target - apm).toFixed(1) + ' points below the ' + target + '% target. Review the pricing and the biggest over-budget items.');
+  }
+  if (ah > 0 && bh > 0) {
+    if (ah <= bh * 1.05) well.push('Crew finished in ' + ah + ' h against ' + bh + ' h budgeted (' + (bh / ah * 100).toFixed(0) + '% efficiency).');
+    else imp.push('The job took ' + (ah - bh).toFixed(1) + ' h longer than budgeted (' + ah + ' h vs ' + bh + ' h). Add labor time to similar future estimates.');
+  }
+  rows.filter(function (r) { return r.d < -Math.max(25, r.bud * 0.10); }).sort(function (a, b) { return a.d - b.d; }).slice(0, 2)
+    .forEach(function (r) { well.push(r.name + ' cost ' + money(-r.d) + ' less than estimated.'); });
+  rows.filter(function (r) { return r.d > Math.max(25, r.bud * 0.10); }).sort(function (a, b) { return b.d - a.d; }).slice(0, 3)
+    .forEach(function (r) { imp.push(r.name + ' cost ' + money(r.d) + ' more than estimated (' + money(r.act) + ' vs ' + money(r.bud) + '). Check the quantity or price used in the estimate.'); });
+  if (extraTot > 0) imp.push(money(extraTot) + ' was spent on items that were not in the estimate. Add them to future estimates or include a buffer.');
+  if (!well.length) well.push(actT > 0 ? 'No standout savings on this job.' : 'Enter actual costs to see what went well.');
+  if (!imp.length) imp.push(actT > 0 ? 'No major problem areas. Keep using the same approach.' : 'Enter actual costs to see areas to improve.');
+  well = well.slice(0, 4); imp = imp.slice(0, 4);
+  var li = function (a) { return '<ul>' + a.map(function (t) { return '<li>' + escH(t) + '</li>'; }).join('') + '</ul>'; };
+
+  var today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  var tone = actT === 0 ? '#95a5a6' : (price > 0 ? (apm >= target - 2 ? '#27ae60' : apm >= target - 5 ? '#f39c12' : '#e74c3c') : (pctT <= 5 ? '#27ae60' : '#e74c3c'));
+  var status = actT === 0 ? 'No actual costs entered yet' : (Math.abs(pctT) <= 5 ? '✓ On budget' : pctT < 0 ? '↓ Under budget' : '↑ Over budget') + (budT > 0 && !missing.length ? ' (' + sgn(diffT) + ', ' + (pctT >= 0 ? '+' : '') + pctT.toFixed(1) + '%)' : '');
+  var cell = function (k, v) { return '<div style="flex:1;min-width:110px;text-align:center;padding:6px 4px;"><div style="font-size:11px;color:#7f8c8d;text-transform:uppercase;">' + k + '</div><div style="font-size:16px;font-weight:700;color:#2c3e50;">' + v + '</div></div>'; };
+  var info = [['Project', e.projectName], ['Property', e.propertyAddress], ['Project type', e.projectType]].filter(function (x) { return x[1]; })
+    .map(function (x) { return '<tr><th style="width:130px">' + x[0] + '</th><td>' + escH(x[1]) + '</td></tr>'; }).join('');
+  var R = ' style="text-align:right"';
+  var catRows = cats.map(function (c) {
+    var k = c[0], has = act[k] > 0, d = act[k] - bud[k];
+    return '<tr><td>' + c[1] + '</td><td' + R + '>' + money(bud[k]) + '</td><td' + R + '>' + (has ? money(act[k]) : '—') + '</td><td' + R + '>' + (has ? '<b style="color:' + (d > Math.max(1, bud[k] * 0.05) ? '#e74c3c' : d < -Math.max(1, bud[k] * 0.05) ? '#2980b9' : '#27ae60') + '">' + sgn(d) + '</b>' : '—') + '</td></tr>';
+  }).join('') + '<tr><td><b>Total</b></td><td' + R + '><b>' + money(budT) + '</b></td><td' + R + '><b>' + (actT > 0 ? money(actT) : '—') + '</b></td><td' + R + '><b>' + (actT > 0 && !missing.length ? sgn(diffT) : '—') + '</b></td></tr>';
+  var detail = '';
+  ['mat', 'eq', 'oth'].forEach(function (sec) {
+    var lst = actItemList.filter(function (i) { return i.sec === sec; }).map(function (i) { var a = actualLines[i.key]; var has = a != null && a !== ''; return { name: i.short, sub: i.sub, bud: i.budget, act: has ? actNum(a) : null }; })
+      .concat(extras.filter(function (r) { return r.sec === sec; }).map(function (r) { return { name: r.name, sub: '', bud: 0, act: r.act }; }));
+    if (!lst.length) return;
+    detail += '<tr><td colspan="4" style="background:#f4f6f8;"><b>' + ACT_SEC[sec][0] + '</b></td></tr>' + lst.map(function (r) {
+      var d = r.act == null ? null : r.act - r.bud;
+      return '<tr><td>' + escH(r.name) + (r.sub ? '<br><small style="color:#7f8c8d">' + escH(r.sub) + '</small>' : '') + '</td><td' + R + '>' + (r.bud ? money(r.bud) : '—') + '</td><td' + R + '>' + (r.act == null ? '<span style="color:#95a5a6">not entered</span>' : money(r.act)) + '</td><td' + R + '>' + (d == null || !r.bud ? '—' : '<b style="color:' + (d > Math.max(1, r.bud * 0.05) ? '#e74c3c' : d < -Math.max(1, r.bud * 0.05) ? '#2980b9' : '#27ae60') + '">' + sgn(d) + '</b>') + '</td></tr>';
+    }).join('');
+  });
+  var notes = [['✅ What went well (crew notes)', 'notesWentWell'], ['⚠️ Challenges / issues', 'notesChallenges'], ['🎯 Action steps for future jobs', 'notesActionSteps']]
+    .filter(function (n) { return actVal(n[1]).trim(); })
+    .map(function (n) { return '<div style="margin-bottom:8px;"><b>' + n[0] + '</b><div style="white-space:pre-wrap;">' + escH(actVal(n[1]).trim()) + '</div></div>'; }).join('');
+
+  var h = '<div style="display:flex;gap:14px;align-items:center"><img src="https://static.wixstatic.com/media/99a075_f0b64d954a90417ba2ac87c06f85804a~mv2.png" style="height:64px;width:auto" alt=""><div><h1>Job Cost Report</h1><div style="color:#7f8c8d;font-size:13px">WS Lawn Care Services, LLC · ' + today + ' · Internal</div></div></div>'
+    + (info ? '<table style="margin-top:12px">' + info + '</table>' : '')
+    + '<h2>Summary</h2><div style="border:2px solid ' + tone + ';border-radius:8px;padding:10px 12px;"><div style="font-weight:700;color:' + tone + ';text-align:center;margin-bottom:6px;">' + escH(status) + '</div><div style="display:flex;flex-wrap:wrap;gap:4px;">'
+    + cell('Price charged', price > 0 ? money(price) : '—') + cell('Actual cost', actT > 0 ? money(actT) : '—') + cell('Profit', price > 0 && actT > 0 ? money(ap) + ' (' + apm.toFixed(1) + '%)' : '—') + cell('Hours', ah > 0 ? ah + ' h' + (bh > 0 ? ' of ' + bh + ' h' : '') : '—') + '</div></div>'
+    + '<h2>✅ What went well</h2>' + li(well)
+    + '<h2>⚠️ Areas to improve</h2>' + li(imp)
+    + '<h2>Budget vs actual</h2><table><tr><th>Category</th><th' + R + '>Estimate</th><th' + R + '>Actual</th><th' + R + '>Over / under</th></tr>' + catRows + '</table>'
+    + (detail ? '<h2>Line item detail</h2><table><tr><th>Item</th><th' + R + '>Estimate</th><th' + R + '>Actual</th><th' + R + '>Over / under</th></tr>' + detail + '</table>' : '')
+    + (notes ? '<h2>Crew notes</h2><div>' + notes + '</div>' : '')
+    + (missing.length ? '<div class="no-print" style="margin-top:14px;padding:10px 12px;background:#fff3cd;border:2px solid #f39c12;border-radius:6px;font-size:13px;">⚠ No actuals entered for: <b>' + escH(missing.join(', ')) + '</b>. The report treats these as not tracked. Tap “Edit actuals” to add them.</div>' : '')
+    + '<div class="cs-foot">WS Lawn Care Services, LLC · Internal job cost report · contains pricing and profit data</div>';
+  document.getElementById('actBody').innerHTML = h;
+}
+
+function actMsg(t, bad, html) { var m = document.getElementById('actMsg'); m.style.color = bad ? '#c0392b' : '#27ae60'; if (html) m.innerHTML = t; else m.textContent = t; }
+function actPdfName() { var nm = actCust(); return 'WS Lawn Care Services, LLC' + (nm ? ' - ' + nm : '') + ' - Actual Cost Report - ' + new Date().toISOString().slice(0, 10) + '.pdf'; }
+function actLoadScript(url) { return new Promise(function (res, rej) { var sc = document.createElement('script'); sc.src = url; sc.onload = res; sc.onerror = function () { rej(new Error('Could not load the PDF tool (check your connection).')); }; document.head.appendChild(sc); }); }
+async function actPdfBlob() {
+  if (!window.html2canvas) await actLoadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+  if (!(window.jspdf && window.jspdf.jsPDF)) await actLoadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+  return buildSummaryPdf(document.getElementById('actBody'));
+}
+// Saves the report PDF next to the customer's survey (the same savePdf action the Customer Summary uses)
+// Saves the project data (estimate + actuals) to the same project file the Save to Drive button uses
+async function actSaveProject() {
+  if (!actCust()) throw new Error('Enter a Project Name on the estimate first.');
+  var data = captureProjectData();
+  if (currentFileId) {
+    var o = await postToDrive('overwrite', { fileId: currentFileId, data: data });
+    if (!o.success) throw new Error(o.error || 'Project save failed');
+    return;
+  }
+  var r = await postToDrive('save', { data: data });
+  if (r.success) { currentFileId = r.fileId; return; }
+  if (r.conflict) {
+    if (!confirm('A project with this name and address already exists on Drive.\n\nOK = Update it with these actuals\nCancel = Stop (nothing saved)')) throw new Error('Cancelled. Nothing was saved.');
+    var o2 = await postToDrive('overwrite', { fileId: r.fileId, data: data });
+    if (!o2.success) throw new Error(o2.error || 'Project save failed');
+    currentFileId = r.fileId; return;
+  }
+  throw new Error(r.error || 'Project save failed');
+}
+async function saveActualReportToDrive() {
+  if (!APPS_SCRIPT_URL) { alert('Please configure your Apps Script URL first.'); return; }
+  if (!actCust()) { alert('Please enter a Project Name on the estimate before saving.'); return; }
+  var fid = (surveyRef && surveyRef.folderId) || '';
+  if (!fid && !confirm('No customer survey folder is linked to this project, so the PDF will go to the default Drive folder.\n\nOK = Save anyway\nCancel = Do not save')) return;
+  try {
+    actMsg('Saving project…');
+    await actSaveProject();
+    actMsg('Project saved. Building PDF…');
+    var b = await actPdfBlob();
+    actMsg('Uploading PDF to Drive…');
+    var b64 = await new Promise(function (res, rej) { var fr = new FileReader(); fr.onload = function () { res(String(fr.result).split(',')[1]); }; fr.onerror = rej; fr.readAsDataURL(b); });
+    var r = await postToDrive('savePdf', { folderId: fid, fileName: actPdfName(), base64: b64 });
+    if (!r || !r.success) throw new Error((r && r.error) ? r.error : 'Drive did not confirm the save.');
+    var link = r.url && /^https:\/\//i.test(r.url) ? ' <a href="' + escH(r.url) + '" target="_blank" rel="noopener noreferrer">Open PDF</a>' : '';
+    actMsg('✓ Project and report saved to ' + (fid ? 'the customer’s folder' : 'Drive') + '.' + link, false, true);
+  } catch (err) { actMsg('Could not save: ' + (err && err.message ? err.message : err), true); }
+}
+function printActualReport() {
+  var nm = actCust(), title = 'WS Lawn Care Services, LLC' + (nm ? ' - ' + nm : '') + ' - Actual Cost Report';
+  var framed = false; try { framed = window.self !== window.top; } catch (err) { framed = true; }
+  if (!framed) {
+    var old = document.title; document.title = title; document.body.classList.add('pa');
+    var done = function () { document.title = old; document.body.classList.remove('pa'); window.removeEventListener('afterprint', done); };
+    window.addEventListener('afterprint', done); window.print(); return;
+  }
+  // inside an iframe (SuiteDash) the PDF would be named after the parent page, so print from our own small window
+  var clone = document.getElementById('actBody').cloneNode(true);
+  Array.prototype.forEach.call(clone.querySelectorAll('.no-print'), function (n) { n.remove(); });
+  var w = window.open('', '_blank');
+  if (!w) { alert('Your browser blocked the pop-up. Allow pop-ups for this page and tap Print again.'); return; }
+  var css = '@page{size:letter;margin:.5in}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:14px;line-height:1.4;color:#000}'
+    + '#actBody{max-width:820px;margin:0 auto;padding:10px}h1{font-size:22px}h2{font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#27ae60;margin:20px 0 8px}'
+    + 'table{width:100%;border-collapse:collapse;margin:6px 0}th,td{border-bottom:1px solid #e0e0e0;padding:6px 4px;text-align:left;vertical-align:top}th{font-size:12px;color:#7f8c8d;text-transform:uppercase}ul{margin:4px 0 0 18px;padding:0}li{margin-bottom:5px}'
+    + '.cs-foot{margin-top:24px;padding-top:10px;border-top:2px solid #27ae60;font-size:12px;color:#7f8c8d;text-align:center}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}';
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + escH(title) + '</title><style>' + css + '</style></head><body><div id="actBody">' + clone.innerHTML + '</div></body></html>');
+  w.document.close();
+  setTimeout(function () { try { w.focus(); w.print(); } catch (err) {} }, 700);
 }
 
 function updateTimeTracking() {
