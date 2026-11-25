@@ -139,6 +139,8 @@
       body.pa .container, body.pa #toast, body.pa .modal-overlay { display:none !important; }
       body.pa #actualPage { display:block !important; position:static !important; overflow:visible !important; }
       body.pa #actEntry { display:none !important; }
+      body.pa .act-sec, body.pa #actBody tr { break-inside:avoid; page-break-inside:avoid; }
+      body.pa .act-sec[data-pagebreak] { break-before:page; page-break-before:always; }
       body.pc .container, body.pc #toast, body.pc .modal-overlay { display:none !important; }
       body.pc #custSummary { display:block !important; position:static !important; overflow:visible !important; }
       .no-print { display:none !important; }
@@ -1628,7 +1630,7 @@ function buildActualReport() {
   if (!well.length) well.push(actT > 0 ? 'No standout savings on this job.' : 'Enter actual costs to see what went well.');
   if (!imp.length) imp.push(actT > 0 ? 'No major problem areas. Keep using the same approach.' : 'Enter actual costs to see areas to improve.');
   well = well.slice(0, 4); imp = imp.slice(0, 4);
-  var li = function (a) { return '<ul>' + a.map(function (t) { return '<li>' + escH(t) + '</li>'; }).join('') + '</ul>'; };
+  var li = function (a) { return '<ul style="list-style:disc;margin:4px 0 0 20px;padding:0;">' + a.map(function (t) { return '<li style="display:list-item;margin-bottom:5px;">' + escH(t) + '</li>'; }).join('') + '</ul>'; };
 
   var today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   var tone = actT === 0 ? '#95a5a6' : (price > 0 ? (apm >= target - 2 ? '#27ae60' : apm >= target - 5 ? '#f39c12' : '#e74c3c') : (pctT <= 5 ? '#27ae60' : '#e74c3c'));
@@ -1641,15 +1643,15 @@ function buildActualReport() {
     var k = c[0], has = act[k] > 0, d = act[k] - bud[k];
     return '<tr><td>' + c[1] + '</td><td' + R + '>' + money(bud[k]) + '</td><td' + R + '>' + (has ? money(act[k]) : '—') + '</td><td' + R + '>' + (has ? '<b style="color:' + (d > Math.max(1, bud[k] * 0.05) ? '#e74c3c' : d < -Math.max(1, bud[k] * 0.05) ? '#2980b9' : '#27ae60') + '">' + sgn(d) + '</b>' : '—') + '</td></tr>';
   }).join('') + '<tr><td><b>Total</b></td><td' + R + '><b>' + money(budT) + '</b></td><td' + R + '><b>' + (actT > 0 ? money(actT) : '—') + '</b></td><td' + R + '><b>' + (actT > 0 && !missing.length ? sgn(diffT) : '—') + '</b></td></tr>';
-  var detail = '';
+  var detailParts = [];
   ['mat', 'eq', 'oth'].forEach(function (sec) {
     var lst = actItemList.filter(function (i) { return i.sec === sec; }).map(function (i) { var a = actualLines[i.key]; var has = a != null && a !== ''; return { name: i.short, sub: i.sub, bud: i.budget, act: has ? actNum(a) : null }; })
       .concat(extras.filter(function (r) { return r.sec === sec; }).map(function (r) { return { name: r.name, sub: '', bud: 0, act: r.act }; }));
     if (!lst.length) return;
-    detail += '<tr><td colspan="4" style="background:#f4f6f8;"><b>' + ACT_SEC[sec][0] + '</b></td></tr>' + lst.map(function (r) {
+    detailParts.push('<tr><td colspan="4" style="background:#f4f6f8;"><b>' + ACT_SEC[sec][0] + '</b></td></tr>' + lst.map(function (r) {
       var d = r.act == null ? null : r.act - r.bud;
       return '<tr><td>' + escH(r.name) + (r.sub ? '<br><small style="color:#7f8c8d">' + escH(r.sub) + '</small>' : '') + '</td><td' + R + '>' + (r.bud ? money(r.bud) : '—') + '</td><td' + R + '>' + (r.act == null ? '<span style="color:#95a5a6">not entered</span>' : money(r.act)) + '</td><td' + R + '>' + (d == null || !r.bud ? '—' : '<b style="color:' + (d > Math.max(1, r.bud * 0.05) ? '#e74c3c' : d < -Math.max(1, r.bud * 0.05) ? '#2980b9' : '#27ae60') + '">' + sgn(d) + '</b>') + '</td></tr>';
-    }).join('');
+    }).join(''));
   });
   var notes = [['✅ What went well (crew notes)', 'notesWentWell'], ['⚠️ Challenges / issues', 'notesChallenges'], ['🎯 Action steps for future jobs', 'notesActionSteps']]
     .filter(function (n) { return actVal(n[1]).trim(); })
@@ -1657,13 +1659,13 @@ function buildActualReport() {
 
   var h = '<div style="display:flex;gap:14px;align-items:center"><img src="https://static.wixstatic.com/media/99a075_f0b64d954a90417ba2ac87c06f85804a~mv2.png" style="height:64px;width:auto" alt=""><div><h1>Job Cost Report</h1><div style="color:#7f8c8d;font-size:13px">WS Lawn Care Services, LLC · ' + today + ' · Internal</div></div></div>'
     + (info ? '<table style="margin-top:12px">' + info + '</table>' : '')
-    + '<h2>Summary</h2><div style="border:2px solid ' + tone + ';border-radius:8px;padding:10px 12px;"><div style="font-weight:700;color:' + tone + ';text-align:center;margin-bottom:6px;">' + escH(status) + '</div><div style="display:flex;flex-wrap:wrap;gap:4px;">'
-    + cell('Price charged', price > 0 ? money(price) : '—') + cell('Actual cost', actT > 0 ? money(actT) : '—') + cell('Profit', price > 0 && actT > 0 ? money(ap) + ' (' + apm.toFixed(1) + '%)' : '—') + cell('Hours', ah > 0 ? ah + ' h' + (bh > 0 ? ' of ' + bh + ' h' : '') : '—') + '</div></div>'
-    + '<h2>✅ What went well</h2>' + li(well)
-    + '<h2>⚠️ Areas to improve</h2>' + li(imp)
-    + '<h2>Budget vs actual</h2><table><tr><th>Category</th><th' + R + '>Estimate</th><th' + R + '>Actual</th><th' + R + '>Over / under</th></tr>' + catRows + '</table>'
-    + (detail ? '<h2>Line item detail</h2><table><tr><th>Item</th><th' + R + '>Estimate</th><th' + R + '>Actual</th><th' + R + '>Over / under</th></tr>' + detail + '</table>' : '')
-    + (notes ? '<h2>Crew notes</h2><div>' + notes + '</div>' : '')
+    + '<div class="act-sec"><h2>Summary</h2><div style="border:2px solid ' + tone + ';border-radius:8px;padding:10px 12px;"><div style="font-weight:700;color:' + tone + ';text-align:center;margin-bottom:6px;">' + escH(status) + '</div><div style="display:flex;flex-wrap:wrap;gap:4px;">'
+    + cell('Price charged', price > 0 ? money(price) : '—') + cell('Actual cost', actT > 0 ? money(actT) : '—') + cell('Profit', price > 0 && actT > 0 ? money(ap) + ' (' + apm.toFixed(1) + '%)' : '—') + cell('Hours', ah > 0 ? ah + ' h' + (bh > 0 ? ' of ' + bh + ' h' : '') : '—') + '</div></div></div>'
+    + '<div class="act-sec"><h2>✅ What went well</h2>' + li(well) + '</div>'
+    + '<div class="act-sec"><h2>⚠️ Areas to improve</h2>' + li(imp) + '</div>'
+    + '<div class="act-sec"><h2>Budget vs actual</h2><table><tr><th>Category</th><th' + R + '>Estimate</th><th' + R + '>Actual</th><th' + R + '>Over / under</th></tr>' + catRows + '</table></div>'
+    + detailParts.map(function (rowsHtml, n) { return '<div class="act-sec"' + (n === 0 ? ' data-pagebreak="1"' : '') + '>' + (n === 0 ? '<h2>Line item detail</h2>' : '') + '<table><tr><th>Item</th><th' + R + '>Estimate</th><th' + R + '>Actual</th><th' + R + '>Over / under</th></tr>' + rowsHtml + '</table></div>'; }).join('')
+    + (notes ? '<div class="act-sec"><h2>Crew notes</h2><div>' + notes + '</div></div>' : '')
     + (missing.length ? '<div class="no-print" style="margin-top:14px;padding:10px 12px;background:#fff3cd;border:2px solid #f39c12;border-radius:6px;font-size:13px;">⚠ No actuals entered for: <b>' + escH(missing.join(', ')) + '</b>. The report treats these as not tracked. Tap “Edit actuals” to add them.</div>' : '')
     + '<div class="cs-foot">WS Lawn Care Services, LLC · Internal job cost report · contains pricing and profit data</div>';
   document.getElementById('actBody').innerHTML = h;
@@ -1731,6 +1733,7 @@ function printActualReport() {
   var css = '@page{size:letter;margin:.5in}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;font-size:14px;line-height:1.4;color:#000}'
     + '#actBody{max-width:820px;margin:0 auto;padding:10px}h1{font-size:22px}h2{font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#27ae60;margin:20px 0 8px}'
     + 'table{width:100%;border-collapse:collapse;margin:6px 0}th,td{border-bottom:1px solid #e0e0e0;padding:6px 4px;text-align:left;vertical-align:top}th{font-size:12px;color:#7f8c8d;text-transform:uppercase}ul{margin:4px 0 0 18px;padding:0}li{margin-bottom:5px}'
+    + '.act-sec,tr{break-inside:avoid;page-break-inside:avoid}.act-sec[data-pagebreak]{break-before:page;page-break-before:always}'
     + '.cs-foot{margin-top:24px;padding-top:10px;border-top:2px solid #27ae60;font-size:12px;color:#7f8c8d;text-align:center}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}';
   w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + escH(title) + '</title><style>' + css + '</style></head><body><div id="actBody">' + clone.innerHTML + '</div></body></html>');
   w.document.close();
@@ -2080,6 +2083,7 @@ async function buildSummaryPdf(src) {
       await Promise.all(Array.prototype.map.call(wrap.querySelectorAll('img'), function (im) { return im.decode ? im.decode().catch(function () {}) : null; }));
       var cv = await window.html2canvas(wrap, { scale: 2, backgroundColor: '#fff', useCORS: true, scrollX: 0, scrollY: 0, windowWidth: Math.max(document.documentElement.clientWidth, PX) });
       if (!cv.width || !cv.height) continue;
+      if (blocks[b].getAttribute && blocks[b].getAttribute('data-pagebreak') && y > M) { pdf.addPage(); y = M; }
       var h = cv.height / cv.width * CW;
       if (h <= usable) {
         if (y + h > PH - M && y > M) { pdf.addPage(); y = M; }
