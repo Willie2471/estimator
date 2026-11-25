@@ -1486,10 +1486,19 @@ function actItems() {
     var key = base; seen[key] = (seen[key] || 0) + 1; if (seen[key] > 1) key += '#' + seen[key];
     out.push({ key: key, sec: sec, label: label, short: short, sub: sub || '', budget: budget || 0 });
   };
+  // Same material = one line (bulk purchases can't be split by bed), so combine areas that use the same product
+  var byMat = {}, order = [];
   g.items.forEach(function (i) {
-    var q = i.category === 'sod' ? (i.sq > 0 ? Math.round(i.sq).toLocaleString('en-US') + ' sq ft' : '') : (i.cy > 0 ? i.cy.toFixed(2) + ' cu yd' : '');
-    var cat = { mulch: 'Mulch', rock: 'Decorative rock', dirt: 'Dirt / soil', sod: 'Sod' }[i.category] || '';
-    add('mat', 'm|' + i.category + '|' + i.name + '|' + (i.area || ''), matIcon(i.category) + ' ' + i.name, i.name + (i.area ? ' (' + i.area + ')' : ''), [cat, i.area, q].filter(Boolean).join(' · '), i.cost);
+    var k = i.category + '|' + i.name, a = byMat[k];
+    if (!a) { a = byMat[k] = { category: i.category, name: i.name, cost: 0, cy: 0, sq: 0, areas: [] }; order.push(k); }
+    a.cost += i.cost || 0; a.cy += i.cy || 0; a.sq += i.sq || 0; if (i.area && a.areas.indexOf(i.area) < 0) a.areas.push(i.area);
+  });
+  order.forEach(function (k) {
+    var a = byMat[k];
+    var q = a.category === 'sod' ? (a.sq > 0 ? Math.round(a.sq).toLocaleString('en-US') + ' sq ft' : '') : (a.cy > 0 ? a.cy.toFixed(2) + ' cu yd' : '');
+    var cat = { mulch: 'Mulch', rock: 'Decorative rock', dirt: 'Dirt / soil', sod: 'Sod' }[a.category] || '';
+    var areaTxt = a.areas.length > 1 ? a.areas.length + ' areas combined' : (a.areas[0] || '');
+    add('mat', 'm|' + a.category + '|' + a.name, matIcon(a.category) + ' ' + a.name, a.name, [cat, q, areaTxt].filter(Boolean).join(' · '), a.cost);
   });
   (e.additionalMaterials || []).forEach(function (m) { add('mat', 'am|' + m.description, '📦 ' + m.description, m.description, 'Extra material · estimate includes 10% markup', (m.cost || 0) * 1.10); });
   (e.equipmentRows || []).forEach(function (r) { add('eq', 'eq|' + r.description, '🔧 ' + r.description, r.description, '', r.cost); });
